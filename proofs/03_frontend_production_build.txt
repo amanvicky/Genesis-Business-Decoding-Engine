@@ -1,0 +1,19 @@
+=== Genesis v1.1.0 — Next.js strict production build (TypeScript strict + noUncheckedIndexedAccess) ===
+command: cd frontend && npm run build
+date: 2026-11-02 21:14 UTC
+
+ ✓ Generating static pages (4/4)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                              Size     First Load JS
+┌ ○ /                                    16.2 kB         103 kB
+└ ○ /_not-found                          873 B          88.2 kB
++ First Load JS shared by all            87.3 kB
+  ├ chunks/117-7b01968a2ed24920.js       31.7 kB
+  ├ chunks/fd9d1056-314442b610634306.js  53.6 kB
+  └ other shared chunks (total)          1.92 kB
+
+
+○  (Static)  prerendered as static content
+

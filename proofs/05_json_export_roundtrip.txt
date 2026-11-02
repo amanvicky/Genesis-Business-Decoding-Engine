@@ -1,0 +1,12 @@
+=== Genesis v1.1.0 — structured JSON export round-trip (schema genesis.report/v1) ===
+command: POST /api/analyze/stream -> POST /api/export/json -> validate
+date: 2026-11-02 21:14 UTC
+
+schema       : genesis.report/v1
+generator    : Genesis 1.1.0
+subject      : payroll automation for Indian SMBs
+sections     : 13 / 13
+adversary    : 5 fatal, 9 serious challenges
+roadmap build_now items: 6
+sandbox opex from burn calculator: {'opex_month': 240667}
+JSON round-trip: VALID
