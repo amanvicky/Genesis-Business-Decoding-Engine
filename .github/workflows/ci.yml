@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  backend:
+    name: Offline pipeline smoke test (13/13 sections, zero network)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - name: Install backend dependencies
+        run: pip install -r backend/requirements.txt
+      - name: Run pipeline offline (GENESIS_OFFLINE=1)
+        working-directory: backend
+        env:
+          GENESIS_OFFLINE: "1"
+        run: python scripts/smoke_test.py
+      - name: Compile check (all modules)
+        run: python -m compileall -q backend/app backend/scripts
+
+  frontend:
+    name: Strict TypeScript production build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Build (strict + noUncheckedIndexedAccess)
+        working-directory: frontend
+        run: npm run build

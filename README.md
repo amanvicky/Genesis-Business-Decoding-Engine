@@ -2,6 +2,11 @@
 
 **100% free · open-source (MIT) · zero API keys · runs entirely on your machine.**
 
+[![CI](https://github.com/amanvicky/Genesis-Business-Decoding-Engine/actions/workflows/ci.yml/badge.svg)](https://github.com/amanvicky/Genesis-Business-Decoding-Engine/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
+![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)
+![Node](https://img.shields.io/badge/Node-18%2B-green.svg)
+
 Genesis is a one-stop intelligence platform for startup founders. Feed it either an
 **established company** (ADP, Stripe, Razorpay, any competitor…) or a **raw business
 idea**, and it returns a 13-tab dossier: structural feasibility, decompiled feature
@@ -23,7 +28,17 @@ whole playbook. Export to Markdown, schema-versioned JSON, or a downloadable pla
 
 ---
 
-## What the 12 agents produce
+## Proof, not promises
+
+![Live ADP decode — agent console, tab bar, EDGAR-sourced evidence](proofs/screenshots/01_dashboard_adp_live_decode.png)
+
+Raw captured evidence lives in [`proofs/`](proofs/README.md): an offline 13/13-section
+pipeline run (zero network), a live ADP decode showing multi-layer triangulation and
+the SEC EDGAR revenue match ($21.9B, CIK 8670), the strict TypeScript build, and the
+JSON export round-trip. CI re-runs the offline pipeline and the strict build on every
+push — the badge at the top is always current.
+
+## What the 13 agents produce
 
 | # | Tab | What you get |
 |---|-----|--------------|
@@ -211,21 +226,28 @@ hammered).
 ```
 backend/
   app/
-    main.py               FastAPI app (stream, health, exports)
-    pipeline.py           recon → 12 agents orchestration
+    main.py               FastAPI app (stream, health, md/json/zip exports)
+    pipeline.py           recon → 13 agents orchestration + cross-section post-processing
     models.py             request/report/evidence models
     text.py               heuristics: keyphrases, money/tier extraction, feature classification
     llm.py                optional Ollama bridge (fails soft)
-    export.py             Markdown renderer + playbook ZIP builder
-    scrapers/             search cascade, wikipedia, hn, reddit, github, wayback, reviews, tor
-    agents/               recon + 12 analysis agents
-    data/                 compliance KB (US/India), failure DB, channel DB, scaffold templates
+    export.py             Markdown + schema-versioned JSON + playbook ZIP builders
+    engines/
+      triangulation.py    multi-layer subject identity (kills acronym collisions)
+    scrapers/             search cascade (DDG→SearXNG→Mojeek→news RSS), wikipedia,
+                          hn, reddit, github, wayback, reviews, filings (SEC EDGAR), tor
+    agents/               recon + 13 analysis agents (incl. adversary red-team)
+    data/                 compliance KB (US states + India statutory), failure DB,
+                          channel DB, scaffold templates
   scripts/smoke_test.py   offline pipeline verification
 frontend/
   app/                    layout, page (state machine), globals.css
   components/             InputPanel, AgentConsole, ReportViewer, ui atoms
-  components/tabs/        the 12 typed tab renderers
-  lib/                    types.ts (wire contract), api.ts (NDJSON client)
+  components/tabs/        the 13 typed tab renderers (incl. AdversaryTab, sandbox)
+  lib/                    types.ts (wire contract), api.ts (NDJSON client, typed routes)
+.github/workflows/ci.yml  CI: offline 13/13 pipeline test + strict build on every push
+proofs/                   reproducible verification evidence (see proofs/README.md)
+start.bat / start.sh      one-command launcher (installs on first run, opens browser)
 ```
 
 ## Legal & ethical scope
