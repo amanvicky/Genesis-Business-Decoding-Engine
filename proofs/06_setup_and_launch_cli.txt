@@ -1,0 +1,50 @@
+=== Genesis v1.1.0 — real setup & launch session (captured verbatim) ===
+command: python genesis.py stop  &&  python genesis.py --no-browser
+note: everything below is the actual console output of the service manager
+
+$ python genesis.py stop
+[*] stopping watchdog (pid 8716)…
+[*] stopping web (pid 3676)…
+[OK] all background services are down (stopped: watchdog, web)
+
+$ python genesis.py --no-browser
+
+  ============================================================
+   GENESIS service manager  —  install · run · supervise · stop
+  ============================================================
+[*] [1/6] checking prerequisites…
+[OK] backend environment ready (already installed)
+[OK] frontend packages ready (already installed)
+[*] [2/6] clearing project ports…
+[*] stopping previous 8000-listener we own (pid 15476)
+[*] stopping previous 3000-listener we own (pid 18016)
+[*] [3/6] preparing frontend…
+[OK] frontend production build ready (up to date)
+[*] [4/6] Tor layer…
+[!] Tor is not installed — continuing without it (100% optional)
+[!]   install later: https://www.torproject.org/download/tor/ (Expert Bundle)
+[!]   then re-run: python genesis.py   (manager will start it as a safe client)
+[*] [5/6] launching services in the background…
+[OK] api  pid 14908 → logs/api.log
+[OK] web  pid 2064 → logs/web.log
+[OK] watchdog pid 4800 — crashed services are restarted automatically
+[*] waiting for API server at http://127.0.0.1:8000/api/health …
+[OK] API server is healthy
+[*] waiting for Web dashboard at http://127.0.0.1:3000 …
+[OK] Web dashboard is healthy
+
+  service     state        health
+  api         pid 13764    healthy
+  web         pid 2064     healthy
+  tor         off          —
+  ollama      off          not running (optional)
+  dashboard   http://127.0.0.1:3000   |   api docs   http://127.0.0.1:8000/docs
+
+  [GENESIS IS RUNNING IN THE BACKGROUND]
+   dashboard   http://127.0.0.1:3000
+   api docs    http://127.0.0.1:8000/docs
+   status      python genesis.py status
+   logs        python genesis.py logs api
+   stop        python genesis.py stop
+
+   safe to close this window — services stay up (watchdog supervised)

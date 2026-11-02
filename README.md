@@ -7,36 +7,63 @@
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)
 ![Node](https://img.shields.io/badge/Node-18%2B-green.svg)
 
-Genesis is a one-stop intelligence platform for startup founders. Feed it either an
-**established company** (ADP, Stripe, Razorpay, any competitor…) or a **raw business
-idea**, and it returns a 13-tab dossier: structural feasibility, decompiled feature
-history with a binary build/skip roadmap, jurisdictional compliance matrix, failure
-post-mortems, genesis timeline (with real SEC-filing revenue history for US-listed
-subjects), pricing unit-economics with a live sandbox, market friction, burn math,
-zero-cost distribution loops, technical scaffolding, Tor-routed OSINT, a phased
-execution playbook, and an **adversarial red-team simulator** that cross-examines the
-whole playbook. Export to Markdown, schema-versioned JSON, or a downloadable playbook ZIP.
+## See it run — every screenshot below is real, captured live from this app
 
-```
-┌────────────────────────────┐         NDJSON stream        ┌──────────────────────────────┐
-│  Next.js 14 dashboard      │  ──────────────────────────▶ │  FastAPI intelligence engine │
-│  · dark-mode console       │   logs → sections → report   │  · recon (7 free sources)    │
-│  · 12-tab report viewer    │  ◀────────────────────────── │  · 12 analysis agents        │
-│  · one-click MD/ZIP export │                              │  · optional Ollama + Tor     │
-└────────────────────────────┘                              └──────────────────────────────┘
-```
+**1 · Type a company or a raw idea. Pick a market. Hit RUN.**
+No accounts, no keys, no cloud — everything runs on your machine.
+
+![Genesis landing: input panel with company/idea toggle, India-US-Global market switch](proofs/screenshots/01_landing_input_panel.png)
+
+**2 · Watch the intelligence being gathered, live.**
+Thirteen agents stream every step into the console — surface search, Wikipedia,
+SEC EDGAR, news archives, review platforms. Here: a full 13/13 decode of ADP
+just completed, with EDGAR-backed revenue evidence already on screen.
+
+![Live agent console: full 13-agent run of ADP completing](proofs/screenshots/02_agent_console_live.png)
+
+**3 · The dossier lands, tab by tab.**
+Here: the structural verdict on ADP with moat evidence and the flagged tabs
+still decoding.
+
+![Finished report - structural feasibility tab](proofs/screenshots/03_report_structural.png)
+
+**4 · Feature Decompiler v2 — a strict binary roadmap.**
+What the target built on Day 1 (build this), what came post-PMF (later), and
+what is pure enterprise bloat (don't build it - here's the gate that reopens it).
+
+![Binary roadmap: build now / later / do-not-build columns](proofs/screenshots/04_feature_binary_roadmap.png)
+
+**5 · Jurisdictional decoder with a real payroll matrix.**
+US state-by-state obligations (income tax, SUI, SDI, paid leave, final-pay rules)
+plus the full India statutory stack - severity-ranked, costed, with a do-now checklist.
+
+![Compliance decoder with US payroll-engine matrix](proofs/screenshots/05_compliance_matrix.png)
+
+**6 · Pricing & unit economics you can play with.**
+Decoded tiers plus an interactive sandbox: move CAC, churn, margin, ARPA, opex -
+LTV, LTV:CAC, payback and breakeven recompute instantly, with per-tier net-margin
+bars after gateway drag.
+
+![Pricing sandbox with live unit-economics recomputation](proofs/screenshots/06_pricing_sandbox.png)
+
+**7 · Burn math with zero sugarcoating.**
+A live-editable runway calculator that tells the truth, including what compliance
+actually costs in your sector and geography.
+
+![Burn calculator with sensitivity table](proofs/screenshots/07_burn_calculator.png)
+
+**8 · Then the panel cross-examines your plan.**
+An enterprise buyer, a skeptical VC, and a regulatory auditor attack the generated
+playbook using its own sections as evidence. Fatal gaps must be answered - or cut.
+
+![Adversarial red-team simulator with fatal/serious challenges](proofs/screenshots/08_adversary_redteam.png)
+
+> Full reproducible evidence - the offline 13/13-section pipeline run, the SEC
+> EDGAR revenue decode, the JSON round-trip, and a verbatim setup session - lives
+> in [`proofs/`](proofs/README.md). CI re-runs the pipeline and the strict build on
+> every push (badge above).
 
 ---
-
-## Proof, not promises
-
-![Live ADP decode — agent console, tab bar, EDGAR-sourced evidence](proofs/screenshots/01_dashboard_adp_live_decode.png)
-
-Raw captured evidence lives in [`proofs/`](proofs/README.md): an offline 13/13-section
-pipeline run (zero network), a live ADP decode showing multi-layer triangulation and
-the SEC EDGAR revenue match ($21.9B, CIK 8670), the strict TypeScript build, and the
-JSON export round-trip. CI re-runs the offline pipeline and the strict build on every
-push — the badge at the top is always current.
 
 ## What the 13 agents produce
 

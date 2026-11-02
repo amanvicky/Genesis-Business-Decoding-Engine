@@ -216,6 +216,38 @@ def spawn(name: str, cmd: list[str], cwd: Path, logfile: str) -> int:
     return proc.pid
 
 
+def resolve_real_pid(name: str, port: int, timeout: float = 40.0) -> int:
+    """Track the REAL server process. Windows venv launchers and npm re-exec
+    into children, so the spawned pid is often just a launcher that dies while
+    its child keeps serving. Poll the port until someone binds, then record
+    that pid — stop/watchdog kill the whole generation, not just the launcher."""
+    deadline = time.time() + timeout
+    launcher = read_pid(name)
+    while time.time() < deadline:
+        for pid in listeners_on(port):
+            if pid != launcher:
+                (RUNTIME / f"{name}.real.pid").write_text(str(pid))
+                return pid
+        if not pid_alive(launcher):
+            break
+        time.sleep(0.5)
+    (RUNTIME / f"{name}.real.pid").unlink(missing_ok=True)
+    return 0
+
+
+def kill_generation(name: str, port: int) -> None:
+    """Kill the launcher, the real server, and any project-owned orphan on the port."""
+    for pid_file in (name, f"{name}.real"):
+        pid = read_pid(pid_file)
+        if pid and pid_alive(pid):
+            kill_tree(pid)
+    for pid in listeners_on(port):
+        if is_ours(pid):
+            kill_tree(pid)
+    (RUNTIME / f"{name}.pid").unlink(missing_ok=True)
+    (RUNTIME / f"{name}.real.pid").unlink(missing_ok=True)
+
+
 def sha256_of(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -263,17 +295,14 @@ def free_project_ports(ports: tuple[int, ...]) -> list[str]:
     foreign apps. Returns the ports that had to be cleared."""
     freed: list[str] = []
     for port in ports:
-        stale = read_pid({API_PORT: "api", WEB_PORT: "web"}.get(port, "x"))
-        if stale and pid_alive(stale):
-            info(f"stopping previous {port}-listener we own (pid {stale})")
-            kill_tree(stale)
-            time.sleep(1.0)
+        name = {API_PORT: "api", WEB_PORT: "web"}.get(port, "x")
+        before = port_open(port)
+        kill_generation(name, port)
+        time.sleep(1.0)
+        if before and not port_open(port):
             freed.append(str(port))
         for pid in listeners_on(port):
-            if pid == stale:
-                continue  # handled above (or already gone)
             if is_ours(pid):
-                info(f"freeing port {port}: killing stale project process (pid {pid})")
                 kill_tree(pid)
                 time.sleep(0.8)
                 freed.append(str(port))
@@ -452,8 +481,10 @@ def cmd_up(args: argparse.Namespace) -> None:
     }
     api_pid = spawn("api", services["api"]["cmd"], BACKEND, "api.log")
     web_pid = spawn("web", services["web"]["cmd"], FRONTEND, "web.log")
-    ok(f"api  pid {api_pid} → logs/api.log")
-    ok(f"web  pid {web_pid} → logs/web.log")
+    real_api = resolve_real_pid("api", API_PORT, timeout=45)
+    real_web = resolve_real_pid("web", WEB_PORT, timeout=60)
+    ok(f"api  pid {api_pid}" + (f", server {real_api}" if real_api else "") + " → logs/api.log")
+    ok(f"web  pid {web_pid}" + (f", server {real_web}" if real_web else "") + " → logs/web.log")
 
     # 6. watchdog: restarts crashed services automatically
     if not args.no_watchdog:
@@ -664,15 +695,11 @@ def cmd_watchdog(args: argparse.Namespace) -> None:
                 warn(f"watchdog: {name} port healthy but held by an orphan (tracked pid {tracked}) — reclaiming")
             else:
                 warn(f"watchdog: {name} is down — restarting (attempt {len(window)}/10 this hour)")
-            # clear any project-owned orphan holding the port before respawn
-            for p in listeners_on(port):
-                if is_ours(p) and p != tracked:
-                    warn(f"watchdog: killing orphaned {name} process (pid {p})")
-                    kill_tree(p)
-            if pid_alive(tracked) and tracked not in listeners_on(port):
-                kill_tree(tracked)  # tracked instance that lost its port
+            # kill the whole generation: launcher + real server + port orphans
+            kill_generation(name, port)
             time.sleep(2.0)
             spawn(name, spec["cmd"], Path(spec["cwd"]), spec["log"])
+            resolve_real_pid(name, port, timeout=60)
 
 
 def main() -> None:
