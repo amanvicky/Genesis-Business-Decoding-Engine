@@ -14,7 +14,7 @@ captured outputs and real screenshots from the running system.
 | `screenshots/04_feature_binary_roadmap.png` | Feature Decompiler v2: **build-now / later / do-not-build** binary roadmap with gates |
 | `screenshots/05_compliance_matrix.png` | Jurisdictional decoder: landmine register + **US payroll-engine matrix** (16 states) |
 | `screenshots/06_pricing_sandbox.png` | Pricing tab with the **interactive unit-economics sandbox** (live LTV/CAC/payback recomputation, per-tier margin bars) |
-| `screenshots/07_burn_calculator.png` | Financial reality: live-editable burn calculator, sensitivity table, zero-sugarcoating warnings |
+| `screenshots/07_burn_calculator.png` | Financial reality: live-editable burn calculator, sensitivity table, blunt runway warnings |
 | `screenshots/08_adversary_redteam.png` | **Adversarial Red-Team Simulator**: buyer/VC/auditor personas with fatal & serious challenges |
 | `screenshots/02_health_chips.png` | Header capability chips (API / local LLM / Tor) degrading gracefully when optional layers are off |
 
@@ -34,10 +34,10 @@ decode any company, and click through the tabs.
 
 ## Why offline mode matters
 
-`01_offline_pipeline_smoke.txt` is the strongest architectural claim of the project:
+`01_offline_pipeline_smoke.txt` is the key architectural claim:
 Genesis produces a complete 13-section venture dossier **without a single network
 call or paid API** — every module runs on built-in knowledge bases (compliance
-statutes for the US + India, 22 failure post-mortems, 13 distribution channels,
+statutes for the US + India, 22 failure records, 12 distribution channels,
 scaffold generators). The live run in `02_` then shows the same pipeline enriched by
 free public sources (Wikipedia, EDGAR, news RSS, HN, review snippets, Wayback).
 

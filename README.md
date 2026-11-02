@@ -1,6 +1,6 @@
-# ◈ GENESIS — The Ultimate Zero-Cost Business Decoding & Replication Engine
+# ◈ GENESIS — The Zero-Cost Business Decoding & Replication Engine
 
-**100% free · open-source (MIT) · zero API keys · runs entirely on your machine.**
+Free, MIT-licensed, no API keys. Everything runs on your machine.
 
 [![CI](https://github.com/amanvicky/Genesis-Business-Decoding-Engine/actions/workflows/ci.yml/badge.svg)](https://github.com/amanvicky/Genesis-Business-Decoding-Engine/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
@@ -11,286 +11,135 @@
   <img src="docs/genesis-demo.gif" alt="Genesis live demo — 13 agents decoding a company" width="100%">
 </p>
 
-**13 agents · 40+ free sources · 0 API keys · $0 forever.**
+Give it a company (ADP, Stripe, Razorpay, your competitor) or a rough idea, and it
+returns a 13-tab dossier: whether the model holds up, the features worth copying and
+the ones to skip, the compliance traps per state or state-code, why similar companies
+died, real revenue history from SEC filings, pricing math you can edit live, what
+users actually complain about, burn and runway numbers, channels that cost nothing,
+starter code, and a red-team panel that argues with the playbook. Every claim links
+its source.
 
-Genesis decodes any **established company** (ADP, Stripe, Razorpay — a competitor)
-or **raw business idea** into a 13-tab venture dossier: structural feasibility,
-decompiled feature history with a binary build/skip roadmap, jurisdictional
-compliance (16 US states + the India statutory stack), failure post-mortems, real
-SEC-filing revenue history, pricing unit economics with a live sandbox, market
-friction, burn math, zero-cost distribution loops, code scaffolding, Tor-routed
-lawful OSINT, an execution playbook — and an adversarial red-team panel that
-cross-examines it all. Every claim carries its source. Nothing needs an API key.
+## Quickstart
 
-## ⚡ Quickstart in 30 seconds
-
-Prerequisites: **Python 3.10+** and **Node.js 18+**. That's it.
-
-### One command — professional background mode
+Python 3.10+ and Node 18+. Then:
 
 ```bash
 python genesis.py
 ```
 
-(Windows: double-clicking `start.bat` runs exactly this.)
+(Windows: `start.bat` runs exactly this.)
 
-The service manager does everything, hands-off:
-
-1. **Installs** what's missing — backend virtualenv + pinned deps, frontend
-   packages, frontend production build (hash-checked markers make re-runs instant).
-2. **Clears project ports** — kills only *this project's* stale processes
-   (ownership via project path or service signature; foreign apps are never touched).
-3. **Starts a safe Tor client** if Tor is installed (SOCKS5 `127.0.0.1:9050`,
-   client-only, isolated data dir — never downloads Tor, never configures
-   relays or hidden services). Absent Tor = graceful degradation.
-4. **Launches backend + frontend detached** — they keep running after you close
-   every terminal, with logs in `logs/`.
-5. **Supervises with a watchdog** — a crashed service is automatically killed
-   (including orphaned children holding the port) and restarted, bounded to
-   10 restarts/hour per service so a broken build can't loop.
-6. **Opens your browser** when both services report healthy.
-
-Operations:
+First run installs the backend venv, frontend packages, and a production build.
+Everything then runs detached in the background — close the terminal, it keeps
+going. A watchdog restarts crashed services. If Tor is installed it starts a
+client-only SOCKS5 proxy on 127.0.0.1:9050; if not, everything still works and
+Tab 11 just uses clearnet sources.
 
 ```bash
-python genesis.py status        # service table: pid, port, health, tor, ollama
-python genesis.py logs api      # tail api|web|tor|watchdog|setup logs
-python genesis.py stop          # stop everything this manager started
-python genesis.py restart       # stop + up
-python genesis.py doctor        # pre-flight diagnostic (prereqs, ports, tor, ollama)
+python genesis.py status     # what's running, on which port, healthy or not
+python genesis.py logs api   # tail api|web|tor|watchdog logs
+python genesis.py stop       # shut it all down
+python genesis.py doctor     # pre-flight check (deps, ports, tor, ollama)
 ```
 
-Flags for `up`: `--dev` (hot-reload mode), `--no-tor`, `--no-watchdog`,
-`--no-browser`, `--rebuild`. Running `up` while healthy is a no-op.
+Flags: `--dev` (hot reload), `--no-tor`, `--no-watchdog`, `--no-browser`, `--rebuild`.
 
-**Tor safety model**: the manager only ever launches an already-installed Tor
-binary as a plain client. It never downloads Tor, never enables relays/exit
-nodes or hidden services. Without Tor, Tab 11 automatically degrades to
-clearnet OSINT and reports it.
+Then open http://localhost:3000, type a company, hit RUN.
 
-## See it run — every screenshot below is real, captured live from this app
+## Screenshots
 
-**1 · Type a company or a raw idea. Pick a market. Hit RUN.**
-No accounts, no keys, no cloud — everything runs on your machine.
+Captured live from the app. Reproduce any of it with the commands in
+[proofs/](proofs/README.md).
 
-![Genesis landing: input panel with company/idea toggle, India-US-Global market switch](proofs/screenshots/01_landing_input_panel.png)
+Input panel — company or idea, India / US / Global, advanced params:
 
-**2 · Watch the intelligence being gathered, live.**
-Thirteen agents stream every step into the console — surface search, Wikipedia,
-SEC EDGAR, news archives, review platforms. Here: a full 13/13 decode of ADP
-just completed, with EDGAR-backed revenue evidence already on screen.
+![Landing: input panel](proofs/screenshots/01_landing_input_panel.png)
 
-![Live agent console: full 13-agent run of ADP completing](proofs/screenshots/02_agent_console_live.png)
+The agent console streams every step — surface search, Wikipedia, SEC EDGAR, news
+archives. Here a full 13/13 decode of ADP just completed:
 
-**3 · The dossier lands, tab by tab.**
-Here: the structural verdict on ADP with moat evidence and the flagged tabs
-still decoding.
+![Agent console during a live ADP decode](proofs/screenshots/02_agent_console_live.png)
 
-![Finished report - structural feasibility tab](proofs/screenshots/03_report_structural.png)
+Structural verdict with moat evidence and a signal score:
 
-**4 · Feature Decompiler v2 — a strict binary roadmap.**
-What the target built on Day 1 (build this), what came post-PMF (later), and
-what is pure enterprise bloat (don't build it - here's the gate that reopens it).
+![Structural tab](proofs/screenshots/03_report_structural.png)
 
-![Binary roadmap: build now / later / do-not-build columns](proofs/screenshots/04_feature_binary_roadmap.png)
+Feature Decompiler v2 — build now, build later, and enterprise bloat with the gate
+that reopens it:
 
-**5 · Jurisdictional decoder with a real payroll matrix.**
-US state-by-state obligations (income tax, SUI, SDI, paid leave, final-pay rules)
-plus the full India statutory stack - severity-ranked, costed, with a do-now checklist.
+![Binary roadmap](proofs/screenshots/04_feature_binary_roadmap.png)
 
-![Compliance decoder with US payroll-engine matrix](proofs/screenshots/05_compliance_matrix.png)
+Compliance decoder with a 16-state payroll matrix and the India statutory stack:
 
-**6 · Pricing & unit economics you can play with.**
-Decoded tiers plus an interactive sandbox: move CAC, churn, margin, ARPA, opex -
-LTV, LTV:CAC, payback and breakeven recompute instantly, with per-tier net-margin
-bars after gateway drag.
+![Compliance tab](proofs/screenshots/05_compliance_matrix.png)
 
-![Pricing sandbox with live unit-economics recomputation](proofs/screenshots/06_pricing_sandbox.png)
+Pricing tab with an interactive sandbox — change CAC, churn, margin, or tier prices
+and LTV/CAC/payback/breakeven recompute instantly:
 
-**7 · Burn math with zero sugarcoating.**
-A live-editable runway calculator that tells the truth, including what compliance
-actually costs in your sector and geography.
+![Pricing sandbox](proofs/screenshots/06_pricing_sandbox.png)
 
-![Burn calculator with sensitivity table](proofs/screenshots/07_burn_calculator.png)
+Burn calculator — runway math that includes what compliance actually costs:
 
-**8 · Then the panel cross-examines your plan.**
-An enterprise buyer, a skeptical VC, and a regulatory auditor attack the generated
-playbook using its own sections as evidence. Fatal gaps must be answered - or cut.
+![Burn calculator](proofs/screenshots/07_burn_calculator.png)
 
-![Adversarial red-team simulator with fatal/serious challenges](proofs/screenshots/08_adversary_redteam.png)
+And the red-team panel: an enterprise buyer, a skeptical VC, and a regulatory
+auditor attack the playbook using its own sections as evidence:
 
-> Full reproducible evidence - the offline 13/13-section pipeline run, the SEC
-> EDGAR revenue decode, the JSON round-trip, and a verbatim setup session - lives
-> in [`proofs/`](proofs/README.md). CI re-runs the pipeline and the strict build on
-> every push (badge above).
-
----
+![Adversarial red-team simulator](proofs/screenshots/08_adversary_redteam.png)
 
 ## What the 13 agents produce
 
 | # | Tab | What you get |
 |---|-----|--------------|
-| 1 | **Structural Feasibility & Core Mechanics** | Pain-point validation from public voices, demand triggers, money-flow mechanics, systemic moats with evidence, market-timing shifts, signal score |
-| 2 | **Feature Breakdown & MVP Sequencing** | Chronologically decompiled feature history (GitHub releases + Wikipedia history + changelog search), Day-1 vs growth vs enterprise classification, true-USP keyphrase mining, ordered MVP build sequence |
-| 3 | **Jurisdictional & Regulatory Decoder** | US federal + state-by-state payroll/tax burden matrix (CA AB5, SUI rates, WA Cares…), India central statutory stack (MCA, GST, EPF/ESI, POSH, DPDP) + sector licenses (RBI PA, MTL, HIPAA…), severity-ranked landmine register and do-now checklist |
-| 4 | **Pre-Mortem & Failure Post-Mortems** | 22 curated failure post-mortems (Zenefits, Fast, MoviePass, LendUp, Hopin…) matched to your domain, dominant death patterns, live-searched shutdown field reports, pre-mortem questions |
-| 5 | **Genesis & Historical Timeline** | Company mode: decoded milestones, pivots (flagged), funding events from Wikipedia history + releases. Idea mode: 6 execution gates with kill criteria — no fake dates |
-| 6 | **Pricing & Unit Economics** | Tier extraction from live pricing pages, **Wayback Machine pricing archaeology** (historical snapshots), explicit formulas: ARPA → LTV → LTV:CAC → payback, packaging-psychology detection, 3-tier recommendation |
-| 7 | **Market Friction & Consumer Psychology** | Reddit/HN/review-platform voice mining into complaint clusters with shares, representative unvarnished quotes with links, demand triggers (what makes people switch) |
-| 8 | **Financial Reality & Burn Calculator** | Geography-adjusted loaded-salary model, monthly burn → capital required → breakeven customers, live-editable calculator, sensitivity table, zero-sugarcoating warnings (fintech compliance costs included) |
-| 9 | **Unfair Distribution & Organic Acquisition** | 13 zero-cost channels as *loops* (programmatic SEO, OSS wedge, HN cadence, India WhatsApp/LinkedIn circuit…), ranked by sector fit, each with concrete actions and time-to-first-signal |
-| 10 | **Technical Architecture & Code Scaffolding** | Stack decision per sector (fintech ledger rules, payroll state-engine design…), generated starter files (FastAPI, Postgres schema, Next.js page, webhook idempotency, docker-compose, GST/OT calculators) — included in the ZIP |
-| 11 | **Deep/Dark Web & Vulnerability Shield** | Tor-routed (`socks5://127.0.0.1:9050`) passive OSINT via the Ahmia onion index, search-indexed paste chatter, free HIBP breach corpus. **Lawful-use only: no marketplaces, no credentials, no interaction; illegal queries are refused** |
-| 12 | **The Systematic Execution Playbook** | 6 phases with sequenced steps, gateway/KYC friction (Razorpay vs Stripe reality), KYC document pack, scaling hurdles, kill criteria |
-| 13 | **Adversarial Red-Team Simulator** | A virtual panel — enterprise buyer, skeptical VC, regulatory auditor — cross-examines the generated playbook using its own sections as evidence; every challenge cites its trigger and states what answer survives. Fatal gaps must be answered or cut |
+| 1 | **Structural Feasibility & Core Mechanics** | Pain points from public voices, demand triggers, how money moves, moats with evidence, timing shifts, signal score |
+| 2 | **Feature Breakdown & MVP Sequencing** | Chronological feature history (GitHub releases + Wikipedia), day-1 vs growth vs enterprise classification, USP mining, binary build/skip roadmap |
+| 3 | **Jurisdictional & Regulatory Decoder** | US federal + 16-state payroll matrix, India statutory stack (GST, EPF/ESI, POSH, DPDP, Labour Codes), sector licenses (RBI PA, MTL, HIPAA), costed checklist |
+| 4 | **Pre-Mortem & Failure Post-Mortems** | 22 failure records (Zenefits, Fast, MoviePass, LendUp…) matched to your domain, dominant death patterns, live-searched shutdown reports |
+| 5 | **Genesis & Historical Timeline** | Milestones, pivots, funding events, annual revenue from SEC 10-K filings. Idea mode: execution gates with kill criteria instead of fake dates |
+| 6 | **Pricing & Unit Economics** | Tier extraction, Wayback Machine pricing history, ARPA → LTV → LTV:CAC → payback with visible formulas, packaging-psychology notes |
+| 7 | **Market Friction & Consumer Psychology** | Reddit/HN/review mining into complaint clusters with shares, quotes with links, demand triggers |
+| 8 | **Financial Reality & Burn Calculator** | Geography-adjusted salaries, monthly burn → capital needed → breakeven customers, editable calculator, sensitivity table |
+| 9 | **Unfair Distribution & Organic Acquisition** | 12 zero-cost channels as repeatable loops, ranked by sector and geography, each with concrete first actions |
+| 10 | **Technical Architecture & Code Scaffolding** | Stack decisions per sector, generated starter files (FastAPI, Postgres schema, Next.js page, idempotent webhook, GST/OT calculators) — included in the ZIP |
+| 11 | **Deep/Dark Web & Vulnerability Shield** | Passive OSINT via the Ahmia onion index, search-indexed paste chatter, HIBP breach corpus. Read-only, no marketplaces, illegal queries refused |
+| 12 | **The Systematic Execution Playbook** | 6 phases, gateway/KYC friction per gateway, KYC document pack, scaling hurdles, kill criteria |
+| 13 | **Adversarial Red-Team Simulator** | The three-persona panel described above; fatal gaps must be answered or cut |
 
-Every claim carries its source; every section survives partial scraping (blocked
-sources degrade the report, never kill it).
+Every section links its sources, and a blocked source degrades its own section
+rather than killing the run.
 
-### v1.1 institutional upgrades
+## How it stays free
 
-- **Multi-layer source triangulation** — subject identity is anchored across
-  Wikipedia (canonical name + acronym expansion), official-domain consensus,
-  SEC EDGAR, and news RSS. Acronym collisions ("adPEAS" vs the payroll company
-  ADP) are down-weighted before analysis ever sees them, and low-corroboration
-  decodes are flagged in the console.
-- **Open financial filings** — US-listed subjects are matched on SEC EDGAR
-  (free, keyless): CIK, recent 10-Ks, and 10 years of annual revenue from the
-  XBRL API, rendered as revenue milestones in the timeline. Private/Indian
-  companies have no free structured equivalent and are reported as such.
-- **Feature Decompiler v2** — a strict binary roadmap: **build now / later /
-  do-not-build**, each item with its reason and a revisit gate ("after 3 written
-  enterprise commitments").
-- **Deeper compliance matrix** — 16 US states in a payroll-engine table
-  (income tax, SUI new rate, SDI/FLI, paid leave, final-pay deadline, gotcha),
-  plus India's four Labour Codes, Gratuity/Bonus Acts, and OIDAR-SaaS GST with
-  export LUT.
-- **Unit-economics & pricing sandbox** — live-edit ARPA, CAC, churn, margin,
-  and opex; LTV/LTV:CAC/payback/breakeven recompute instantly, with per-tier
-  net-margin bars after gateway drag.
-- **JSON export** — `POST /api/export/json` returns a schema-versioned
-  (`genesis.report/v1`) document for programmatic import; the ZIP also embeds
-  `GENESIS_REPORT.json`.
+| Source | Feeds | Why free |
+|--------|-------|----------|
+| DuckDuckGo lite/html → SearXNG → Mojeek → Google/Bing News RSS | Surface-web evidence | Keyless public endpoints with automatic fallback |
+| Wikipedia API | Genesis, history, founding year | Free API |
+| HN Algolia | Developer sentiment | Free API |
+| Reddit JSON | Consumer complaints | Free (rate-limited, degrades softly) |
+| GitHub API | Release changelogs → feature decompiler | Free unauthenticated tier |
+| Wayback Machine CDX | Historical pricing snapshots | Free archive |
+| Trustpilot / G2 / Capterra | Review intel via search snippets only | Public search results, no ToS-violating scraping |
+| SEC EDGAR (tickers, submissions, XBRL) | Revenue history, 10-K filings | Free, keyless US-government API |
+| Have I Been Pwned + Ahmia | Breach shield, onion index (Tab 11) | Free endpoints |
 
----
+Politeness: honest User-Agent, bounded retries, concurrency limit, backoff, and a
+session-level engine cache so a blocked engine is skipped rather than hammered.
 
-## Installation details (what the manager automates)
+Optional local layers (never required): [Ollama](https://ollama.com) sharpens the
+narrative of each section (`ollama pull llama3.2`), and Tor adds anonymity routing
+for Tab 11. See [Configuration](#configuration).
 
-#### 1. Backend (FastAPI)
+## Notes on the build
 
-```bash
-cd backend
-python -m venv .venv
-
-# Windows (Git Bash / PowerShell)
-.venv/Scripts/python -m pip install -r requirements.txt
-# macOS / Linux
-# .venv/bin/python -m pip install -r requirements.txt
-
-.venv/Scripts/python -m uvicorn app.main:app --reload --port 8000
-# macOS / Linux: .venv/bin/python -m uvicorn app.main:app --reload --port 8000
-```
-
-Health check → <http://127.0.0.1:8000/api/health>
-Interactive API docs → <http://127.0.0.1:8000/docs>
-
-#### 2. Frontend (Next.js)
-
-In a second terminal:
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Open **<http://localhost:3000>**, type a company or an idea, hit **RUN GENESIS DECODE**.
-
-#### 3. Verify without the UI (optional)
-
-```bash
-cd backend
-.venv/Scripts/python scripts/smoke_test.py company "Stripe"
-.venv/Scripts/python scripts/smoke_test.py "AI meeting notes for sales teams"
-```
-
----
-
-## Configuration (all optional — sane defaults, zero cost)
-
-Copy `backend/.env.example` → `backend/.env` to customize:
-
-| Variable | Default | Effect |
-|----------|---------|--------|
-| `GENESIS_OFFLINE` | `0` | `1` = skip all network scraping; run on built-in knowledge bases only (great for air-gapped use, CI, demos) |
-| `OLLAMA_URL` | `http://127.0.0.1:11434` | Local LLM endpoint. If Ollama is running, each section gets **LLM-sharpened narrative** on top of the deterministic analysis |
-| `GENESIS_LLM_MODEL` | `llama3.2` | Any free Ollama model: `ollama pull llama3.2` |
-| `TOR_PROXY` | `socks5://127.0.0.1:9050` | SOCKS5 proxy for Tab 11 |
-| `TOR_ENABLED` | `1` | `0` disables the Tor probe entirely |
-
-### Optional: Tor (powers Tab 11's anonymity routing)
-
-- **Windows**: download the [Tor Expert Bundle](https://www.torproject.org/download/tor/), then run `tor.exe --SocksPort 9050`
-- **macOS**: `brew install tor && tor --SocksPort 9050`
-- **Linux**: `sudo apt install tor && sudo systemctl start tor`
-
-Without Tor, Tab 11 automatically degrades to clearnet OSINT (Ahmia's public index +
-HIBP breach corpus) and says so. Genesis never requires Tor — it's an anonymity upgrade.
-
-### Optional: local LLM (free, private, no keys)
-
-```bash
-# https://ollama.com
-ollama pull llama3.2   # ~2GB, runs on CPU if needed
-```
-
-Header chip shows `LLM: llama3.2` when detected. No Ollama → deterministic engine only;
-nothing breaks.
-
-### Optional: point the frontend elsewhere
-
-`frontend/.env.local` (see `.env.local.example`):
-
-```
-NEXT_PUBLIC_API_URL=http://127.0.0.1:8000
-```
-
----
-
-## The zero-cost scraping engine
-
-| Source | What it feeds | Why it's free |
-|--------|--------------|---------------|
-| DuckDuckGo lite/html → SearXNG → Mojeek cascade | Surface-web evidence, competitor discovery | Public keyless endpoints; automatic fallback if one blocks you |
-| Wikipedia API | Genesis/summary/history/founding year | Free API |
-| HN Algolia API | Developer sentiment, shutdown chatter | Free API |
-| Reddit public JSON | Consumer complaints, demand triggers | Free (rate-limited; degrades softly) |
-| GitHub API | Release changelogs → feature decompilation | Free unauthenticated tier |
-| Wayback Machine CDX | **Historical pricing-page snapshots** | Free archive |
-| Review platforms (Trustpilot/G2/Capterra) | Review intel via search-snippet aggregation only (no ToS-violating scraping) | Public search results |
-| Have I Been Pwned breach corpus | Breach shield (Tab 11) | Free corpus endpoint |
-| Ahmia | Lawful onion-index search (Tab 11) | Free index |
-| SEC EDGAR (company_tickers, submissions, XBRL) | Real revenue history + 10-K filings (Tab 5) | Free, keyless US-government API |
-
-Politeness rules: honest User-Agent, bounded retries, concurrency limit, rate-limit
-backoff, and a session-level engine-health cache (a blocked engine is skipped, not
-hammered).
-
-## Architecture notes
-
-- **Streaming protocol**: `POST /api/analyze/stream` emits NDJSON — `log` events feed
-  the console, `section` events populate tabs live, `done` carries the full report.
-- **Exports**: `POST /api/export/markdown`, `POST /api/export/json`
-  (schema `genesis.report/v1` for programmatic import), and `POST /api/export/zip`
+- Streaming: `POST /api/analyze/stream` emits NDJSON — `log` events feed the
+  console, `section` events fill tabs as they finish, `done` carries the report.
+- Exports: `POST /api/export/markdown`, `/json` (schema `genesis.report/v1`), `/zip`
   (report + generated scaffold + embedded JSON).
-- **Fail-soft everywhere**: any scraper/agent failure yields a logged warning and a
-  degraded section; the pipeline always completes 12 sections.
-- **Deterministic core + optional LLM**: analysis is computed from evidence + curated
-  knowledge bases (compliance statutes, failure DB, channel DB). Ollama only adds
-  narrative sharpening, so results never depend on a model being present.
-- **Type-safe wire contract**: the frontend models the stream as a discriminated union
-  (`ConsoleEvent`) and each tab's payload via `SectionDataMap` — compiled under
-  `strict` + `noUncheckedIndexedAccess`, no `any` at the API boundary.
+- The deterministic core does the real analysis from evidence + curated knowledge
+  bases (compliance statutes, failure records, channel DB). Ollama only adds
+  narrative on top, so nothing depends on a model being present.
+- The frontend types the whole stream as a discriminated union (`ConsoleEvent`)
+  with per-tab payloads via `SectionDataMap`, compiled under strict TypeScript.
 
 ## Project structure
 
@@ -300,83 +149,105 @@ start.bat / start.sh     thin launchers → genesis.py
 backend/
   app/
     main.py               FastAPI app (stream, health, md/json/zip exports)
-    pipeline.py           recon → 13 agents orchestration + cross-section post-processing
+    pipeline.py           recon → 13 agents + cross-section post-processing
     models.py             request/report/evidence models
-    text.py               heuristics: keyphrases, money/tier extraction, feature classification
+    text.py               keyphrases, money/tier extraction, feature classification
     llm.py                optional Ollama bridge (fails soft)
-    export.py             Markdown + schema-versioned JSON + playbook ZIP builders
-    engines/
-      triangulation.py    multi-layer subject identity (kills acronym collisions)
-    scrapers/             search cascade (DDG→SearXNG→Mojeek→news RSS), wikipedia,
-                          hn, reddit, github, wayback, reviews, filings (SEC EDGAR), tor
+    export.py             Markdown + schema-versioned JSON + ZIP builders
+    engines/triangulation.py   subject identity (kills acronym collisions)
+    scrapers/             search cascade, wikipedia, hn, reddit, github,
+                          wayback, reviews, filings (SEC EDGAR), tor
     agents/               recon + 13 analysis agents (incl. adversary red-team)
-    data/                 compliance KB (US states + India statutory), failure DB,
-                          channel DB, scaffold templates
+    data/                 compliance KB (US + India), failure records, channels, scaffolds
   scripts/smoke_test.py   offline pipeline verification
 frontend/
-  app/                    layout, page (state machine), globals.css
+  app/                    layout, page (state machine)
   components/             InputPanel, AgentConsole, ReportViewer, ui atoms
-  components/tabs/        the 13 typed tab renderers (incl. AdversaryTab, sandbox)
-  lib/                    types.ts (wire contract), api.ts (NDJSON client, typed routes)
-.github/workflows/ci.yml  CI: offline 13/13 pipeline test + strict build on every push
-proofs/                   reproducible verification evidence (see proofs/README.md)
+  components/tabs/        the 13 typed tab renderers
+  lib/                    types.ts (wire contract), api.ts (NDJSON client)
+.github/workflows/ci.yml  offline 13/13 test + strict build on every push
+proofs/                   reproducible evidence (see proofs/README.md)
+```
+
+## Configuration
+
+Copy `backend/.env.example` → `backend/.env` if you want to change anything:
+
+| Variable | Default | Effect |
+|----------|---------|--------|
+| `GENESIS_OFFLINE` | `0` | `1` skips all network calls; runs on built-in knowledge bases only (also used by CI) |
+| `OLLAMA_URL` | `http://127.0.0.1:11434` | Local LLM endpoint; each section gets a narrative pass when present |
+| `GENESIS_LLM_MODEL` | `llama3.2` | Any Ollama model you've pulled |
+| `TOR_PROXY` | `socks5://127.0.0.1:9050` | SOCKS5 proxy for Tab 11 |
+| `TOR_ENABLED` | `1` | `0` disables the Tor probe entirely |
+
+Tor install: [Expert Bundle](https://www.torproject.org/download/tor/) on Windows
+(`tor.exe --SocksPort 9050`), `brew install tor` on macOS, `apt install tor` on
+Linux. The service manager starts it for you if it's on disk. Frontend API URL:
+set `NEXT_PUBLIC_API_URL` in `frontend/.env.local` (see `.env.local.example`).
+
+Manual install, if you'd rather not use the manager:
+
+```bash
+# backend
+cd backend
+python -m venv .venv
+.venv/Scripts/python -m pip install -r requirements.txt      # Windows
+# .venv/bin/python -m pip install -r requirements.txt        # macOS/Linux
+.venv/Scripts/python -m uvicorn app.main:app --port 8000
+
+# frontend (second terminal)
+cd frontend
+npm install
+npm run build && npm start        # or: npm run dev
 ```
 
 ## FAQ
 
-**Does it need any API keys or accounts?**
-No. Every source is keyless and free — Wikipedia, SEC EDGAR, Google/Bing News RSS,
-HN Algolia, Reddit JSON, GitHub, Wayback Machine, review snippets, HIBP. The only
-optional layers are local: Ollama (LLM sharpening) and Tor (OSINT privacy).
+**API keys or accounts?**
+None. Every source is keyless — Wikipedia, SEC EDGAR, news RSS, HN, Reddit, GitHub,
+Wayback, review snippets, HIBP. Optional local layers are Ollama and Tor.
 
-**Is the dark-web module legal and safe?**
-It is passive, read-only OSINT: the Ahmia onion index, search-indexed paste boards,
-and the free HIBP breach corpus. It never interacts with hidden services, refuses
-illegal queries outright, and only ever launches an already-installed Tor binary as
-a plain client. Details in [Legal & ethical scope](#legal--ethical-scope).
+**Is the dark-web module legal?**
+It reads the Ahmia onion index, search-indexed paste boards, and the free HIBP
+breach corpus. Passive and read-only: no marketplaces, no credentials, no
+interaction, illegal queries refused, and it only launches an already-installed
+Tor binary as a plain client.
 
-**Does it work on Windows / macOS / Linux?**
-Anywhere Python 3.10+ and Node 18+ run. `python genesis.py` handles the rest —
-install, background launch, watchdog, stop, logs.
+**Windows / macOS / Linux?**
+Anywhere Python 3.10+ and Node 18+ run. The manager handles the rest.
 
-**How accurate is the intelligence?**
-Every claim carries its source, and each section states its evidence depth. Company
-revenue figures come from audited SEC filings where available; everything else is
-planning-grade synthesis from public sources — explicitly not legal or financial advice.
+**How accurate is it?**
+Revenue figures come from audited SEC filings where they exist; everything else is
+planning-grade synthesis from public sources, with sources linked per claim. Each
+section states its evidence depth. Not legal or financial advice.
 
 **Where does my data go?**
-Nowhere. The dashboard and pipeline run locally; the only outbound traffic is
-*reading* public sources. Reports stay on your disk until you export them.
+Nowhere. Everything runs locally; the only outbound traffic is reading public
+sources, and reports stay on your disk.
 
-**Can I use the reports commercially?**
-Yes — MIT-licensed, output is yours. Just don't present planning-grade compliance
-notes as legal advice.
+**Commercial use?**
+MIT, output is yours. Don't present the compliance notes as legal advice.
 
-## Roadmap (PRs welcome)
+## Roadmap
 
-- **v1.2** — India MCA/filings layer (free structured equivalents where they exist) · changelog & blog scrapers for private companies · report diffing between runs
-- **v1.3** — tested Docker images + one-command container deploy · scheduled re-decodes with drift alerts
-- **Always** — deeper compliance coverage (more states, more sectors), sharper failure DB
+- v1.2: India MCA/filings layer · changelog and blog scrapers for private companies · report diffing between runs
+- v1.3: tested Docker images · scheduled re-decodes with drift alerts
+- Ongoing: more states and sectors in the compliance KB, more failure records
 
-## Legal & ethical scope
+PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). Highest-value contributions
+are knowledge-base rows (compliance items, failure records, channels) with sources.
 
-Genesis performs **passive, read-only collection of publicly available information**
-and cites every source. The dark-web module is lawful-use OSINT only: it reads the
-Ahmia index and search-indexed paste boards, refuses illegal queries outright, never
-interacts with hidden services, and includes a defensive guidance layer. Nothing here
-is legal, financial, or tax advice — the compliance sections are planning-grade
-intelligence synthesized from public statutes and regulator guidance.
-
-## Troubleshooting
+## Known issues
 
 | Symptom | Cause / fix |
 |---------|-------------|
-| Header shows `API offline` | Backend not running on port 8000 — start uvicorn (step 1) |
-| `surface web: 0 results` | Your IP is rate-limited by search engines; Genesis auto-falls back (Wikipedia/HN/GitHub still work). Report degrades, never fails |
+| `API offline` in the header | Backend down — `python genesis.py status`, then `python genesis.py` |
+| `surface web: 0 results` | Search engines rate-limiting your IP; the cascade falls back to Wikipedia/HN/EDGAR/news and the report degrades gracefully |
 | Reddit: `0 posts` | Reddit rate-limits unauthenticated JSON; friction analysis leans on HN + review snippets |
-| Tab 11 says `clearnet-degraded` | Tor isn't running; start `tor --SocksPort 9050` or ignore (module still delivers clearnet OSINT) |
-| Ports busy | Change backend: `--port 8001` + `NEXT_PUBLIC_API_URL=http://127.0.0.1:8001` |
+| Tab 11 says `clearnet-degraded` | Tor isn't running; install it or ignore — the module uses clearnet OSINT |
+| Port already in use | `python genesis.py stop` clears processes belonging to this project; foreign apps are never touched |
 
 ## License
 
-MIT — see [LICENSE](LICENSE). Free forever, no paid tiers, no telemetry.
+MIT — see [LICENSE](LICENSE). No paid tiers, no telemetry, no accounts.
