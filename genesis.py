@@ -458,6 +458,7 @@ def cmd_up(args: argparse.Namespace) -> None:
     # 6. watchdog: restarts crashed services automatically
     if not args.no_watchdog:
         SERVICES_JSON.write_text(json.dumps(services, indent=2))
+        WATCHDOG_STATE.unlink(missing_ok=True)  # fresh run = fresh restart budget
         wd = spawn("watchdog", [sys.executable, str(Path(__file__).resolve()), "_watchdog"], ROOT, "watchdog.log")
         ok(f"watchdog pid {wd} — crashed services are restarted automatically")
 
@@ -499,6 +500,52 @@ def cmd_stop(args: argparse.Namespace) -> None:
         ok(f"all background services are down (stopped: {', '.join(stopped) or 'none'})")
     else:
         ok("nothing was running")
+
+
+def _parent_map() -> dict[int, int]:
+    """pid → parent pid (best effort)."""
+    out: dict[int, int] = {}
+    try:
+        if IS_WIN:
+            r = subprocess.run(
+                ["powershell", "-NoProfile", "-Command",
+                 "Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId | ConvertTo-Csv -NoTypeInformation"],
+                capture_output=True, text=True, timeout=40)
+            for line in r.stdout.splitlines()[1:]:
+                parts = line.strip().strip('"').split('","')
+                if len(parts) == 2:
+                    try:
+                        out[int(parts[0])] = int(parts[1])
+                    except ValueError:
+                        pass
+        else:
+            for p in Path("/proc").glob("[0-9]*"):
+                try:
+                    out[int(p.name)] = int((p / "stat").read_text().split()[3])
+                except Exception:
+                    pass
+    except Exception:
+        pass
+    return out
+
+
+def service_owns_port(tracked: int, port: int) -> bool:
+    """True when the tracked service (or a direct descendant — Windows venv
+    launchers and npm re-exec into children) actually serves the port."""
+    listeners = listeners_on(port)
+    if not listeners:
+        return False
+    if tracked in listeners:
+        return True
+    parents = _parent_map()
+    for lid in listeners:
+        cur, hops = lid, 0
+        while cur and hops < 6:
+            cur = parents.get(cur, 0)
+            if cur == tracked:
+                return True
+            hops += 1
+    return False
 
 
 def cmd_status(args: argparse.Namespace | None = None) -> None:
@@ -592,30 +639,39 @@ def cmd_watchdog(args: argparse.Namespace) -> None:
             services = json.loads(SERVICES_JSON.read_text())
         except Exception:
             continue
-        changed = False
         for name, spec in services.items():
-            if http_ok(spec["url"], timeout=2.0):
-                continue
-            if read_pid(name) == 0:
+            port = API_PORT if name == "api" else WEB_PORT
+            tracked = read_pid(name)
+            if tracked == 0:
                 continue  # manager stopped us deliberately
+            healthy = http_ok(spec["url"], timeout=2.0)
+            tracked_owns = service_owns_port(tracked, port) if healthy else False
+            if healthy and tracked_owns:
+                continue
             window = state["restarts"].setdefault(name, [])
             window[:] = [t for t in window if time.time() - t < 3600]
             if len(window) >= 10:
+                if not state.get(f"{name}_limited"):
+                    state[f"{name}_limited"] = True
+                    WATCHDOG_STATE.write_text(json.dumps(state))
+                    warn(f"watchdog: {name} hit the restart limit (10/hour) — service stays down; run 'python genesis.py' to reset")
                 continue
             window.append(time.time())
             state["restarts"] = state.get("restarts", {})
             state["ts"] = time.time()
             WATCHDOG_STATE.write_text(json.dumps(state))
-            warn(f"watchdog: {name} is down — restarting (attempt {len(window)}/10 this hour)")
-            # a crashed parent can leave an orphaned child holding the port
-            # (venv launchers re-exec on some setups); clear our leftovers first
-            port = API_PORT if name == "api" else WEB_PORT
-            orphans = [p for p in listeners_on(port) if is_ours(p)]
-            for p in orphans:
-                warn(f"watchdog: killing orphaned {name} process (pid {p})")
-                kill_tree(p)
-            if orphans:
-                time.sleep(2.0)
+            if healthy and not tracked_owns:
+                warn(f"watchdog: {name} port healthy but held by an orphan (tracked pid {tracked}) — reclaiming")
+            else:
+                warn(f"watchdog: {name} is down — restarting (attempt {len(window)}/10 this hour)")
+            # clear any project-owned orphan holding the port before respawn
+            for p in listeners_on(port):
+                if is_ours(p) and p != tracked:
+                    warn(f"watchdog: killing orphaned {name} process (pid {p})")
+                    kill_tree(p)
+            if pid_alive(tracked) and tracked not in listeners_on(port):
+                kill_tree(tracked)  # tracked instance that lost its port
+            time.sleep(2.0)
             spawn(name, spec["cmd"], Path(spec["cwd"]), spec["log"])
 
 
