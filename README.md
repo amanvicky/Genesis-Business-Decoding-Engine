@@ -7,6 +7,67 @@
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)
 ![Node](https://img.shields.io/badge/Node-18%2B-green.svg)
 
+<p align="center">
+  <img src="docs/genesis-demo.gif" alt="Genesis live demo — 13 agents decoding a company" width="100%">
+</p>
+
+**13 agents · 40+ free sources · 0 API keys · $0 forever.**
+
+Genesis decodes any **established company** (ADP, Stripe, Razorpay — a competitor)
+or **raw business idea** into a 13-tab venture dossier: structural feasibility,
+decompiled feature history with a binary build/skip roadmap, jurisdictional
+compliance (16 US states + the India statutory stack), failure post-mortems, real
+SEC-filing revenue history, pricing unit economics with a live sandbox, market
+friction, burn math, zero-cost distribution loops, code scaffolding, Tor-routed
+lawful OSINT, an execution playbook — and an adversarial red-team panel that
+cross-examines it all. Every claim carries its source. Nothing needs an API key.
+
+## ⚡ Quickstart in 30 seconds
+
+Prerequisites: **Python 3.10+** and **Node.js 18+**. That's it.
+
+### One command — professional background mode
+
+```bash
+python genesis.py
+```
+
+(Windows: double-clicking `start.bat` runs exactly this.)
+
+The service manager does everything, hands-off:
+
+1. **Installs** what's missing — backend virtualenv + pinned deps, frontend
+   packages, frontend production build (hash-checked markers make re-runs instant).
+2. **Clears project ports** — kills only *this project's* stale processes
+   (ownership via project path or service signature; foreign apps are never touched).
+3. **Starts a safe Tor client** if Tor is installed (SOCKS5 `127.0.0.1:9050`,
+   client-only, isolated data dir — never downloads Tor, never configures
+   relays or hidden services). Absent Tor = graceful degradation.
+4. **Launches backend + frontend detached** — they keep running after you close
+   every terminal, with logs in `logs/`.
+5. **Supervises with a watchdog** — a crashed service is automatically killed
+   (including orphaned children holding the port) and restarted, bounded to
+   10 restarts/hour per service so a broken build can't loop.
+6. **Opens your browser** when both services report healthy.
+
+Operations:
+
+```bash
+python genesis.py status        # service table: pid, port, health, tor, ollama
+python genesis.py logs api      # tail api|web|tor|watchdog|setup logs
+python genesis.py stop          # stop everything this manager started
+python genesis.py restart       # stop + up
+python genesis.py doctor        # pre-flight diagnostic (prereqs, ports, tor, ollama)
+```
+
+Flags for `up`: `--dev` (hot-reload mode), `--no-tor`, `--no-watchdog`,
+`--no-browser`, `--rebuild`. Running `up` while healthy is a no-op.
+
+**Tor safety model**: the manager only ever launches an already-installed Tor
+binary as a plain client. It never downloads Tor, never enables relays/exit
+nodes or hidden services. Without Tor, Tab 11 automatically degrades to
+clearnet OSINT and reports it.
+
 ## See it run — every screenshot below is real, captured live from this app
 
 **1 · Type a company or a raw idea. Pick a market. Hit RUN.**
@@ -113,53 +174,7 @@ sources degrade the report, never kill it).
 
 ---
 
-## Quickstart (fully free, fully local)
-
-Prerequisites: **Python 3.10+** and **Node.js 18+**. That's it.
-
-### One command — professional background mode
-
-```bash
-python genesis.py
-```
-
-(Windows: double-clicking `start.bat` runs exactly this.)
-
-The service manager does everything, hands-off:
-
-1. **Installs** what's missing — backend virtualenv + pinned deps, frontend
-   packages, frontend production build (hash-checked markers make re-runs instant).
-2. **Clears project ports** — kills only *this project's* stale processes
-   (ownership via project path or service signature; foreign apps are never touched).
-3. **Starts a safe Tor client** if Tor is installed (SOCKS5 `127.0.0.1:9050`,
-   client-only, isolated data dir — never downloads Tor, never configures
-   relays or hidden services). Absent Tor = graceful degradation.
-4. **Launches backend + frontend detached** — they keep running after you close
-   every terminal, with logs in `logs/`.
-5. **Supervises with a watchdog** — a crashed service is automatically killed
-   (including orphaned children holding the port) and restarted, bounded to
-   10 restarts/hour per service so a broken build can't loop.
-6. **Opens your browser** when both services report healthy.
-
-Operations:
-
-```bash
-python genesis.py status        # service table: pid, port, health, tor, ollama
-python genesis.py logs api      # tail api|web|tor|watchdog|setup logs
-python genesis.py stop          # stop everything this manager started
-python genesis.py restart       # stop + up
-python genesis.py doctor        # pre-flight diagnostic (prereqs, ports, tor, ollama)
-```
-
-Flags for `up`: `--dev` (hot-reload mode), `--no-tor`, `--no-watchdog`,
-`--no-browser`, `--rebuild`. Running `up` while healthy is a no-op.
-
-**Tor safety model**: the manager only ever launches an already-installed Tor
-binary as a plain client. It never downloads Tor, never enables relays/exit
-nodes or hidden services. Without Tor, Tab 11 automatically degrades to
-clearnet OSINT and reports it.
-
-### Manual setup (what the manager automates)
+## Installation details (what the manager automates)
 
 #### 1. Backend (FastAPI)
 
@@ -306,6 +321,42 @@ frontend/
 .github/workflows/ci.yml  CI: offline 13/13 pipeline test + strict build on every push
 proofs/                   reproducible verification evidence (see proofs/README.md)
 ```
+
+## FAQ
+
+**Does it need any API keys or accounts?**
+No. Every source is keyless and free — Wikipedia, SEC EDGAR, Google/Bing News RSS,
+HN Algolia, Reddit JSON, GitHub, Wayback Machine, review snippets, HIBP. The only
+optional layers are local: Ollama (LLM sharpening) and Tor (OSINT privacy).
+
+**Is the dark-web module legal and safe?**
+It is passive, read-only OSINT: the Ahmia onion index, search-indexed paste boards,
+and the free HIBP breach corpus. It never interacts with hidden services, refuses
+illegal queries outright, and only ever launches an already-installed Tor binary as
+a plain client. Details in [Legal & ethical scope](#legal--ethical-scope).
+
+**Does it work on Windows / macOS / Linux?**
+Anywhere Python 3.10+ and Node 18+ run. `python genesis.py` handles the rest —
+install, background launch, watchdog, stop, logs.
+
+**How accurate is the intelligence?**
+Every claim carries its source, and each section states its evidence depth. Company
+revenue figures come from audited SEC filings where available; everything else is
+planning-grade synthesis from public sources — explicitly not legal or financial advice.
+
+**Where does my data go?**
+Nowhere. The dashboard and pipeline run locally; the only outbound traffic is
+*reading* public sources. Reports stay on your disk until you export them.
+
+**Can I use the reports commercially?**
+Yes — MIT-licensed, output is yours. Just don't present planning-grade compliance
+notes as legal advice.
+
+## Roadmap (PRs welcome)
+
+- **v1.2** — India MCA/filings layer (free structured equivalents where they exist) · changelog & blog scrapers for private companies · report diffing between runs
+- **v1.3** — tested Docker images + one-command container deploy · scheduled re-decodes with drift alerts
+- **Always** — deeper compliance coverage (more states, more sectors), sharper failure DB
 
 ## Legal & ethical scope
 
