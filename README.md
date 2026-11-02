@@ -90,20 +90,49 @@ sources degrade the report, never kill it).
 
 Prerequisites: **Python 3.10+** and **Node.js 18+**. That's it.
 
-### One command
+### One command — professional background mode
 
-**Windows:** double-click **`start.bat`** (or run it from any terminal).
-**macOS / Linux:** `./start.sh` (or `bash start.sh`).
+```bash
+python genesis.py
+```
 
-The script detects your toolchain, installs everything on first run (backend
-virtualenv + frontend packages), starts both servers, waits for boot, and opens
-your browser at the dashboard.
+(Windows: double-clicking `start.bat` runs exactly this.)
 
-- Web app → <http://localhost:3000>
-- API docs → <http://127.0.0.1:8000/docs>
-- Stop → close the two "Genesis API/Web" windows (Windows) or Ctrl+C (macOS/Linux)
+The service manager does everything, hands-off:
 
-### Manual setup (what the script automates)
+1. **Installs** what's missing — backend virtualenv + pinned deps, frontend
+   packages, frontend production build (hash-checked markers make re-runs instant).
+2. **Clears project ports** — kills only *this project's* stale processes
+   (ownership via project path or service signature; foreign apps are never touched).
+3. **Starts a safe Tor client** if Tor is installed (SOCKS5 `127.0.0.1:9050`,
+   client-only, isolated data dir — never downloads Tor, never configures
+   relays or hidden services). Absent Tor = graceful degradation.
+4. **Launches backend + frontend detached** — they keep running after you close
+   every terminal, with logs in `logs/`.
+5. **Supervises with a watchdog** — a crashed service is automatically killed
+   (including orphaned children holding the port) and restarted, bounded to
+   10 restarts/hour per service so a broken build can't loop.
+6. **Opens your browser** when both services report healthy.
+
+Operations:
+
+```bash
+python genesis.py status        # service table: pid, port, health, tor, ollama
+python genesis.py logs api      # tail api|web|tor|watchdog|setup logs
+python genesis.py stop          # stop everything this manager started
+python genesis.py restart       # stop + up
+python genesis.py doctor        # pre-flight diagnostic (prereqs, ports, tor, ollama)
+```
+
+Flags for `up`: `--dev` (hot-reload mode), `--no-tor`, `--no-watchdog`,
+`--no-browser`, `--rebuild`. Running `up` while healthy is a no-op.
+
+**Tor safety model**: the manager only ever launches an already-installed Tor
+binary as a plain client. It never downloads Tor, never enables relays/exit
+nodes or hidden services. Without Tor, Tab 11 automatically degrades to
+clearnet OSINT and reports it.
+
+### Manual setup (what the manager automates)
 
 #### 1. Backend (FastAPI)
 
@@ -224,6 +253,8 @@ hammered).
 ## Project structure
 
 ```
+genesis.py               service manager: install · run · supervise · stop (std lib only)
+start.bat / start.sh     thin launchers → genesis.py
 backend/
   app/
     main.py               FastAPI app (stream, health, md/json/zip exports)
@@ -247,7 +278,6 @@ frontend/
   lib/                    types.ts (wire contract), api.ts (NDJSON client, typed routes)
 .github/workflows/ci.yml  CI: offline 13/13 pipeline test + strict build on every push
 proofs/                   reproducible verification evidence (see proofs/README.md)
-start.bat / start.sh      one-command launcher (installs on first run, opens browser)
 ```
 
 ## Legal & ethical scope
