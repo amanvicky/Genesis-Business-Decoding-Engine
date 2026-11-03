@@ -9,7 +9,7 @@ on:
 
 jobs:
   backend:
-    name: Offline pipeline smoke test (13/13 sections, zero network)
+    name: Offline backend tests (pytest suite + 14/14 pipeline)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,7 +19,13 @@ jobs:
           cache: pip
           cache-dependency-path: backend/requirements.txt
       - name: Install backend dependencies
-        run: pip install -r backend/requirements.txt
+        run: pip install -r backend/requirements.txt pytest
+      - name: Unit & API tests (offline)
+        working-directory: backend
+        env:
+          GENESIS_OFFLINE: "1"
+          TOR_ENABLED: "0"
+        run: pytest tests -q
       - name: Run pipeline offline (GENESIS_OFFLINE=1)
         working-directory: backend
         env:
