@@ -22,7 +22,7 @@ async def company_brief(fetcher: Fetcher, subject: str) -> dict:
     # that merely mention it (founders, partners, comparison lists) poison every
     # downstream section — e.g. "Razorpay" resolving to founder Kunal Shah's
     # biography. No direct article → no wiki data; other sources carry the decode.
-    token = subject.lower().split()[0]
+    token = (subject.lower().split() or [""])[0]
     hits = [h for h in hits if token in h["title"].lower()]
     if not hits:
         return {}
@@ -80,8 +80,11 @@ async def company_brief(fetcher: Fetcher, subject: str) -> dict:
 
 def _strip_headers(text: str) -> str:
     """Drop '== Section ==' header lines from plaintext extracts."""
+    # linear membership checks — the old "=+...=+" regex backtracked on
+    # "="-run lines crafted into article content
     return "\n".join(
-        line for line in (text or "").split("\n") if not re.match(r"^=+\s*.*?\s*=+$", line.strip())
+        line for line in (text or "").split("\n")
+        if not (st := line.strip()).startswith("=") or not st.endswith("=") or len(st) < 2
     )
 
 

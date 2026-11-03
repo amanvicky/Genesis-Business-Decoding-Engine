@@ -89,7 +89,7 @@ class AdversaryAgent(Agent):
             "severity": "fatal",
             "question": "Show me week-4 cohort retention for the core action — not signup retention. What is the number?",
             "why_fatal": "LTV without retention curves is a spreadsheet fiction; every dead company in the pre-mortem had confident LTV slides.",
-            "triggered_by": f"pre-mortem dominant death pattern: {premortem.get('common_failure_modes', [{}])[0].get('mode', 'unit economics')}",
+            "triggered_by": f"pre-mortem dominant death pattern: {(premortem.get('common_failure_modes') or [{}])[0].get('mode', 'unit economics')}",
             "passing_answer": "A cohort chart by acquisition month with ≥40% (B2B) week-4 core-action retention.",
         })
         moats = structural.get("moats") or []
@@ -178,7 +178,9 @@ class AdversaryAgent(Agent):
             })
 
         fatal_count = sum(1 for k in buyer + vc + auditor if k["severity"] == "fatal")
-        serious_count = len(buyer) + len(vc) + len(auditor) - fatal_count
+        # count by severity, not by subtraction — "probe" challenges were being
+        # reported as "serious", inflating the number the founder reads
+        serious_count = sum(1 for k in buyer + vc + auditor if k["severity"] == "serious")
         return {
             "fatal_count": fatal_count,
             "serious_count": serious_count,

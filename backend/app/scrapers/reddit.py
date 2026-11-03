@@ -28,8 +28,10 @@ async def reddit_search(fetcher: Fetcher, query: str, limit: int = 30) -> list[d
         data = r.json()
     except Exception:
         return []
+    if not isinstance(data, dict):
+        return []
     out = []
-    for child in data.get("data", {}).get("children", []):
+    for child in (data.get("data") or {}).get("children") or []:
         d = child.get("data", {})
         title = clean(d.get("title"))
         selftext = clean(d.get("selftext"))[:500]
@@ -43,7 +45,7 @@ async def reddit_search(fetcher: Fetcher, query: str, limit: int = 30) -> list[d
                 "score": d.get("score", 0),
                 "num_comments": d.get("num_comments", 0),
                 "url": "https://www.reddit.com" + (d.get("permalink") or ""),
-                "date": datetime.fromtimestamp(d.get("created_utc", 0), tz=timezone.utc).strftime("%Y-%m-%d"),
+                "date": datetime.fromtimestamp(d.get("created_utc") or 0, tz=timezone.utc).strftime("%Y-%m-%d"),
             }
         )
     return out

@@ -10,7 +10,9 @@ Design constraints (intentional, not optional):
 """
 from __future__ import annotations
 
+import socket
 import time
+from urllib.parse import urlparse
 
 import httpx
 
@@ -22,6 +24,15 @@ from ..text import clean
 # against a dead proxy on every request.
 _PROBE_TTL = 60.0
 _last_probe: tuple[float, dict] | None = None
+
+
+def _local_port_open(host: str, port: int, timeout: float = 0.5) -> bool:
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(timeout)
+            return s.connect_ex((host, port)) == 0
+    except OSError:
+        return False
 
 # Refuse anything that looks like an attempt to source illegal goods/services.
 REFUSE_TERMS = [
@@ -43,6 +54,18 @@ async def tor_status(proxy: str) -> dict:
     now = time.monotonic()
     if _last_probe and now - _last_probe[0] < _PROBE_TTL:
         return _last_probe[1]
+    # Fast path: a closed local proxy is answered in microseconds via a plain
+    # loopback connect — the full SOCKS dial below can stall the health
+    # endpoint for seconds against a dead port on Windows.
+    try:
+        parsed = urlparse(proxy)
+        if parsed.hostname in ("127.0.0.1", "localhost") and \
+                not _local_port_open(parsed.hostname, parsed.port or 9050):
+            result = {"available": False, "reason": f"Tor not reachable on {proxy} (connection refused)"}
+            _last_probe = (now, result)
+            return result
+    except ValueError:
+        pass
     result = {"available": False, "reason": "unknown"}
     try:
         async with httpx.AsyncClient(timeout=20, proxy=proxy, follow_redirects=True) as client:

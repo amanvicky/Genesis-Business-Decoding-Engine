@@ -16,16 +16,18 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 
-from . import __version__, export, llm
+from . import __version__, advise, export, llm, verdict
 from .config import get_settings
 from .models import AnalyzeRequest
 from .pipeline import run_pipeline
 from .scrapers import tor as tor_mod
 
 app = FastAPI(title="Genesis — Business Decoding & Replication Engine", version=__version__)
+# Only the local dashboard may call this API from a browser — "*" let any
+# website the founder visits read the dossier via CORS.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -104,6 +106,102 @@ async def analyze_stream(req: AnalyzeRequest):
         media_type="application/x-ndjson",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+@app.post("/api/advise/stream")
+async def advise_stream(request: Request):
+    """Real-time founder advisor: NDJSON reasoning trail → grounded answer.
+
+    Body: {"question": "...", "report": {<full report>}} — stateless by design;
+    the dossier the founder already decoded IS the context.
+    """
+    body = await _report_body(request)
+    question = str(body.get("question") or "")
+    if not question.strip():
+        raise HTTPException(status_code=422, detail="question is required")
+    if len(question) > advise.MAX_QUESTION:
+        raise HTTPException(status_code=422, detail=f"question too long (max {advise.MAX_QUESTION} chars)")
+    report = body.get("report")
+    if not isinstance(report, dict):
+        raise HTTPException(status_code=422, detail="report (the decoded dossier) is required")
+
+    async def generate():
+        import asyncio
+
+        queue: asyncio.Queue = asyncio.Queue(maxsize=64)
+
+        async def push(event: dict) -> None:
+            await queue.put(event)
+
+        async def runner() -> None:
+            try:
+                trail = _reasoning_trail(question, report)
+                for msg in trail:
+                    await push({"type": "log", "msg": msg})
+                answer = advise.advise(question, report)
+                await push({"type": "answer", **answer})
+            except Exception as exc:
+                await push({"type": "error", "msg": f"{type(exc).__name__}: {exc}"})
+            finally:
+                await queue.put(None)
+
+        task = asyncio.create_task(runner())
+        try:
+            while True:
+                event = await queue.get()
+                if event is None:
+                    break
+                yield json.dumps(event, ensure_ascii=False, default=str) + "\n"
+        finally:
+            task.cancel()
+
+    return StreamingResponse(
+        generate(),
+        media_type="application/x-ndjson",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+def _reasoning_trail(question: str, report: dict) -> list[str]:
+    """Short honest trail of what the advisor is reading — real-time feel
+    without theater: each line names the tab actually consulted."""
+    intent = advise.detect_intent(question)
+    trail = [f"question routed → {intent}"]
+    tab_map = {
+        "capital": ["Tab 8 — burn calculator", "Tab 13 — capital strategy"],
+        "market": ["Tab 13 — TAM/SAM/SOM"],
+        "competitors": ["Tab 2 — alternatives scan"],
+        "mvp": ["Tab 2 — build sequence"],
+        "compliance": ["Tab 3 — statutory checklist"],
+        "pricing": ["Tab 6 — unit economics"],
+        "burn": ["Tab 8 — financial reality"],
+        "customers": ["Tab 9 — distribution loops"],
+        "risk": ["Tab 4 — failure post-mortems"],
+        "redteam": ["Tab 14 — adversarial panel"],
+        "next": ["your dossier's verdicts"],
+        "hello": [],
+    }
+    for t in tab_map.get(intent, []):
+        trail.append(f"reading {t}…")
+    return trail
+
+
+@app.post("/api/verdict")
+async def verdict_endpoint(request: Request):
+    """The Verdict Protocol: report + optional founder-market-fit answers →
+    a deterministic GO / NO-GO / CONDITIONAL / PENDING memo. No LLM here on
+    purpose — a verdict that can be argued into another outcome is worthless."""
+    body = await _report_body(request)
+    report = body.get("report")
+    if not isinstance(report, dict):
+        raise HTTPException(status_code=422, detail="report (the decoded dossier) is required")
+    answers = body.get("fmf_answers")
+    if answers is not None:
+        if (not isinstance(answers, list) or len(answers) > verdict._MAX_FMF_ANSWERS
+                or not all(isinstance(a, bool) for a in answers)):
+            raise HTTPException(status_code=422,
+                                detail=f"fmf_answers must be a list of booleans (max {verdict._MAX_FMF_ANSWERS})")
+    return verdict.build_memo(report, answers)
 
 
 @app.post("/api/export/markdown")

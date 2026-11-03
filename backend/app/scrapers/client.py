@@ -8,8 +8,10 @@
 from __future__ import annotations
 
 import asyncio
+import ipaddress
 import json
 from typing import Any, Optional
+from urllib.parse import urlparse
 
 import httpx
 from bs4 import BeautifulSoup
@@ -18,6 +20,36 @@ from ..config import get_settings
 from ..models import Evidence
 
 UA = "GenesisResearchBot/1.0 (local zero-cost business research tool; automated, polite)"
+
+# Hard cap on any single response body — a hostile or misbehaving endpoint must
+# not be able to stream gigabytes into the user's RAM.
+_MAX_BODY = 5_000_000
+_BLOCKED_HOSTS = {"localhost"}
+
+
+def safe_public_http_url(url: str) -> bool:
+    """SSRF gate for URLs that arrived from UNTRUSTED data (search results,
+    API responses). Requires http(s), no embedded credentials, and a host that
+    is neither localhost-style nor a private/link-local/reserved IP literal.
+    Domain names are accepted at face value — DNS-rebirth to private space is
+    a documented limitation, not silently ignored."""
+    try:
+        u = urlparse(url)
+        if u.scheme not in ("http", "https") or not u.hostname:
+            return False
+        if u.username or u.password:
+            return False
+        host = u.hostname.lower()
+        if host in _BLOCKED_HOSTS or host.endswith(".local") or host.endswith(".internal"):
+            return False
+        try:
+            ip = ipaddress.ip_address(host)
+        except ValueError:
+            return True  # a domain name, not an IP literal
+        return not (ip.is_private or ip.is_loopback or ip.is_link_local
+                    or ip.is_reserved or ip.is_multicast or ip.is_unspecified)
+    except Exception:
+        return False
 
 
 class OfflineError(RuntimeError):
@@ -51,10 +83,24 @@ class Fetcher:
             try:
                 async with self._sem:
                     async with httpx.AsyncClient(timeout=timeout, proxy=self.proxy, follow_redirects=True) as client:
-                        r = await client.get(url, headers=h)
-                if r.status_code in (429, 503) and attempt < 2:
-                    await asyncio.sleep(1.2 * (attempt + 1))
-                    continue
+                        async with client.stream("GET", url, headers=h) as resp:
+                            if resp.status_code in (429, 503) and attempt < 2:
+                                await asyncio.sleep(1.2 * (attempt + 1))
+                                continue
+                            chunks: list[bytes] = []
+                            total = 0
+                            async for chunk in resp.aiter_bytes(65536):
+                                total += len(chunk)
+                                if total > _MAX_BODY:
+                                    raise RuntimeError(f"response body exceeds {_MAX_BODY} bytes: {url}")
+                                chunks.append(chunk)
+                            # rebuild a concrete Response so .json()/.text/.raise_for_status work.
+                            # aiter_bytes yields DECODED bytes — drop content-encoding/length
+                            # headers or httpx re-decompresses and fails (DecodingError)
+                            hdrs = {k: v for k, v in resp.headers.multi_items()
+                                    if k.lower() not in ("content-encoding", "content-length")}
+                            r = httpx.Response(resp.status_code, headers=hdrs, content=b"".join(chunks),
+                                               request=resp.request)
                 return r
             except (httpx.HTTPError, OSError) as exc:
                 last_exc = exc

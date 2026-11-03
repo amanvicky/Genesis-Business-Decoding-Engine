@@ -21,13 +21,13 @@ async def pricing_history(fetcher: Fetcher, domain: str, max_snapshots: int = 6)
         f"&collapse=timestamp:6&limit=40",
         kind="archive",
     )
-    if not cdx or len(cdx) < 2:
+    if not isinstance(cdx, list) or len(cdx) < 2:
         cdx = await fetcher.try_json(
             f"{CDX}?url={domain}&output=json&fl=timestamp,statuscode&filter=statuscode:200"
             f"&collapse=timestamp:6&limit=40",
             kind="archive",
         )
-    rows = cdx[1:] if cdx else []
+    rows = cdx[1:] if isinstance(cdx, list) else []
     if not rows:
         return []
     # spread snapshots evenly across the archive's history

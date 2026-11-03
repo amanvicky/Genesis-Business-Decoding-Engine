@@ -6,9 +6,10 @@ report, never kills it. Every step streams a console event.
 from __future__ import annotations
 
 import asyncio
+import re
 
 from ..models import Evidence
-from ..scrapers.client import Fetcher
+from ..scrapers.client import Fetcher, safe_public_http_url
 from ..scrapers import github, hn, reddit, reviews, search, wayback, wikipedia
 from ..text import clean, detect_sector, domain_of
 from .base import Agent, Emit
@@ -66,8 +67,13 @@ class ReconAgent(Agent):
         if mode == "company":
             for r in ev.search:
                 d = domain_of(r["url"])
-                if d and d not in ("en.wikipedia.org", "linkedin.com", "crunchbase.com", "youtube.com", "facebook.com", "x.com", "twitter.com"):
-                    head = q.lower().split()[0]
+                # Strict domain format + SSRF gate: this value is fetched from
+                # later, and search results are attacker-rankable — a netloc
+                # like "user@10.0.0.5:8080" must never pass.
+                if (d and safe_public_http_url(f"https://{d}")
+                        and re.fullmatch(r"[a-z0-9-]+(\.[a-z0-9-]+)+", d)
+                        and d not in ("en.wikipedia.org", "linkedin.com", "crunchbase.com", "youtube.com", "facebook.com", "x.com", "twitter.com")):
+                    head = (q.lower().split() or [""])[0]
                     if head in d or d.split(".")[0] == head.replace(" ", ""):
                         company_domain = d
                         break
@@ -156,7 +162,9 @@ class ReconAgent(Agent):
         if mode == "company" and company_domain:
             await emit({"type": "log", "level": "info", "agent": self.id, "msg": f"reconstructing pricing history via Wayback Machine ({company_domain}/pricing)…"})
             ev.pricing_history = await wayback.pricing_history(f, company_domain)
-            for path_url in [r["url"] for r in ev.search if "pricing" in r["url"]][:1]:
+            # "pricing" URLs come verbatim from search results — SSRF gate
+            # before fetching: only public http(s) hosts are ever fetched.
+            for path_url in [r["url"] for r in ev.search if "pricing" in r["url"] and safe_public_http_url(r["url"])][:1]:
                 html = await f.try_text(path_url)
                 if html:
                     from ..text import extract_tiers

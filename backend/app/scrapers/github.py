@@ -24,7 +24,7 @@ async def find_repo(fetcher: Fetcher, subject: str) -> dict | None:
     # in the repo description (or the name must be exactly the token). This
     # rejects "adPEAS" (Active Directory toolkit) and "adp-delightful-details"
     # (an Android animations sample) that star-rank above real matches.
-    token = _norm(subject.split()[0])
+    token = _norm((subject.split() or [""])[0])
     prefix = re.compile(rf"^{re.escape(token)}\b")
     for item in items:
         name = (item.get("name") or "").lower()
@@ -35,6 +35,10 @@ async def find_repo(fetcher: Fetcher, subject: str) -> dict | None:
 
 
 async def releases(fetcher: Fetcher, full_name: str, limit: int = 40) -> list[dict]:
+    # full_name comes from the GitHub API response — validate its shape before
+    # interpolating into the URL (host is pinned; this blocks path/query smuggling)
+    if not re.fullmatch(r"[\w.-]+/[\w.-]+", full_name or ""):
+        return []
     data = await fetcher.try_json(
         f"https://api.github.com/repos/{full_name}/releases?per_page={limit}",
         kind="github",
