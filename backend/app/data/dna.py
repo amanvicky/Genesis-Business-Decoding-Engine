@@ -23,6 +23,7 @@ PATTERNS: list[Pattern] = [
             ("Ownership bias", "once your projects/data live inside it, leaving feels like losing something you own."),
         ],
         "business": "Freemium conversion: the % of free users who upgrade pays the whole bill. Works when the marginal cost of a free user is near zero.",
+        "worked": "In the wild: Slack and Notion rode free tiers to millions of users before hiring real sales teams; Figma's free plan made it the default for students, which turned into enterprise pull years later.",
         "refine": "Your free tier must map to something that costs you ~nothing to serve, and the paywall must sit on a value trigger users hit naturally (seats, history, scale), not on random features.",
     },
     {
@@ -34,6 +35,7 @@ PATTERNS: list[Pattern] = [
             ("Variable reward", "not knowing exactly what today's session brings keeps the loop interesting."),
         ],
         "business": "This is a retention mechanism: DAU/WAU and cohort retention are the numbers it moves, and retention is the multiplier on everything else.",
+        "worked": "In the wild: Duolingo's streaks are the publicly credited core of its retention; people post their streaks socially, which is free marketing the company didn't have to buy.",
         "refine": "Streaks only fit products with a natural daily moment. A payroll tool with fake streaks is a gimmick; find your product's real frequency first.",
     },
     {
@@ -45,6 +47,7 @@ PATTERNS: list[Pattern] = [
             ("Zeigarnik effect", "unfinished tasks nag at the mind; an incomplete checklist literally itches."),
         ],
         "business": "This moves activation rate and time-to-value (TTFV), the metrics that decide whether free users ever convert.",
+        "worked": "In the wild: Slack's famous activation insight - trial teams that exchanged ~2,000 messages almost never churned - came from obsessing over the first session, not the logo.",
         "refine": "Define your product's one 'aha' action, then design the shortest honest path to it and show progress toward it. Delete onboarding steps before adding them.",
     },
     {
@@ -56,6 +59,7 @@ PATTERNS: list[Pattern] = [
             ("FOMO", "'someone mentioned you' is a social debt you feel you must settle now."),
         ],
         "business": "Re-engagement: notifications cheaply reactivate users who would otherwise churn. Done badly they train users to disable them.",
+        "worked": "In the wild: LinkedIn and Facebook grew through the era when email digests ('you have pending invitations') were the main re-engagement engine; the pattern still works when the notification is worth opening.",
         "refine": "One notification per user action that genuinely matters beats five per day. Notification permission is a privilege; spam is how you lose it forever.",
     },
     {
@@ -67,6 +71,7 @@ PATTERNS: list[Pattern] = [
             ("Reciprocity", "'give $10, get $10' starts a relationship with a gift, and people repay gifts."),
         ],
         "business": "Viral coefficient (k): how many new users each user brings. k > 1 means free growth; even k = 0.2 slashes blended CAC.",
+        "worked": "In the wild: Dropbox's two-sided referral program (free space for both sides) is the textbook case, publicly credited with multiplying signups around 2008-2010.",
         "refine": "Referrals fit products that are naturally better shared (teams, marketplaces). If your product is a solo tool, referral incentives feel like spam.",
     },
     {
@@ -78,6 +83,7 @@ PATTERNS: list[Pattern] = [
             ("Anchoring", "the template sets what 'done' looks like, and users adapt it rather than question it."),
         ],
         "business": "Activation and time-to-value again: templates are the cheapest activation lift a product can ship.",
+        "worked": "In the wild: Canva's template library and Notion's template gallery made first-session success the default path; Canva rode it to tens of millions of users.",
         "refine": "Build templates from the top 3 real jobs users hire your product for, not from what looks good in a demo.",
     },
     {
@@ -89,6 +95,7 @@ PATTERNS: list[Pattern] = [
             ("Default bias", "if your tool is bundled/connected where they already are, it becomes the path of least resistance."),
         ],
         "business": "Ecosystem moat + expansion revenue: integrations justify higher tiers and make churn expensive for the customer, not just sad.",
+        "worked": "In the wild: Slack's app directory made churn expensive for customers, and Notion acquiring Automate.io (2021) shows companies buying integrations outright when the ecosystem matters enough.",
         "refine": "Integrate with the 2 tools your users already pay for, not the 20 that look good on a roadmap slide.",
     },
     {
@@ -100,6 +107,7 @@ PATTERNS: list[Pattern] = [
             ("Risk aversion", "the buyer's fear of being blamed for a breach outweighs their desire for a better product."),
         ],
         "business": "This is expansion revenue and higher ACV: the same product sells for 5-20x per seat once the buyer is a company with procurement.",
+        "worked": "In the wild: adding SSO/SAML routinely flips enterprise deals from impossible to routine; most SaaS companies price SSO as the line between 'team' and 'business' tiers.",
         "refine": "Enterprise controls are a v2+ move. Ship them when a paying customer literally asks in writing, not before.",
     },
     {
@@ -111,6 +119,7 @@ PATTERNS: list[Pattern] = [
             ("Loss framing", "'you lose access Friday' moves people more than 'you gain access today'."),
         ],
         "business": "Trial-to-paid conversion lift at the moment of the paywall. Overused, it teaches users your deadlines are fiction.",
+        "worked": "In the wild: launch pricing and lifetime deals (the AppSumo model) reliably convert fence-sitters; the long-term bill arrives only if the deadline was fake.",
         "refine": "Use real deadlines with real reasons (price rises after the first 100, beta ends at capacity). Fake urgency is a brand tax.",
     },
     {
@@ -122,6 +131,7 @@ PATTERNS: list[Pattern] = [
             ("Authority bias", "a known logo transfers its reputation to your product."),
         ],
         "business": "Pure conversion-rate mechanics on the landing and paywall pages; costs nothing once the customers exist.",
+        "worked": "In the wild: 'trusted by' walls and G2/Capterra badges became standard because they measurably lift conversion; entire businesses exist just to collect that proof.",
         "refine": "Specific beats big: 'cut onboarding from 3 weeks to 4 days at Acme' outsells 'trusted by thousands'.",
     },
     {
@@ -133,6 +143,7 @@ PATTERNS: list[Pattern] = [
             ("Choice architecture", "what gets recommended shapes what gets chosen."),
         ],
         "business": "Retention and engagement lift, which compounds into LTV. Also the classic upsell surface (AI features on premium tiers).",
+        "worked": "In the wild: Netflix and Spotify credit recommendation engines as core to retention; Spotify Wrapped is personalization turned into a free annual marketing event.",
         "refine": "Personalize only after you have real behavioral data; cold-start 'personalization' that guesses wrong destroys more trust than it builds.",
     },
     {
@@ -144,6 +155,7 @@ PATTERNS: list[Pattern] = [
             ("Automation bias", "people over-trust machine output; the best copilots show their work and keep the human in charge."),
         ],
         "business": "Perceived value per dollar of compute: the margin question (what does inference cost per user per month?) decides if this is a feature or a business.",
+        "worked": "In the wild: GitHub Copilot and Notion AI turned 'AI' from a roadmap word into a paid upsell line within months of launching - the fastest pricing-layer upgrade of the era.",
         "refine": "Attach AI to the most repetitive step in your workflow, and make the output editable. Full-auto output that's occasionally wrong is worse than draft-plus-human.",
     },
     {
@@ -155,6 +167,7 @@ PATTERNS: list[Pattern] = [
             ("Pain-of-paying calibration", "small frequent charges vs one big invoice changes how expensive the product feels."),
         ],
         "business": "ARPA and expansion revenue: revenue grows automatically as the customer grows, the best kind of sales motion (zero-touch upsell).",
+        "worked": "In the wild: AWS and per-seat SaaS both let revenue grow with the customer without a single extra sales call; that's why investors love the model.",
         "refine": "Pick the unit that tracks customer success (seats, records, runs). If your unit punishes success, customers will resent every win.",
     },
     {
@@ -166,6 +179,7 @@ PATTERNS: list[Pattern] = [
             ("Status", "contributors earn reputation, which recruits more contributors."),
         ],
         "business": "Product-led growth: the free/open core is the sales team, and the paid tier is convenience (hosting, support, SSO).",
+        "worked": "In the wild: VS Code, Supabase and PostHog follow the same arc: free open core wins developer trust first, hosted plans pay the bills later.",
         "refine": "Open source the part that builds trust (the engine), keep the operationally hard part (hosting, compliance) as the business.",
     },
     {
@@ -177,6 +191,7 @@ PATTERNS: list[Pattern] = [
             ("Friction as tax", "every extra click in the cancel flow recovers some churners and enrages the rest."),
         ],
         "business": "Short-term churn reduction, long-term NPS and review damage. The reviews remember what the dashboard forgets.",
+        "worked": "In the wild: gyms and legacy cable companies perfected this; the modern verdict is harsh - 'how to cancel' complaint reviews now rank on page one and poison acquisition.",
         "refine": "Keep cancellations easy and put the effort into an exit interview plus a one-click 'pause instead'. You learn more and insult less.",
     },
 ]

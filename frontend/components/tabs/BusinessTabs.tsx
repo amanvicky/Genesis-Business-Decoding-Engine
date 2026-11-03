@@ -540,6 +540,23 @@ function PatternCard({ pat }: { pat: NonNullable<DnaData["features"]>[number]["p
         </ul>
       </div>
       <p className="mt-2 text-xs leading-relaxed text-zinc-300"><span className="text-amber-500">business:</span> {pat.business}</p>
+      {(pat.played_out ?? []).length > 0 && (
+        <div className="mt-2 rounded border border-cyan-900/40 bg-cyan-950/10 p-2">
+          <p className="text-[11px] uppercase tracking-wider text-cyan-400">how it played out for them</p>
+          <ul className="mt-1 space-y-1">
+            {pat.played_out!.map((o, i) => (
+              <li key={i} className="text-xs leading-relaxed text-zinc-300">
+                {o.text}
+                {o.url && <a href={o.url} target="_blank" rel="noreferrer" className="ml-1 text-[10px] text-cyan-500/80 hover:text-cyan-400">source ↗</a>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {pat.worked && (
+        <p className="mt-2 text-[11px] leading-relaxed text-zinc-500 italic">{pat.worked}</p>
+      )}
+      <p className="mt-2 text-xs leading-relaxed text-zinc-300"><span className="text-amber-500">business:</span> {pat.business}</p>
       <p className="mt-2 text-xs leading-relaxed text-emerald-400/90"><span className="text-emerald-600">steal it:</span> {pat.refine}</p>
     </div>
   );
@@ -558,6 +575,19 @@ export function DnaTab({ data }: { data: DnaData }) {
               <span className="text-cyan-500">{t.name}</span> ({t.mentions} evidence hits) — {t.philosophy}
             </p>
           ))}
+          {(data.product_philosophy.credibility ?? []).length > 0 && (
+            <div className="mt-3 rounded border border-amber-900/40 bg-amber-950/10 p-2">
+              <p className="text-[11px] uppercase tracking-wider text-amber-400">credibility it earned (from live evidence)</p>
+              <ul className="mt-1 space-y-1">
+                {data.product_philosophy.credibility!.map((c, i) => (
+                  <li key={i} className="text-xs leading-relaxed text-zinc-300">
+                    {c.text}
+                    {c.url && <a href={c.url} target="_blank" rel="noreferrer" className="ml-1 text-[10px] text-cyan-500/80 hover:text-cyan-400">source ↗</a>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </Card>
       )}
 

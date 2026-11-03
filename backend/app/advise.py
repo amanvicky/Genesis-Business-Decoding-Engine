@@ -357,6 +357,9 @@ def _advise_dna(q: str, report: dict) -> dict:
             for ps in pat["psychology"]:
                 lines.append(f"Psychology ({ps['principle']}): {ps['explained']}")
             lines.append(f"Business: {pat['business']}")
+            for po in pat.get("played_out", [])[:1]:
+                lines.append(f"How it played out for them: {po['text']}")
+            lines.append(f"In the wild: {pat.get('worked', '')}")
             lines.append(f"Steal it: {pat['refine']}")
         return {"answer": f"The breakdown of '{best.get('feature', '')}':",
                 "bullets": lines, "open_tabs": ["dna"],

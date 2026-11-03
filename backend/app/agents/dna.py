@@ -2,14 +2,13 @@
 
 Company mode: every decoded feature is matched against a pattern KB and broken
 down into why it was built (philosophy), which named psychological principles
-make it work, the business mechanism it serves, and how the founder can steal
-or avoid it. Idea mode: the levers that matter for their sector, so they can
-refine before they build. Every term is defined in plain words at the bottom.
+make it work, the business mechanism it serves, how the pattern actually played
+out (evidence-mined outcomes + a documented example), and how the founder can
+steal or avoid it. Idea mode: the levers that matter for their sector.
 """
 from __future__ import annotations
 
 import re
-from collections import Counter
 
 from ..data import dna as KB
 from ..models import Evidence
@@ -36,6 +35,45 @@ SECTOR_LENS: dict[str, list[str]] = {
                 "Templates & starter content"],
 }
 
+# outcome signals: how a pattern actually played out, mined from evidence
+OUTCOME_RES = [
+    ("scale", re.compile(r"\b\d[\d.,]*\s*(?:million|billion|M|k|thousand)\+?\s*(?:registered )?(?:users|customers|subscribers|members|teams|sign-?ups|downloads|employees|people|companies)\b", re.I)),
+    ("money", re.compile(r"\b(?:valued at|raised|acquired for|revenue (?:of|reached|surpassed)|worth|billion|million dollars)\b", re.I)),
+    ("credibility", re.compile(r"\b(?:soc ?2|iso\s?27001|hipaa compliant|award|acquired|acquisition|partnership with|trusted by|featured in|named (?:a|one)|winner|top \d)\b", re.I)),
+    ("growth", re.compile(r"\b(?:grew|grown|doubled|tripled|surged|jumped|expanded to|adopted by|switched to|went viral|became the default)\b", re.I)),
+]
+
+
+def _outcomes(ev: Evidence) -> list[dict]:
+    """Outcome sentences from the evidence, with their source snippet.
+
+    Keeps the whole source snippet (`src`) alongside each sentence: the pattern
+    keyword and the outcome often live in the SAME ARTICLE but different
+    sentences, and snippet-level attribution is what connects them."""
+    from ..text import clean as _clean
+    out: list[dict] = []
+    seen: set[str] = set()
+    sources: list[tuple[str, str]] = (
+        [(f"{r.get('title', '')} {r.get('snippet', '')}", r.get("url", "")) for r in ev.search]
+        + [(f"{r.get('title', '')} {r.get('selftext', '')}", r.get("url", "")) for r in ev.reddit]
+        + [(r.get("snippet", ""), r.get("url", "")) for r in ev.reviews]
+        + [(f"{r.get('name', '')} {r.get('body', '')}", r.get("url", "")) for r in ev.releases]
+    )
+    for text, url in sources:
+        text = _clean(text)
+        if not text:
+            continue
+        src = text[:400].lower()
+        for sent in re.split(r"(?<=[.!?])\s+", text):
+            sent = sent.strip()
+            if len(sent) < 25 or sent.lower()[:60] in seen:
+                continue
+            kind = next((k for k, rx in OUTCOME_RES if rx.search(sent)), None)
+            if kind:
+                seen.add(sent.lower()[:60])
+                out.append({"kind": kind, "text": sent[:220], "url": url, "src": src})
+    return out
+
 
 def _patterns_for(text: str) -> list[dict]:
     low = text.lower()
@@ -52,6 +90,15 @@ def _entry(p: dict) -> dict:
     }
 
 
+def _product_name(ev: Evidence) -> str:
+    return ev.subject or "the product"
+
+
+def json_dump(obj) -> str:
+    import json
+    return json.dumps(obj, default=str)
+
+
 class DnaAgent(Agent):
     id = "dna"
     title = "Product DNA — Philosophy & Psychology"
@@ -63,6 +110,8 @@ class DnaAgent(Agent):
         sections = getattr(self, "sections", {}) or {}
         feats = ((sections.get("features") or {}).get("data") or {}).get("features") or []
 
+        outcomes = _outcomes(ev)
+
         # per-feature breakdown (company mode has real feature history to mine)
         feature_breakdowns: list[dict] = []
         for f in feats[:60]:
@@ -70,11 +119,23 @@ class DnaAgent(Agent):
             hits = _patterns_for(text)
             if not hits:
                 continue
+            fwords = {w for w in re.findall(r"[a-z]{5,}", text.lower())}
+            entries = []
+            for p in hits[:2]:
+                entry = _entry(p)
+                # outcomes attributed to this pattern when the source snippet
+                # mentions its keywords; prefer ones that also touch the
+                # feature's own words, fall back to pattern-level outcomes
+                pat_outs = [o for o in outcomes if any(kw in o["src"] for kw in p["kw"])]
+                near = [o for o in pat_outs if fwords & set(o["src"].split())] or pat_outs
+                entry["played_out"] = [{"kind": o["kind"], "text": o["text"], "url": o["url"]} for o in near[:2]]
+                entry["worked"] = p["worked"]
+                entries.append(entry)
             feature_breakdowns.append({
                 "feature": f.get("feature", "")[:140],
                 "class": f.get("class", ""),
                 "source": f.get("source", ""),
-                "patterns": [_entry(p) for p in hits[:2]],
+                "patterns": entries,
             })
             if len(feature_breakdowns) >= 10:
                 break
@@ -88,12 +149,22 @@ class DnaAgent(Agent):
                 corpus_hits.append((p, c))
         corpus_hits.sort(key=lambda x: -x[1])
         top = corpus_hits[:3]
+
+        subject_words = {w.lower() for w in _product_name(ev).split() if len(w) > 2}
+        credibility = [
+            {"kind": o["kind"], "text": o["text"], "url": o["url"]}
+            for o in outcomes
+            if o["kind"] in ("credibility", "money", "scale")
+            and (subject_words & set(o["text"].lower().split()))
+        ][:5]
+
         product_philosophy = {
             "headline": (
                 f"What {_product_name(ev)} optimizes for, read from its own trail: "
                 + "; ".join(p["name"].lower() for p, _ in top) + "."
             ) if top else "Not enough evidence to read a product philosophy — run online for a fuller picture.",
             "top_patterns": [{"name": p["name"], "mentions": c, "philosophy": p["philosophy"]} for p, c in top],
+            "credibility": credibility,
         }
 
         # idea mode: the levers that decide winners in this sector
@@ -102,6 +173,8 @@ class DnaAgent(Agent):
             lens_names = SECTOR_LENS.get(ev.sector, SECTOR_LENS["generic"])
             by_name = {p["name"]: p for p in KB.PATTERNS}
             recommended = [_entry(by_name[n]) for n in lens_names if n in by_name]
+            for r in recommended:
+                r["worked"] = next(p["worked"] for p in KB.PATTERNS if p["name"] == r["name"])
             idea_lens = {
                 "sector": ev.sector,
                 "recommended": recommended,
@@ -135,12 +208,12 @@ class DnaAgent(Agent):
         if data.get("idea_lens"):
             n = len(data["idea_lens"]["recommended"])
             return (f"{n} psychological levers recommended for a {ev.sector} idea, each with the "
-                    f"philosophy, the named principles, and how to apply it. Pick two.")
+                    f"philosophy, the named principles, how it played out in the wild, and how to apply it. Pick two.")
         n = len(data.get("features", []))
         top = (data.get("product_philosophy") or {}).get("top_patterns") or []
         lead = top[0]["name"].lower() if top else "no dominant pattern"
-        return (f"{n} feature(s) broken down into philosophy + psychology + business mechanics "
-                f"(dominant pattern: {lead}). Every term defined at the bottom.")
+        return (f"{n} feature(s) broken down into philosophy + psychology + business mechanics + how it "
+                f"played out (dominant pattern: {lead}). Every term defined at the bottom.")
 
     def llm_prompt(self, ev: Evidence, data: dict) -> str:
         return (
@@ -148,12 +221,3 @@ class DnaAgent(Agent):
             "principle this company's product most exploits, in one line, and the single refinement a "
             "founder copying this category should make differently."
         )
-
-
-def _product_name(ev: Evidence) -> str:
-    return ev.subject or "the product"
-
-
-def json_dump(obj) -> str:
-    import json
-    return json.dumps(obj, default=str)

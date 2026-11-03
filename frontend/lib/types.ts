@@ -381,6 +381,7 @@ export interface DnaData {
   readonly product_philosophy?: {
     readonly headline?: string;
     readonly top_patterns?: readonly { readonly name: string; readonly mentions: number; readonly philosophy: string }[];
+    readonly credibility?: readonly { readonly kind: string; readonly text: string; readonly url: string }[];
   };
   readonly features?: readonly {
     readonly feature: string;
@@ -392,6 +393,8 @@ export interface DnaData {
       readonly psychology: readonly { readonly principle: string; readonly explained: string }[];
       readonly business: string;
       readonly refine: string;
+      readonly worked?: string;
+      readonly played_out?: readonly { readonly kind: string; readonly text: string; readonly url: string }[];
     }[];
   }[];
   readonly idea_lens?: {
@@ -402,6 +405,7 @@ export interface DnaData {
       readonly psychology: readonly { readonly principle: string; readonly explained: string }[];
       readonly business: string;
       readonly refine: string;
+      readonly worked?: string;
     }[];
     readonly note: string;
   };
