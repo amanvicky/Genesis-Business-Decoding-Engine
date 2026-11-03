@@ -220,14 +220,22 @@ def resolve_real_pid(name: str, port: int, timeout: float = 40.0) -> int:
     """Track the REAL server process. Windows venv launchers and npm re-exec
     into children, so the spawned pid is often just a launcher that dies while
     its child keeps serving. Poll the port until someone binds, then record
-    that pid — stop/watchdog kill the whole generation, not just the launcher."""
+    that pid — stop/watchdog kill the whole generation, not just the launcher.
+    Only OUR processes may enter the .real.pid file: a foreign listener written
+    here would be killed by stop/watchdog, breaking the never-touch-foreign rule."""
     deadline = time.time() + timeout
     launcher = read_pid(name)
+    warned = False
     while time.time() < deadline:
         for pid in listeners_on(port):
-            if pid != launcher:
+            if pid == launcher:
+                continue
+            if is_ours(pid):
                 (RUNTIME / f"{name}.real.pid").write_text(str(pid))
                 return pid
+            if not warned:
+                warn(f"port {port} held by foreign pid {pid} — refusing to track it as '{name}'")
+                warned = True
         if not pid_alive(launcher):
             break
         time.sleep(0.5)
@@ -240,6 +248,11 @@ def kill_generation(name: str, port: int) -> None:
     for pid_file in (name, f"{name}.real"):
         pid = read_pid(pid_file)
         if pid and pid_alive(pid):
+            # Defense in depth: pid files are written by us and trusted, but if
+            # a slot ever points at a live foreign listener on the port, refuse.
+            if port_open(port) and pid in listeners_on(port) and not is_ours(pid):
+                warn(f"refusing to kill foreign pid {pid} recorded in {pid_file}.pid")
+                continue
             kill_tree(pid)
     for pid in listeners_on(port):
         if is_ours(pid):
@@ -313,6 +326,11 @@ def free_project_ports(ports: tuple[int, ...]) -> list[str]:
 
 # ------------------------------------------------------------------- setup
 
+def _save_setup_log(content: str) -> None:
+    LOGS.mkdir(exist_ok=True)
+    (LOGS / "setup.log").write_text(content)
+
+
 def ensure_backend_deps() -> None:
     reqs = BACKEND / "requirements.txt"
     vp = venv_python()
@@ -321,12 +339,16 @@ def ensure_backend_deps() -> None:
         return
     info("installing backend environment (first run or requirements changed)…")
     if not vp.exists():
-        subprocess.run([find_python(), "-m", "venv", str(BACKEND / ".venv")], check=True,
-                       stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+        info("creating backend venv…")
+        r = subprocess.run([find_python(), "-m", "venv", str(BACKEND / ".venv")],
+                           capture_output=True, text=True)
+        if r.returncode != 0 or not vp.exists():
+            _save_setup_log(r.stdout + r.stderr)
+            die("backend venv creation failed — see logs/setup.log")
     r = subprocess.run([str(vp), "-m", "pip", "install", "--disable-pip-version-check", "-q", "-r", str(reqs)],
                        capture_output=True, text=True)
     if r.returncode != 0:
-        (LOGS / "setup.log").write_text(r.stdout + r.stderr)
+        _save_setup_log(r.stdout + r.stderr)
         die("backend pip install failed — see logs/setup.log")
     write_marker("pip.stamp", reqs)
     ok("backend environment installed")
@@ -341,7 +363,7 @@ def ensure_frontend_deps() -> None:
     r = subprocess.run([npm(), "install", "--no-audit", "--no-fund"], cwd=str(FRONTEND),
                        capture_output=True, text=True)
     if r.returncode != 0:
-        (LOGS / "setup.log").write_text(r.stdout + r.stderr)
+        _save_setup_log(r.stdout + r.stderr)
         die("npm install failed — see logs/setup.log")
     write_marker("npm.stamp", pkg, lock)
     ok("frontend packages installed")
@@ -373,7 +395,7 @@ def ensure_frontend_build(dev: bool, rebuild: bool) -> None:
     info("building frontend production bundle (1–2 min)…")
     r = subprocess.run([npm(), "run", "build"], cwd=str(FRONTEND), capture_output=True, text=True)
     if r.returncode != 0:
-        (LOGS / "setup.log").write_text(r.stdout[-8000:] + r.stderr[-8000:])
+        _save_setup_log(r.stdout[-8000:] + r.stderr[-8000:])
         die("frontend build failed — see logs/setup.log (or run: python genesis.py up --dev)")
     stamp.write_text(str(time.time()))
     ok("frontend production build complete")
@@ -443,6 +465,25 @@ def ollama_status() -> tuple[bool, str]:
 
 # ------------------------------------------------------------- commands
 
+def _service_specs(dev: bool) -> dict:
+    return {
+        "api": {"cmd": [str(venv_python()), "-m", "uvicorn", "app.main:app", "--port", str(API_PORT)],
+                "cwd": str(BACKEND), "log": "api.log", "url": f"{API_URL}/api/health"},
+        "web": {"cmd": [npm(), "run", "dev" if dev else "start"],
+                "cwd": str(FRONTEND), "log": "web.log", "url": WEB_URL},
+    }
+
+
+def _respawn_watchdog() -> None:
+    """Bring the supervisor back if services are alive but it died. Without this,
+    a crashed watchdog left 'python genesis.py' silent about supervision."""
+    if not SERVICES_JSON.exists():
+        warn("watchdog is down and services.json is missing — run 'stop' then 'up' to rebuild supervision")
+        return
+    wd = spawn("watchdog", [sys.executable, str(Path(__file__).resolve()), "_watchdog"], ROOT, "watchdog.log")
+    ok(f"watchdog had died — respawned (pid {wd})")
+
+
 def cmd_up(args: argparse.Namespace) -> None:
     banner()
     if not BACKEND.exists() or not FRONTEND.exists():
@@ -450,6 +491,13 @@ def cmd_up(args: argparse.Namespace) -> None:
 
     if http_ok(f"{API_URL}/api/health") and http_ok(WEB_URL):
         ok("Genesis is ALREADY RUNNING — nothing to do")
+        wd = read_pid("watchdog")
+        if getattr(args, "no_watchdog", False):
+            warn("watchdog disabled by flag — supervision left as-is")
+        elif wd and pid_alive(wd):
+            ok(f"watchdog already supervising (pid {wd})")
+        else:
+            _respawn_watchdog()
         warn(f"  dashboard: {WEB_URL}   |   stop: python genesis.py stop")
         cmd_status()
         return
@@ -462,6 +510,13 @@ def cmd_up(args: argparse.Namespace) -> None:
     # 2. port takeover (only processes belonging to this project)
     info("[2/6] clearing project ports…")
     free_project_ports((API_PORT, WEB_PORT))
+    # A foreign app holding a port would doom our service to a bind-fail loop —
+    # abort with instructions instead of spawning into a lost cause.
+    for port, label in ((API_PORT, "API"), (WEB_PORT, "web dashboard")):
+        holders = listeners_on(port)
+        if holders and not any(is_ours(p) for p in holders):
+            err(f"port {port} ({label}) is held by a foreign process (pid {', '.join(map(str, sorted(holders)))})")
+            die("free that port (this manager never touches foreign processes), then re-run")
 
     # 3. frontend build
     info("[3/6] preparing frontend…")
@@ -473,12 +528,7 @@ def cmd_up(args: argparse.Namespace) -> None:
 
     # 5. launch backend + frontend detached
     info("[5/6] launching services in the background…")
-    services = {
-        "api": {"cmd": [str(venv_python()), "-m", "uvicorn", "app.main:app", "--port", str(API_PORT)],
-                "cwd": str(BACKEND), "log": "api.log", "url": f"{API_URL}/api/health"},
-        "web": {"cmd": [npm(), "run", "dev" if args.dev else "start"],
-                "cwd": str(FRONTEND), "log": "web.log", "url": WEB_URL},
-    }
+    services = _service_specs(args.dev)
     api_pid = spawn("api", services["api"]["cmd"], BACKEND, "api.log")
     web_pid = spawn("web", services["web"]["cmd"], FRONTEND, "web.log")
     real_api = resolve_real_pid("api", API_PORT, timeout=45)
@@ -490,6 +540,14 @@ def cmd_up(args: argparse.Namespace) -> None:
     if not args.no_watchdog:
         SERVICES_JSON.write_text(json.dumps(services, indent=2))
         WATCHDOG_STATE.unlink(missing_ok=True)  # fresh run = fresh restart budget
+        # Reconcile orphans FIRST: two supervisors = two restart loops fighting
+        # over the same ports, each killing the other's mid-startup servers.
+        orphans = find_our_watchdogs()
+        for pid in sorted(orphans):
+            warn(f"reconciling orphaned watchdog (pid {pid})")
+            kill_tree(pid)
+        if orphans:
+            time.sleep(1.0)
         wd = spawn("watchdog", [sys.executable, str(Path(__file__).resolve()), "_watchdog"], ROOT, "watchdog.log")
         ok(f"watchdog pid {wd} — crashed services are restarted automatically")
 
@@ -517,12 +575,20 @@ def cmd_up(args: argparse.Namespace) -> None:
 
 def cmd_stop(args: argparse.Namespace) -> None:
     stopped = []
+    # Kill orphaned watchdogs BEFORE the services — a surviving supervisor would
+    # resurrect everything this command just tore down, ten seconds later.
+    orphans = find_our_watchdogs()
+    for pid in sorted(orphans):
+        info(f"reconciling orphaned watchdog (pid {pid})…")
+        kill_tree(pid)
+        stopped.append("watchdog")
     for name in ("watchdog", "web", "api", "tor"):
         pid = read_pid(name)
         if pid and pid_alive(pid):
             info(f"stopping {name} (pid {pid})…")
             kill_tree(pid)
-            stopped.append(name)
+            if name != "watchdog":
+                stopped.append(name)
         (RUNTIME / f"{name}.pid").unlink(missing_ok=True)
     freed = free_project_ports((API_PORT, WEB_PORT))
     if freed:
@@ -557,6 +623,45 @@ def _parent_map() -> dict[int, int]:
                     pass
     except Exception:
         pass
+    return out
+
+
+def find_our_watchdogs() -> set[int]:
+    """PIDs of live genesis watchdog processes (project-owned cmdline match).
+
+    The pid file only ever names the LAST watchdog spawned — every 'up' that
+    spawns a new supervisor orphans the previous one. Without reconciliation
+    they pile up and each runs its own restart loop, killing the others'
+    freshly-spawned servers before they can bind their port."""
+    out: set[int] = set()
+    root_low = str(ROOT).lower()
+    try:
+        if IS_WIN:
+            r = subprocess.run(
+                ["powershell", "-NoProfile", "-Command",
+                 "Get-CimInstance Win32_Process | Select-Object ProcessId,CommandLine | ConvertTo-Csv -NoTypeInformation"],
+                capture_output=True, text=True, timeout=40)
+            for line in r.stdout.splitlines()[1:]:
+                parts = line.strip().strip('"').split('","')
+                if len(parts) == 2:
+                    try:
+                        pid = int(parts[0])
+                    except ValueError:
+                        continue
+                    low = parts[1].lower()
+                    if "_watchdog" in low and root_low in low:
+                        out.add(pid)
+        else:
+            for p in Path("/proc").glob("[0-9]*"):
+                try:
+                    cmd = (p / "cmdline").read_bytes().decode(errors="replace").replace("\x00", " ").lower()
+                except OSError:
+                    continue
+                if "_watchdog" in cmd and root_low in cmd:
+                    out.add(int(p.name))
+    except Exception:
+        pass
+    out.discard(os.getpid())
     return out
 
 
@@ -631,7 +736,7 @@ def cmd_doctor(args: argparse.Namespace) -> None:
     for port, svc in ((API_PORT, "api"), (WEB_PORT, "web")):
         if port_open(port):
             pid_holders = listeners_on(port)
-            ours = any(str(ROOT).lower() in proc_cmdline(p).lower() for p in pid_holders)
+            ours = any(is_ours(p) for p in pid_holders)
             add(f"port {port} ({svc})", True, "held by this project" if ours else "held by a foreign process — will not be touched")
         else:
             add(f"port {port} ({svc})", True, "free")
@@ -652,9 +757,63 @@ def cmd_doctor(args: argparse.Namespace) -> None:
     ok("doctor: ready — run  python genesis.py  to launch everything in the background")
 
 
+def cmd_uninstall(args: argparse.Namespace) -> None:
+    """Stop everything and remove generated artifacts.
+
+    Default: stops services, clears runtime state, logs and __pycache__ —
+    the next 'python genesis.py' starts instantly (deps kept).
+    --deep: also removes backend/.venv, frontend/node_modules and the
+    production build — a full reset; the next run reinstalls from scratch.
+    """
+    banner()
+    if not args.yes:
+        scope = "EVERYTHING including the venv, node_modules and build" if args.deep else \
+                "runtime state, logs and caches (installed dependencies stay)"
+        reply = input(f"Genesis will stop all services and remove {scope}.\nType YES to continue: ").strip().upper()
+        if reply != "YES":
+            die("aborted — nothing was removed")
+
+    cmd_stop(args)
+    removed: list[str] = []
+
+    def rm(path: Path, label: str) -> None:
+        if not path.exists():
+            return
+        shutil.rmtree(path, ignore_errors=True)
+        if path.exists():
+            warn(f"could not fully remove {path} — delete it manually")
+        else:
+            removed.append(label)
+
+    rm(RUNTIME, "runtime/")
+    rm(LOGS, "logs/")
+    caches = [ROOT / "__pycache__", BACKEND / "__pycache__", *(BACKEND / "app").rglob("__pycache__"),
+              *(BACKEND / "scripts").rglob("__pycache__"), *(BACKEND / "tests").rglob("__pycache__")]
+    for cache in caches:
+        rm(cache, str(cache.relative_to(ROOT)))
+    if args.deep:
+        rm(BACKEND / ".venv", "backend/.venv")
+        rm(FRONTEND / "node_modules", "frontend/node_modules")
+        rm(FRONTEND / ".next", "frontend/.next")
+        ok("deep uninstall — the next 'python genesis.py' reinstalls everything from scratch")
+    for label in removed:
+        ok(f"removed {label}")
+    if not removed:
+        ok("nothing to remove — already clean")
+    ok("uninstall complete — run  python genesis.py  to reinstall and start")
+
+
 def cmd_watchdog(args: argparse.Namespace) -> None:
     """Resident supervisor: restarts our services if their ports go dead.
     Bounded restarts (10 per service per hour) so a broken build can't loop."""
+    # Single-instance guard: the pid file only names the newest watchdog, so an
+    # orphaned predecessor is invisible to it. Two supervisors = two restart
+    # loops fighting over the same ports — kill each other's mid-startup
+    # servers — so a second instance simply refuses to start.
+    rivals = find_our_watchdogs()
+    if rivals:
+        info(f"watchdog: another supervisor already running (pid {', '.join(map(str, sorted(rivals)))}) — exiting")
+        return
     info(f"watchdog online (pid {os.getpid()}) — supervising api:{API_PORT} web:{WEB_PORT}")
     state = {"restarts": {}}
     if WATCHDOG_STATE.exists():
@@ -664,6 +823,11 @@ def cmd_watchdog(args: argparse.Namespace) -> None:
                 state = saved
         except Exception:
             pass
+    # Startup grace: services spawned moments ago (by 'up' or by a restart
+    # below) need seconds to import and bind. Judging them too early made the
+    # supervisor kill its own work in a loop.
+    last_spawn = {"api": time.time(), "web": time.time()}
+    down_streak: dict[str, int] = {}
     while True:
         time.sleep(10)
         try:
@@ -672,13 +836,23 @@ def cmd_watchdog(args: argparse.Namespace) -> None:
             continue
         for name, spec in services.items():
             port = API_PORT if name == "api" else WEB_PORT
+            if time.time() - last_spawn.get(name, 0.0) < 25.0:
+                continue  # freshly spawned — give it time to bind before judging
             tracked = read_pid(name)
             if tracked == 0:
+                down_streak[name] = 0
                 continue  # manager stopped us deliberately
             healthy = http_ok(spec["url"], timeout=2.0)
             tracked_owns = service_owns_port(tracked, port) if healthy else False
             if healthy and tracked_owns:
+                down_streak[name] = 0
                 continue
+            # Debounce: one failed sample (transient health stall, GC, AV scan)
+            # must never kill a healthy server — require two in a row.
+            down_streak[name] = down_streak.get(name, 0) + 1
+            if down_streak[name] < 2:
+                continue
+            down_streak[name] = 0
             window = state["restarts"].setdefault(name, [])
             window[:] = [t for t in window if time.time() - t < 3600]
             if len(window) >= 10:
@@ -699,6 +873,7 @@ def cmd_watchdog(args: argparse.Namespace) -> None:
             kill_generation(name, port)
             time.sleep(2.0)
             spawn(name, spec["cmd"], Path(spec["cwd"]), spec["log"])
+            last_spawn[name] = time.time()
             resolve_real_pid(name, port, timeout=60)
 
 
@@ -720,11 +895,19 @@ def main() -> None:
     lg.add_argument("--lines", type=int, default=60)
     lg.set_defaults(func=cmd_logs)
     sub.add_parser("doctor", help="pre-flight diagnostic").set_defaults(func=cmd_doctor)
+    un = sub.add_parser("uninstall", help="stop services and remove generated artifacts (--deep for full reset)")
+    un.add_argument("--deep", action="store_true", help="also remove backend/.venv, frontend/node_modules and the production build")
+    un.add_argument("--yes", action="store_true", help="skip the confirmation prompt")
+    un.set_defaults(func=cmd_uninstall)
     wd = sub.add_parser("_watchdog", help=argparse.SUPPRESS)
     wd.set_defaults(func=cmd_watchdog)
 
     argv = sys.argv[1:]
-    subcommands = {"up", "stop", "status", "logs", "doctor", "_watchdog"}
+    # Bare --help must show the command LIST, not the default 'up' subparser.
+    if argv and argv[0] in ("-h", "--help"):
+        parser.print_help()
+        return
+    subcommands = {"up", "stop", "status", "logs", "doctor", "uninstall", "_watchdog"}
     if not argv or argv[0] not in subcommands:
         argv = ["up", *argv]  # bare flags belong to the default 'up'
     args = parser.parse_args(argv)
