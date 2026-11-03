@@ -35,6 +35,7 @@ export const TAB_IDS = [
   "darkweb",
   "playbook",
   "marketsize",
+  "dna",
   "adversary",
 ] as const;
 
@@ -62,7 +63,8 @@ export const TABS = [
   { id: "darkweb", n: 11, title: "Deep/Dark Web & Vulnerability Shield", icon: "◉", blurb: "Tor-routed lawful OSINT, breach shield" },
   { id: "playbook", n: 12, title: "The Systematic Execution Playbook", icon: "➤", blurb: "Phased sequencing, KYC friction, scaling" },
   { id: "marketsize", n: 13, title: "Market Sizing & Capital Strategy", icon: "◎", blurb: "TAM/SAM/SOM math, raise vs bootstrap, founder fit" },
-  { id: "adversary", n: 14, title: "Adversarial Red-Team Simulator", icon: "⚔", blurb: "Buyers, VCs & auditors cross-examine your plan" },
+  { id: "dna", n: 14, title: "Product DNA — Philosophy & Psychology", icon: "☯", blurb: "why every feature exists, in plain words" },
+  { id: "adversary", n: 15, title: "Adversarial Red-Team Simulator", icon: "⚔", blurb: "Buyers, VCs & auditors cross-examine your plan" },
 ] as const satisfies readonly TabDef[];
 
 /* ---------------------------------------------------- section data shapes */
@@ -375,6 +377,40 @@ export interface MarketSizeData {
   readonly ai_insight?: string;
 }
 
+export interface DnaData {
+  readonly product_philosophy?: {
+    readonly headline?: string;
+    readonly top_patterns?: readonly { readonly name: string; readonly mentions: number; readonly philosophy: string }[];
+  };
+  readonly features?: readonly {
+    readonly feature: string;
+    readonly class?: string;
+    readonly source?: string;
+    readonly patterns: readonly {
+      readonly name: string;
+      readonly philosophy: string;
+      readonly psychology: readonly { readonly principle: string; readonly explained: string }[];
+      readonly business: string;
+      readonly refine: string;
+    }[];
+  }[];
+  readonly idea_lens?: {
+    readonly sector: string;
+    readonly recommended: readonly {
+      readonly name: string;
+      readonly philosophy: string;
+      readonly psychology: readonly { readonly principle: string; readonly explained: string }[];
+      readonly business: string;
+      readonly refine: string;
+    }[];
+    readonly note: string;
+  };
+  readonly glossary_business?: Readonly<Record<string, string>>;
+  readonly glossary_psych?: Readonly<Record<string, string>>;
+  readonly note?: string;
+  readonly ai_insight?: string;
+}
+
 /** TabId → its data shape. The single source of truth for renderers. */
 export interface SectionDataMap {
   structural: StructuralData;
@@ -390,6 +426,7 @@ export interface SectionDataMap {
   darkweb: DarkWebData;
   playbook: PlaybookData;
   marketsize: MarketSizeData;
+  dna: DnaData;
   adversary: AdversaryData;
 }
 

@@ -63,7 +63,7 @@ def main() -> None:
     sections = [e["section"] for e in events if e.get("type") == "section"]
     print(f"  ({len(events)} events in {elapsed:.0f}s — {len(sections)} sections)")
     check("no error events", "error" not in types, str([e for e in events if e.get('type') == 'error'])[:300])
-    check("14/14 sections decoded", len(sections) == 14, f"got {len(sections)}: {[s['id'] for s in sections]}")
+    check("15/15 sections decoded", len(sections) == 15, f"got {len(sections)}: {[s['id'] for s in sections]}")
     check("adversary section ran last", bool(sections) and sections[-1]["id"] == "adversary")
     done = [e for e in events if e.get("type") == "done"]
     check("done event carries report", bool(done) and isinstance(done[0].get("report"), dict))

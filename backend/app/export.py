@@ -12,7 +12,7 @@ from . import __version__
 TAB_ORDER = [
     "structural", "features", "compliance", "premortem", "timeline", "pricing",
     "friction", "financial", "distribution", "techarch", "darkweb", "playbook",
-    "marketsize", "adversary",
+    "marketsize", "dna", "adversary",
 ]
 
 TITLES = {
@@ -29,6 +29,7 @@ TITLES = {
     "darkweb": "Deep/Dark Web & Vulnerability Shield",
     "playbook": "The Systematic Execution Playbook",
     "marketsize": "Market Sizing & Capital Strategy",
+    "dna": "Product DNA — Philosophy & Psychology",
     "adversary": "Adversarial Red-Team Simulator",
 }
 

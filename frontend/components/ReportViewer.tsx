@@ -5,7 +5,7 @@ import { TABS, type Report, type TabId, sectionData } from "@/lib/types";
 import { downloadReport } from "@/lib/api";
 import { Badge } from "@/components/ui";
 import { ComplianceTab, FeaturesTab, PremortemTab, StructuralTab } from "@/components/tabs/AnalysisTabs";
-import { FinancialTab, FrictionTab, MarketSizeTab, PricingTab, TimelineTab } from "@/components/tabs/BusinessTabs";
+import { DnaTab, FinancialTab, FrictionTab, MarketSizeTab, PricingTab, TimelineTab } from "@/components/tabs/BusinessTabs";
 import { DarkWebTab, DistributionTab, PlaybookTab, TechArchTab } from "@/components/tabs/ExecTabs";
 import AdversaryTab from "@/components/tabs/AdversaryTab";
 import AdvisorPanel from "@/components/AdvisorPanel";
@@ -65,6 +65,8 @@ export default function ReportViewer({
         return <MarketSizeTab data={sectionData(section, "marketsize") ?? {}} />;
       case "playbook":
         return <PlaybookTab data={sectionData(section, "playbook") ?? {}} />;
+      case "dna":
+        return <DnaTab data={sectionData(section, "dna") ?? {}} />;
       case "adversary":
         return <AdversaryTab data={sectionData(section, "adversary") ?? {}} />;
     }

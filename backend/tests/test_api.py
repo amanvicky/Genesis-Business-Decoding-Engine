@@ -73,9 +73,9 @@ class TestStreamHappyPath:
 
     def test_fourteen_sections(self):
         sections = [e["section"] for e in self.events if e["type"] == "section"]
-        assert len(sections) == 14
+        assert len(sections) == 15
         ids = [s["id"] for s in sections]
-        assert len(set(ids)) == 14
+        assert len(set(ids)) == 15
 
     def test_adversary_runs_last(self):
         ids = [e["section"]["id"] for e in self.events if e["type"] == "section"]
@@ -84,7 +84,7 @@ class TestStreamHappyPath:
     def test_done_report_shape(self):
         assert self.report is not None
         assert self.report["subject"] == "AI meeting notes for sales teams"
-        assert len(self.report["sections"]) == 14
+        assert len(self.report["sections"]) == 15
         assert "request" in self.report and "sources" in self.report
 
     def test_every_section_has_data_and_summary(self):

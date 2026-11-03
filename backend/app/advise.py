@@ -23,6 +23,7 @@ def detect_intent(question: str) -> Intent:
         # red-team first: "what will investors SAY" is an objection question,
         # not a capital question — the say/ask context decides
         ("redteam", r"\b(objection|pitch|red team|red-team|weakness|investors? (say|will say|would say|ask))\b"),
+        ("dna", r"\b(philosoph\w*|psycholog\w*|product dna|explain (the |this |that )?\w*( feature| product| pattern| pricing| design)|why (does|did|is) (this|that|their|it)\b|how (does|did) [a-z ]{3,30} work)\b"),
         ("capital", r"\b(raise|funding|invest|dilut|bootstrap|valuation|cap\b|safe|equity|money)\w*"),
         ("market", r"\b(tam|sam|som)\b|\bmarket(ing| size)?\b|big enough"),
         ("competitors", r"\b(competitor|alternative|who else|rival|existing|already does)\w*"),
@@ -334,6 +335,47 @@ def _advise_next(q: str, report: dict) -> dict:
     }
 
 
+def _advise_dna(q: str, report: dict) -> dict:
+    dna = _section(report, "dna")
+    if not dna:
+        return {"answer": "No Product DNA section in this report yet — re-run the decode to build it.",
+                "bullets": [], "open_tabs": ["dna"], "followups": ["What should I do next?"]}
+
+    # did they ask about a specific feature? score features by word overlap
+    words = {w.lower() for w in re.findall(r"[a-z]{4,}", q.lower())}
+    best, best_score = None, 0
+    for fb in dna.get("features") or []:
+        fwords = {w.lower() for w in re.findall(r"[a-z]{4,}", fb.get("feature", ""))}
+        score = len(words & fwords)
+        if score > best_score:
+            best, best_score = fb, score
+
+    if best:
+        lines = []
+        for pat in best.get("patterns", []):
+            lines.append(f"Philosophy: {pat['philosophy']}")
+            for ps in pat["psychology"]:
+                lines.append(f"Psychology ({ps['principle']}): {ps['explained']}")
+            lines.append(f"Business: {pat['business']}")
+            lines.append(f"Steal it: {pat['refine']}")
+        return {"answer": f"The breakdown of '{best.get('feature', '')}':",
+                "bullets": lines, "open_tabs": ["dna"],
+                "followups": ["How do I get my first 10 customers?", "What's my biggest risk?"]}
+
+    phil = dna.get("product_philosophy") or {}
+    top = (phil.get("top_patterns") or [{}])[0]
+    return {
+        "answer": str(phil.get("headline") or "No product philosophy decoded."),
+        "bullets": [
+            f"{top.get('name', '')} is the dominant pattern: {top.get('philosophy', '')}" if top else "",
+            "Ask about any specific feature and I'll break down its philosophy, psychology and business mechanics.",
+            "Every term is defined in plain words at the bottom of Tab 14.",
+        ][:3],
+        "open_tabs": ["dna"],
+        "followups": ["What do I build first?", "Who already does this?", "What's my biggest risk?"],
+    }
+
+
 _HANDLERS = {
     "hello": _advise_hello,
     "capital": _advise_capital,
@@ -346,5 +388,6 @@ _HANDLERS = {
     "customers": _advise_customers,
     "risk": _advise_risk,
     "redteam": _advise_redteam,
+    "dna": _advise_dna,
     "next": _advise_next,
 }

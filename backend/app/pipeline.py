@@ -20,6 +20,7 @@ from .agents import (
     FeaturesAgent,
     FinancialAgent,
     FrictionAgent,
+    DnaAgent,
     MarketSizeAgent,
     PlaybookAgent,
     PremortemAgent,
@@ -47,6 +48,7 @@ AGENTS: list[type[Agent]] = [
     DarkWebAgent,
     PlaybookAgent,
     MarketSizeAgent,  # reads pricing/financial sections — after both
+    DnaAgent,  # reads the feature list from the features tab
     AdversaryAgent,  # must run last — it cross-examines the assembled report
 ]
 

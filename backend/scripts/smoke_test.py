@@ -25,7 +25,7 @@ async def main() -> None:
     req = AnalyzeRequest(mode=mode, query=subject, geography="global", team_size=3, runway_target_months=12)
 
     sections = 0
-    total = 14
+    total = 15
     async for event in _stream(req):
         etype = event.get("type")
         if etype == "log":

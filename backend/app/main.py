@@ -178,6 +178,7 @@ def _reasoning_trail(question: str, report: dict) -> list[str]:
         "customers": ["Tab 9 — distribution loops"],
         "risk": ["Tab 4 — failure post-mortems"],
         "redteam": ["Tab 14 — adversarial panel"],
+        "dna": ["Tab 14 — product DNA"],
         "next": ["your dossier's verdicts"],
         "hello": [],
     }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { FinancialData, FrictionData, MarketSizeData, PricingData, TimelineData } from "@/lib/types";
+import type { DnaData, FinancialData, FrictionData, MarketSizeData, PricingData, TimelineData } from "@/lib/types";
 import { Badge, Bullets, Card, Rows, Warn } from "@/components/ui";
 import { LLMInsight, Section } from "./AnalysisTabs";
 
@@ -515,6 +515,105 @@ export function MarketSizeTab({ data }: { data: MarketSizeData }) {
               </li>
             ))}
           </ul>
+        </Section>
+      )}
+
+      {data.note && <Warn>{data.note}</Warn>}
+    </div>
+  );
+}
+
+
+function PatternCard({ pat }: { pat: NonNullable<DnaData["features"]>[number]["patterns"][number] }) {
+  return (
+    <div className="rounded-lg border border-edge bg-panel/60 p-3">
+      <p className="text-xs font-semibold uppercase tracking-wider text-cyan-400">{pat.name}</p>
+      <p className="mt-2 text-xs leading-relaxed text-zinc-300"><span className="text-emerald-500">philosophy:</span> {pat.philosophy}</p>
+      <div className="mt-2">
+        <p className="text-[11px] uppercase tracking-wider text-zinc-500">psychology at work</p>
+        <ul className="mt-1 space-y-1">
+          {pat.psychology.map((ps) => (
+            <li key={ps.principle} className="text-xs leading-relaxed text-zinc-400">
+              <span className="font-medium text-zinc-200">{ps.principle}</span> — {ps.explained}
+            </li>
+          ))}
+        </ul>
+      </div>
+      <p className="mt-2 text-xs leading-relaxed text-zinc-300"><span className="text-amber-500">business:</span> {pat.business}</p>
+      <p className="mt-2 text-xs leading-relaxed text-emerald-400/90"><span className="text-emerald-600">steal it:</span> {pat.refine}</p>
+    </div>
+  );
+}
+
+export function DnaTab({ data }: { data: DnaData }) {
+  const gb = Object.entries(data.glossary_business ?? {});
+  const gp = Object.entries(data.glossary_psych ?? {});
+  return (
+    <div className="space-y-4">
+      {data.product_philosophy && (
+        <Card className="p-4">
+          <p className="text-sm leading-relaxed text-zinc-200">{data.product_philosophy.headline}</p>
+          {(data.product_philosophy.top_patterns ?? []).map((t) => (
+            <p key={t.name} className="mt-2 text-xs leading-relaxed text-zinc-500">
+              <span className="text-cyan-500">{t.name}</span> ({t.mentions} evidence hits) — {t.philosophy}
+            </p>
+          ))}
+        </Card>
+      )}
+
+      {data.ai_insight && <LLMInsight text={data.ai_insight} />}
+
+      {data.idea_lens && (
+        <Section title={`Levers that decide winners in ${data.idea_lens.sector} — pick two`}>
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            {data.idea_lens.recommended.map((pat) => <PatternCard key={pat.name} pat={pat} />)}
+          </div>
+          <p className="mt-2 text-xs text-zinc-500">{data.idea_lens.note}</p>
+        </Section>
+      )}
+
+      {(data.features ?? []).length > 0 && (
+        <Section title="Feature-by-feature: the why behind the what">
+          <div className="space-y-3">
+            {(data.features ?? []).map((fb) => (
+              <div key={fb.feature} className="rounded-lg border border-edge p-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm font-medium text-zinc-200">{fb.feature}</p>
+                  {fb.class && <Badge tone={fb.class === "day1" ? "green" : fb.class === "enterprise" ? "red" : "cyan"}>{fb.class}</Badge>}
+                </div>
+                <div className="mt-2 grid grid-cols-1 gap-2">
+                  {fb.patterns.map((pat) => <PatternCard key={fb.feature + pat.name} pat={pat} />)}
+                </div>
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {(gb.length > 0 || gp.length > 0) && (
+        <Section title="Every term used, in plain words">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {gb.length > 0 && (
+              <div>
+                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-amber-400">business terms</p>
+                <ul className="space-y-1.5">
+                  {gb.map(([term, def]) => (
+                    <li key={term} className="text-xs leading-relaxed text-zinc-400"><span className="font-medium text-zinc-200">{term}</span> — {def}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {gp.length > 0 && (
+              <div>
+                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-cyan-400">psychology terms</p>
+                <ul className="space-y-1.5">
+                  {gp.map(([term, def]) => (
+                    <li key={term} className="text-xs leading-relaxed text-zinc-400"><span className="font-medium text-zinc-200">{term}</span> — {def}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
         </Section>
       )}
 

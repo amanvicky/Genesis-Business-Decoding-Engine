@@ -3,6 +3,7 @@ from .base import Agent, Emit
 from .compliance import ComplianceAgent
 from .darkweb import DarkWebAgent
 from .distribution import DistributionAgent
+from .dna import DnaAgent
 from .features import FeaturesAgent
 from .financial import FinancialAgent
 from .marketsize import MarketSizeAgent
@@ -29,6 +30,7 @@ __all__ = [
     "FinancialAgent",
     "MarketSizeAgent",
     "DistributionAgent",
+    "DnaAgent",
     "TechArchAgent",
     "DarkWebAgent",
     "PlaybookAgent",
