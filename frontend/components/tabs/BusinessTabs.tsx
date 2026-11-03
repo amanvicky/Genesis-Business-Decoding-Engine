@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { FinancialData, FrictionData, PricingData, TimelineData } from "@/lib/types";
+import type { FinancialData, FrictionData, MarketSizeData, PricingData, TimelineData } from "@/lib/types";
 import { Badge, Bullets, Card, Rows, Warn } from "@/components/ui";
 import { LLMInsight, Section } from "./AnalysisTabs";
 
@@ -403,6 +403,122 @@ export function FinancialTab({ data }: { data: FinancialData }) {
           </div>
         </Section>
       )}
+    </div>
+  );
+}
+
+export function MarketSizeTab({ data }: { data: MarketSizeData }) {
+  const tone = data.verdict_tone === "green" ? "green" : data.verdict_tone === "red" ? "red" : "amber";
+  const cap = data.capital_strategy;
+  return (
+    <div className="space-y-4">
+      <Card className="p-4">
+        <div className="flex items-start justify-between gap-4">
+          <p className="text-sm text-zinc-300">{data.verdict ?? "—"}</p>
+          <Badge tone={tone}>market math</Badge>
+        </div>
+        {data.market_base && (
+          <p className="mt-2 text-xs text-zinc-600">
+            base: {data.market_base.buying_units?.toLocaleString()} {data.market_base.unit} ({data.market_base.sector}/
+            {data.market_base.geography}) · ARPA {data.assumptions?.arpa} ({data.assumptions?.arpa_source})
+          </p>
+        )}
+      </Card>
+
+      {data.ai_insight && <LLMInsight text={data.ai_insight} />}
+
+      <Section title="TAM / SAM / SOM — bottom-up, formulas shown">
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+          {[["TAM", data.tam], ["SAM (wedge)", data.sam]].map(([label, tier]) => (
+            <div key={label as string} className="rounded-lg border border-cyan-900/50 bg-cyan-950/10 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-cyan-400">{label as string}</p>
+              <p className="mt-1 text-2xl font-semibold text-zinc-100">{(tier as NonNullable<typeof data.tam>)?.display ?? "—"}</p>
+              <p className="mt-1 text-[11px] leading-relaxed text-zinc-600">{(tier as NonNullable<typeof data.tam>)?.basis}</p>
+            </div>
+          ))}
+          <div className="rounded-lg border border-emerald-900/50 bg-emerald-950/10 p-3">
+            <p className="text-xs font-semibold uppercase tracking-wider text-emerald-400">SOM (3-year, earned)</p>
+            <p className="mt-1 text-2xl font-semibold text-zinc-100">{data.som_by_year?.[data.som_by_year.length - 1]?.display ?? "—"}</p>
+            <ul className="mt-1 space-y-0.5">
+              {(data.som_by_year ?? []).map((y) => (
+                <li key={y.year} className="text-[11px] text-zinc-500">
+                  {y.year}: {y.display} · {y.customers.toLocaleString()} customers @ {y.adoption} adoption
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+        <Bullets items={data.formulas ?? []} />
+      </Section>
+
+      {cap && (
+        <Section title="Capital strategy — raise vs bootstrap">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <Card className="p-4">
+              <p className="text-xs uppercase tracking-wider text-zinc-500">recommended raise (18 months)</p>
+              <p className="mt-1 text-2xl font-semibold text-zinc-100">
+                {cap.recommended_raise
+                  ? `${data.assumptions?.currency === "₹" ? "₹" : "$"}${cap.recommended_raise.toLocaleString()}`
+                  : "—"}
+              </p>
+              <p className="mt-1 text-[11px] text-zinc-600">{cap.raise_formula}</p>
+              {cap.dilution_at_geo_cap_pct != null && (
+                <p className="mt-2 text-xs text-zinc-400">
+                  ≈ <span className="text-amber-400">{cap.dilution_at_geo_cap_pct}% dilution</span> at the geo-typical
+                  pre-seed cap <span className="text-zinc-600">({cap.dilution_formula})</span>
+                </p>
+              )}
+              <p className="mt-2 text-xs leading-relaxed text-emerald-400/80">{cap.raise_when}</p>
+            </Card>
+            <Card className="p-4">
+              <p className="text-xs uppercase tracking-wider text-zinc-500">bootstrap benchmark</p>
+              <p className="mt-2 text-xs leading-relaxed text-zinc-300">{cap.bootstrap_note}</p>
+              {cap.geo_norms?.note && <p className="mt-2 text-[11px] text-zinc-600">{cap.geo_norms.note}</p>}
+            </Card>
+          </div>
+        </Section>
+      )}
+
+      {data.founder_market_fit && (
+        <Section title="Founder-market fit — score honestly">
+          <p className="mb-2 text-xs text-zinc-500">{data.founder_market_fit.instruction}</p>
+          <ul className="space-y-1.5">
+            {(data.founder_market_fit.questions ?? []).map((q, i) => (
+              <li key={i} className="flex gap-3 text-sm text-zinc-300">
+                <span className="w-16 shrink-0 text-right font-mono text-[10px] uppercase text-zinc-600">{q.weight}</span>
+                <span>{q.q}</span>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
+
+      {data.investor_question_map && (
+        <Section title="Every investor question — answered by a tab in this dossier">
+          <Rows
+            rows={(data.investor_question_map ?? []).map((r) => ({ question: r.question, answered_by: r.answered_by }))}
+            cols={[
+              { key: "question", label: "The question" },
+              { key: "answered_by", label: "Answered by" },
+            ]}
+            empty=""
+          />
+        </Section>
+      )}
+
+      {(data.evidence_money_signals ?? []).length > 0 && (
+        <Section title="Market numbers seen in live evidence">
+          <ul className="space-y-1.5">
+            {(data.evidence_money_signals ?? []).map((m, i) => (
+              <li key={i} className="text-xs text-zinc-400">
+                <span className="font-mono text-emerald-500">{m.raw}</span> — {m.context}
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
+
+      {data.note && <Warn>{data.note}</Warn>}
     </div>
   );
 }

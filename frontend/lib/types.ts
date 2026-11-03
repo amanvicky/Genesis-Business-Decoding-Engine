@@ -34,6 +34,7 @@ export const TAB_IDS = [
   "techarch",
   "darkweb",
   "playbook",
+  "marketsize",
   "adversary",
 ] as const;
 
@@ -60,7 +61,8 @@ export const TABS = [
   { id: "techarch", n: 10, title: "Technical Architecture & Scaffolding", icon: "⌘", blurb: "Stack decisions + starter code files" },
   { id: "darkweb", n: 11, title: "Deep/Dark Web & Vulnerability Shield", icon: "◉", blurb: "Tor-routed lawful OSINT, breach shield" },
   { id: "playbook", n: 12, title: "The Systematic Execution Playbook", icon: "➤", blurb: "Phased sequencing, KYC friction, scaling" },
-  { id: "adversary", n: 13, title: "Adversarial Red-Team Simulator", icon: "⚔", blurb: "Buyers, VCs & auditors cross-examine your plan" },
+  { id: "marketsize", n: 13, title: "Market Sizing & Capital Strategy", icon: "◎", blurb: "TAM/SAM/SOM math, raise vs bootstrap, founder fit" },
+  { id: "adversary", n: 14, title: "Adversarial Red-Team Simulator", icon: "⚔", blurb: "Buyers, VCs & auditors cross-examine your plan" },
 ] as const satisfies readonly TabDef[];
 
 /* ---------------------------------------------------- section data shapes */
@@ -121,6 +123,11 @@ export interface BinaryRoadmap {
   readonly never_for_mvp?: readonly RoadmapItem[];
 }
 
+export interface AlternativesScan {
+  readonly candidates?: readonly string[];
+  readonly chatter?: readonly { readonly text: string; readonly url: string }[];
+}
+
 export interface FeaturesData {
   readonly founded_year?: number | null;
   readonly feature_count?: number;
@@ -130,6 +137,7 @@ export interface FeaturesData {
   readonly usp_candidates?: readonly { phrase: string; mentions: number }[];
   readonly true_usp?: string;
   readonly mvp_sequence?: readonly { order: number; build: string }[];
+  readonly alternatives?: AlternativesScan;
   readonly ai_insight?: string;
 }
 
@@ -327,6 +335,46 @@ export interface AdversaryData {
   readonly ai_insight?: string;
 }
 
+export interface MarketSizeData {
+  readonly market_base?: {
+    readonly buying_units?: number;
+    readonly unit?: string;
+    readonly basis?: string;
+    readonly sector?: string;
+    readonly geography?: string;
+  };
+  readonly assumptions?: { readonly arpa?: number; readonly currency?: string; readonly arpa_source?: string };
+  readonly tam?: { readonly value?: number; readonly display?: string; readonly basis?: string };
+  readonly sam?: { readonly value?: number; readonly display?: string; readonly basis?: string };
+  readonly som_by_year?: readonly {
+    readonly year: string;
+    readonly customers: number;
+    readonly value: number;
+    readonly display: string;
+    readonly adoption: string;
+  }[];
+  readonly formulas?: readonly string[];
+  readonly verdict?: string;
+  readonly verdict_tone?: "green" | "amber" | "red";
+  readonly capital_strategy?: {
+    readonly recommended_raise?: number | null;
+    readonly raise_formula?: string;
+    readonly raise_when?: string;
+    readonly dilution_at_geo_cap_pct?: number | null;
+    readonly dilution_formula?: string;
+    readonly geo_norms?: { readonly pre_seed_cap_usd?: number; readonly seed_valuation_usd?: number; readonly note?: string };
+    readonly bootstrap_note?: string;
+  };
+  readonly founder_market_fit?: {
+    readonly instruction?: string;
+    readonly questions?: readonly { readonly q: string; readonly weight: string; readonly invert?: boolean }[];
+  };
+  readonly investor_question_map?: readonly { readonly question: string; readonly answered_by: string }[];
+  readonly evidence_money_signals?: readonly { readonly raw: string; readonly context: string }[];
+  readonly note?: string;
+  readonly ai_insight?: string;
+}
+
 /** TabId → its data shape. The single source of truth for renderers. */
 export interface SectionDataMap {
   structural: StructuralData;
@@ -341,6 +389,7 @@ export interface SectionDataMap {
   techarch: TechArchData;
   darkweb: DarkWebData;
   playbook: PlaybookData;
+  marketsize: MarketSizeData;
   adversary: AdversaryData;
 }
 
@@ -389,4 +438,38 @@ export function assertNever(value: never): never {
 export function sectionData<K extends TabId>(section: Section | undefined, id: K): SectionData<K> | null {
   if (!section || section.id !== id) return null;
   return section.data as unknown as SectionData<K>;
+}
+
+/* ------------------------------------------------------------- advisor */
+
+export interface AdviceEvent {
+  readonly type: "log" | "answer" | "error";
+  readonly msg?: string;
+  readonly answer?: string;
+  readonly bullets?: readonly string[];
+  readonly open_tabs?: readonly TabId[];
+  readonly followups?: readonly string[];
+}
+
+/* -------------------------------------------------------------- verdict */
+
+export interface VerdictMemo {
+  readonly subject: string;
+  readonly decision: "GO" | "NO-GO" | "CONDITIONAL" | "PENDING";
+  readonly rationale: string;
+  readonly gates: readonly {
+    readonly name: string;
+    readonly status: "pass" | "caution" | "fail" | "pending";
+    readonly basis: string;
+    readonly fix: string;
+  }[];
+  readonly founder_market_fit: {
+    readonly score: number | null;
+    readonly total: number;
+    readonly rows: readonly { readonly q: string; readonly weight: string; readonly answer: boolean | null; readonly good: boolean | null }[];
+  };
+  readonly conditions: readonly string[];
+  readonly next_actions: readonly string[];
+  readonly generated_at: string;
+  readonly protocol_version: number;
 }

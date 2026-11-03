@@ -1,15 +1,17 @@
 import {
+  type AdviceEvent,
   type AnalyzeRequest,
   type ConsoleEvent,
   type LogLevel,
   type Report,
+  type VerdictMemo,
   assertNever,
 } from "./types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
 
 /** Compile-time-checked route literals for the backend surface. */
-export type ApiRoute = `/api/${"health" | "analyze/stream" | `export/${"markdown" | "zip" | "json"}`}`;
+export type ApiRoute = `/api/${"health" | "analyze/stream" | "advise/stream" | `export/${"markdown" | "zip" | "json"}`}`;
 
 const url = (route: ApiRoute) => `${API_URL}${route}`;
 
@@ -122,4 +124,54 @@ export async function downloadReport(report: Report, fmt: "markdown" | "zip" | "
   a.download = `GENESIS_${subject}.${ext}`;
   a.click();
   URL.revokeObjectURL(a.href);
+}
+
+/** Stream the real-time advisor: reasoning trail, then the grounded answer. */
+export async function streamAdvice(
+  question: string,
+  report: Report,
+  onEvent: (ev: AdviceEvent) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const res = await fetch(url("/api/advise/stream"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ question, report }),
+    signal,
+  });
+  if (!res.ok || !res.body) {
+    throw new Error(`backend returned ${res.status}`);
+  }
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let nl: number;
+    while ((nl = buffer.indexOf("\n")) !== -1) {
+      const line = buffer.slice(0, nl).trim();
+      buffer = buffer.slice(nl + 1);
+      if (!line) continue;
+      try {
+        onEvent(JSON.parse(line) as AdviceEvent);
+      } catch (err) {
+        console.error("bad advice event", err);
+      }
+    }
+  }
+}
+
+/** The Verdict Protocol: dossier + FMF answers → deterministic decision memo. */
+export async function requestVerdict(report: Report, fmfAnswers: boolean[]): Promise<VerdictMemo> {
+  const res = await fetch(url("/api/verdict" as ApiRoute), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ report, fmf_answers: fmfAnswers }),
+  });
+  if (!res.ok) {
+    throw new Error(`verdict failed: ${res.status}`);
+  }
+  return (await res.json()) as VerdictMemo;
 }

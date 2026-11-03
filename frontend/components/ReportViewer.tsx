@@ -5,9 +5,11 @@ import { TABS, type Report, type TabId, sectionData } from "@/lib/types";
 import { downloadReport } from "@/lib/api";
 import { Badge } from "@/components/ui";
 import { ComplianceTab, FeaturesTab, PremortemTab, StructuralTab } from "@/components/tabs/AnalysisTabs";
-import { FinancialTab, FrictionTab, PricingTab, TimelineTab } from "@/components/tabs/BusinessTabs";
+import { FinancialTab, FrictionTab, MarketSizeTab, PricingTab, TimelineTab } from "@/components/tabs/BusinessTabs";
 import { DarkWebTab, DistributionTab, PlaybookTab, TechArchTab } from "@/components/tabs/ExecTabs";
 import AdversaryTab from "@/components/tabs/AdversaryTab";
+import AdvisorPanel from "@/components/AdvisorPanel";
+import VerdictPanel from "@/components/VerdictPanel";
 
 export default function ReportViewer({
   report,
@@ -22,6 +24,8 @@ export default function ReportViewer({
   const [follow, setFollow] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [exportErr, setExportErr] = useState<string | null>(null);
+  const [advisorOpen, setAdvisorOpen] = useState(false);
+  const [verdictOpen, setVerdictOpen] = useState(false);
 
   // Auto-follow the newest arriving section until the user clicks a tab.
   useEffect(() => {
@@ -57,6 +61,8 @@ export default function ReportViewer({
         return <TechArchTab data={sectionData(section, "techarch") ?? {}} />;
       case "darkweb":
         return <DarkWebTab data={sectionData(section, "darkweb") ?? {}} />;
+      case "marketsize":
+        return <MarketSizeTab data={sectionData(section, "marketsize") ?? {}} />;
       case "playbook":
         return <PlaybookTab data={sectionData(section, "playbook") ?? {}} />;
       case "adversary":
@@ -101,6 +107,18 @@ export default function ReportViewer({
               className="rounded border border-edge px-3 py-1.5 text-xs text-zinc-400 transition-colors hover:border-cyan-700 hover:text-cyan-400 disabled:opacity-40"
             >
               ↓ JSON
+            </button>
+            <button
+              onClick={() => setVerdictOpen(true)}
+              className="rounded border border-amber-800/70 bg-amber-950/20 px-3 py-1.5 text-xs font-medium text-amber-400 transition-colors hover:bg-amber-900/30"
+            >
+              ⚖ Verdict
+            </button>
+            <button
+              onClick={() => setAdvisorOpen(true)}
+              className="rounded border border-emerald-800/70 bg-emerald-950/30 px-3 py-1.5 text-xs font-medium text-emerald-400 transition-colors hover:bg-emerald-900/30"
+            >
+              ◈ Ask Genesis
             </button>
             <button
               onClick={() => doExport("zip")}
@@ -169,6 +187,20 @@ export default function ReportViewer({
             ))}
           </ul>
         </details>
+      )}
+          {verdictOpen && (
+        <VerdictPanel report={report} onClose={() => setVerdictOpen(false)} />
+      )}
+      {advisorOpen && (
+        <AdvisorPanel
+          report={report}
+          onClose={() => setAdvisorOpen(false)}
+          onOpenTab={(id) => {
+            setFollow(false);
+            setActive(id);
+            setAdvisorOpen(false);
+          }}
+        />
       )}
     </div>
   );

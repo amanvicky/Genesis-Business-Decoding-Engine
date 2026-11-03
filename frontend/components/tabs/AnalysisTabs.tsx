@@ -92,6 +92,30 @@ export function FeaturesTab({ data }: { data: FeaturesData }) {
         </p>
       </Card>
 
+      {data.alternatives && ((data.alternatives.candidates?.length ?? 0) > 0 || (data.alternatives.chatter?.length ?? 0) > 0) && (
+        <Section title="Who already does this — candidate alternatives (mined from live evidence, verify each)">
+          {(data.alternatives.candidates?.length ?? 0) > 0 && (
+            <div className="mb-3 flex flex-wrap gap-2">
+              {data.alternatives.candidates!.map((n) => (
+                <Badge key={n} tone="cyan">{n}</Badge>
+              ))}
+            </div>
+          )}
+          <ul className="space-y-2">
+            {(data.alternatives.chatter ?? []).map((c, i) => (
+              <li key={i} className="text-xs leading-relaxed text-zinc-300">
+                {c.text}{" "}
+                {c.url && (
+                  <a href={c.url} target="_blank" rel="noreferrer" className="text-[11px] text-cyan-500/80 hover:text-cyan-400">
+                    source ↗
+                  </a>
+                )}
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
+
       {data.ai_insight && <LLMInsight text={data.ai_insight} />}
 
       {data.binary_roadmap && (
