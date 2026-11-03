@@ -12,7 +12,7 @@ from . import __version__
 TAB_ORDER = [
     "structural", "features", "compliance", "premortem", "timeline", "pricing",
     "friction", "financial", "distribution", "techarch", "darkweb", "playbook",
-    "adversary",
+    "marketsize", "adversary",
 ]
 
 TITLES = {
@@ -28,6 +28,7 @@ TITLES = {
     "techarch": "Technical Architecture & Code Scaffolding",
     "darkweb": "Deep/Dark Web & Vulnerability Shield",
     "playbook": "The Systematic Execution Playbook",
+    "marketsize": "Market Sizing & Capital Strategy",
     "adversary": "Adversarial Red-Team Simulator",
 }
 
@@ -133,7 +134,18 @@ def report_to_zip(report: dict) -> bytes:
             ),
         )
         tech = (report.get("sections") or {}).get("techarch", {}).get("data", {})
-        for f in tech.get("files", []):
-            path = f.get("path", "file.txt").lstrip("/").replace("..", "_")
-            zf.writestr(f"scaffold/{path}", f.get("content", ""))
+        files = tech.get("files", [])
+        if isinstance(files, list):
+            for f in files:
+                # Reports arrive from the wire — never trust their shape. A
+                # non-dict entry used to crash the whole export with a 500.
+                if not isinstance(f, dict):
+                    continue
+                path = (
+                    str(f.get("path", "file.txt"))
+                    .replace("\\", "_")   # zip entries are slash-separated; a
+                    .replace("..", "_")   # backslash path evades the ".." check
+                    .lstrip("/")
+                )
+                zf.writestr(f"scaffold/{path}", str(f.get("content", "")))
     return buf.getvalue()

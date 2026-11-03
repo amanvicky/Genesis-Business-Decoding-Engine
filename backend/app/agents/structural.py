@@ -18,6 +18,24 @@ MOAT_TYPES = [
 ]
 
 
+def _keyword_hit(sentence: str, keywords: list[str]) -> bool:
+    low = sentence.lower()
+    return any(re.search(rf"\b{re.escape(k)}", low) for k in keywords)
+
+
+# Headline-fragment tells: a sentence that ends in a publisher name or is a
+# bare title case string is coverage, not evidence.
+_PUBLISHER_TAILS = re.compile(
+    r"(FinTech Global|Prothom Alo|Economic Times|Business Standard|TechCrunch|"
+    r"Business Wire|PR Newswire|Moneycontrol|CNBC|Reuters|Bloomberg|Forbes|Zacks)\.?\s*$",
+    re.I,
+)
+
+
+def _is_headline_fragment(sentence: str) -> bool:
+    return bool(_PUBLISHER_TAILS.search(sentence.strip()))
+
+
 class StructuralAgent(Agent):
     id = "structural"
     title = "Structural Feasibility & Core Mechanics"
@@ -30,17 +48,22 @@ class StructuralAgent(Agent):
         low = pool.lower()
 
         pains, demands = [], []
+        # Public voices only. Web/news headlines are coverage, not voice — they
+        # used to surface as fake "pain points" ("Why is ADP expanding its
+        # small business payroll reach?").
         source_texts = (
             [("reddit", r) for r in ev.reddit]
             + [("hn", r) for r in ev.hn_comments]
             + [("review", r) for r in ev.reviews]
-            + [("web", r) for r in ev.search]
         )
         for kind, r in source_texts:
             text = " ".join([r.get("title", ""), r.get("selftext", ""), r.get("text", ""), r.get("snippet", "")]).lower()
-            if any(m in text for m in PAIN_MARKERS) and len(text) > 60:
+            # word-boundary markers: substring matching once classified a
+            # Trustpilot review saying ADP Sports is rated "Excellent" as a
+            # pain point because "excel" sits inside "excellent"
+            if any(re.search(rf"\b{re.escape(m)}\b", text) for m in PAIN_MARKERS) and len(text) > 60:
                 pains.append({"source": kind, "text": (r.get("title") or r.get("snippet") or r.get("text", ""))[:220], "url": r.get("url", "")})
-            if any(m in text for m in DEMAND_MARKERS) and len(text) > 40:
+            elif any(re.search(rf"\b{re.escape(m)}\b", text) for m in DEMAND_MARKERS) and len(text) > 40:
                 demands.append({"source": kind, "text": (r.get("title") or r.get("snippet") or r.get("text", ""))[:220], "url": r.get("url", "")})
         pains, demands = pains[:12], demands[:10]
 
@@ -53,12 +76,21 @@ class StructuralAgent(Agent):
                     mechanics.append(s[:300])
         mechanics = mechanics[:8]
 
-        # Moats: which structural moat types have evidence in the corpus
+        # Moats: which structural moat types have evidence in the corpus.
+        # Word-boundary matching (substring "network" once matched an unrelated
+        # ad-server story) and dedupe so one story can't fill the whole table.
         moats = []
+        seen_evidence: set[str] = set()
         for name, kws in MOAT_TYPES:
-            hits = [s for s in all_sentences if any(k in s.lower() for k in kws)]
+            hits = [
+                s for s in all_sentences
+                if _keyword_hit(s, kws) and not _is_headline_fragment(s)
+                and s.lower()[:90] not in seen_evidence
+            ]
             if hits:
-                moats.append({"type": name, "strength": "evidence found", "evidence": hits[0][:220]})
+                best = hits[0][:220]
+                seen_evidence.add(best.lower()[:90])
+                moats.append({"type": name, "strength": "evidence found", "evidence": best})
 
         # Timing shifts: tech/market inflection signals in the corpus
         shift_kws = ["ai ", "llm", "open source", "regulation change", "rbi", "gdpr", "remote work", "digital first", "api-first", "privacy law", "upi", "rate hike"]
@@ -86,14 +118,23 @@ class StructuralAgent(Agent):
             )
             verdict_score = depth
         else:
-            verdict_score = (demand_score + pain_score) // 2
-            verdict = (
-                "Structurally viable: real pain + real search demand signals."
-                if verdict_score >= 55
-                else "Conditional: signals exist but thin — validate with 20 user interviews before building."
-                if verdict_score >= 30
-                else "Weak public signal: either too early, too niche, or the pain is voiced offline. Interview before code."
-            )
+            if total_evidence == 0:
+                # "Weak signal" would read as "nobody wants this" — but the real
+                # meaning is that no evidence was GATHERED (offline run or all
+                # engines unreachable). Honest unknown beats confident nonsense.
+                verdict = ("No public evidence gathered this run (offline mode or search engines unreachable) — "
+                           "signal UNKNOWN, not weak. The knowledge-base sections below still apply; "
+                           "re-run online to mine real user voices.")
+                verdict_score = 0
+            else:
+                verdict_score = (demand_score + pain_score) // 2
+                verdict = (
+                    "Structurally viable: real pain + real search demand signals."
+                    if verdict_score >= 55
+                    else "Conditional: signals exist but thin — validate with 20 user interviews before building."
+                    if verdict_score >= 30
+                    else "Weak public signal: either too early, too niche, or the pain is voiced offline. Interview before code."
+                )
 
         return {
             "verdict": verdict,

@@ -145,7 +145,9 @@ def extract_tiers(pricing_text: str) -> list[dict]:
 
 
 def _amt(raw: str) -> float:
-    digits = re.sub(r"[^\d.]", "", raw.replace(",", ""))
+    # str() coercion: scraped prices occasionally arrive as numbers, and the
+    # regex cleanup below assumes a string.
+    digits = re.sub(r"[^\d.]", "", str(raw).replace(",", ""))
     try:
         return float(digits)
     except ValueError:

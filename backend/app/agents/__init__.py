@@ -5,6 +5,7 @@ from .darkweb import DarkWebAgent
 from .distribution import DistributionAgent
 from .features import FeaturesAgent
 from .financial import FinancialAgent
+from .marketsize import MarketSizeAgent
 from .friction import FrictionAgent
 from .playbook import PlaybookAgent
 from .premortem import PremortemAgent
@@ -26,6 +27,7 @@ __all__ = [
     "PricingAgent",
     "FrictionAgent",
     "FinancialAgent",
+    "MarketSizeAgent",
     "DistributionAgent",
     "TechArchAgent",
     "DarkWebAgent",

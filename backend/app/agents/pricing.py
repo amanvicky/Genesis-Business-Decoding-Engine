@@ -43,10 +43,12 @@ class PricingAgent(Agent):
 
         # Packaging psychology detection
         psych = []
-        prices = [(_t["name"], _amt(_t["price"])) for _t in tiers]
+        # sort by amount: the tier list is keyword-ordered, not price-ordered —
+        # comparing positions compared names, not prices
+        prices = sorted(((_t["name"], _amt(_t["price"])) for _t in tiers), key=lambda x: x[1])
         if len(prices) >= 3 and prices[-1][1] and prices[1][1] and prices[-1][1] >= 3 * prices[1][1]:
-            psych.append({"driver": "Anchoring", "evidence": f"{prices[-1][0]} at {prices[-1][1]} vs {prices[1][0]} at {prices[1][1]}"})
-        if any("contact" in str(t.get("context", "")).lower() or t["price"].lower() == "$0" for t in tiers):
+            psych.append({"driver": "Anchoring", "evidence": f"{prices[-1][0]} at {prices[-1][1]:,.0f} vs {prices[1][0]} at {prices[1][1]:,.0f}"})
+        if any("contact" in str(t.get("context", "")).lower() or str(t.get("price", "")).lower() == "$0" for t in tiers):
             psych.append({"driver": "Gating observed", "evidence": "contact-sales or quote-based tier present"})
         names = [t["name"].lower() for t in tiers]
         if "free" in names:
@@ -88,8 +90,11 @@ class PricingAgent(Agent):
         if not vals:
             return None
         paid = [v for name, v in vals if "free" not in name]
-        pool = paid or vals
-        mid = sorted(v for _, v in pool)
+        # `paid` holds bare numbers while `vals` holds (name, number) tuples —
+        # mixing them made the median line unpack a float whenever any paid
+        # tier existed (every real decode with pricing data crashed Tab 6).
+        pool = paid or [v for _, v in vals]
+        mid = sorted(pool)
         return mid[len(mid) // 2]  # median tier price ≈ blended ARPA proxy
 
     def _recommend(self, ev: Evidence, arpa: float | None) -> list[str]:
@@ -107,9 +112,10 @@ class PricingAgent(Agent):
     def summarize(self, ev: Evidence, data: dict) -> str:
         ue = data["unit_economics"]
         tiers = len(data["tiers"])
-        if ue.get("arpa"):
+        if tiers:
             return f"{tiers} tier(s) decoded. ARPA proxy {ue['currency']}{ue['arpa']}, assumed GM {int(ue['assumed_gross_margin']*100)}%, LTV:CAC(organic) {ue.get('ltv_cac_ratio', '—')}."
-        return "No public pricing tier decoded — recommendation set built from geography-adjusted defaults."
+        return (f"No public pricing decoded — the numbers below are geography defaults (ARPA {ue['currency']}{ue['arpa']}): "
+                "every value is editable in the live sandbox, so replace them with real comparables.")
 
     def llm_prompt(self, ev: Evidence, data: dict) -> str:
         return f"Subject: {ev.subject}. State the pricing leverage move this target leaves on the table and who gets hurt by it."
