@@ -12,6 +12,7 @@ from .playbook import PlaybookAgent
 from .premortem import PremortemAgent
 from .pricing import PricingAgent
 from .recon import ReconAgent
+from .school import SchoolAgent
 from .structural import StructuralAgent
 from .techarch import TechArchAgent
 from .timeline import TimelineAgent
@@ -20,6 +21,7 @@ __all__ = [
     "Agent",
     "Emit",
     "ReconAgent",
+    "SchoolAgent",
     "StructuralAgent",
     "FeaturesAgent",
     "ComplianceAgent",

@@ -217,6 +217,8 @@ BUSINESS_GLOSSARY = {
     "ACV": "Annual Contract Value - what one business customer pays per year.",
     "Viral coefficient (k)": "How many new users one user brings, on average. Above 1 = self-sustaining growth.",
     "Expansion revenue": "Extra revenue from existing customers as they grow (seats, usage, tiers) - the cheapest revenue there is.",
+    "Distribution": "How the product reaches customers: which channels, which loops. The thing that kills most startups that built the right product.",
+    "Retention": "Whether customers stay. Cohort retention tracks each month's signup group over time.",
     "Unit economics": "The profit on ONE customer or ONE unit: does the math work before you scale it?",
     "Gross margin": "Revenue minus the direct cost of delivering the service. Decides how much is left to grow with.",
 }

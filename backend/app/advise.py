@@ -12,6 +12,25 @@ from typing import Any
 
 MAX_QUESTION = 500
 
+# teaching index: every glossary term + lesson title, so "what is churn" or
+# "explain CAC" routes to the school before any other intent
+_TERM_INDEX: set[str] = set()
+
+
+def _build_term_index() -> None:
+    from .data.dna import BUSINESS_GLOSSARY, PSYCH_GLOSSARY
+    from .data.school import LESSONS
+    for t in list(BUSINESS_GLOSSARY) + list(PSYCH_GLOSSARY):
+        for a in t.replace("(", "").split(" / "):
+            _TERM_INDEX.add(a.strip().lower())
+    for l in LESSONS.values():
+        for w in re.findall(r"[a-z]{4,}", l["title"].lower()):
+            if w not in ("with", "your", "that", "nobody", "follows", "warning"):
+                _TERM_INDEX.add(w)
+
+
+_build_term_index()
+
 Intent = str
 
 
@@ -19,10 +38,22 @@ def detect_intent(question: str) -> Intent:
     q = f" {question.lower().strip()} "
     if re.search(r"\b(hi|hello|hey|help|what can you)\b", q) and len(q.strip()) < 30:
         return "hello"
+    # "what is churn" / "explain CAC" where the X is a business or psychology
+    # term: that's the founder school teaching, and it must win before keyword
+    # intents (or "what is runway" would hit the burn rule instead of the lesson)
+    m = re.search(r"\b(?:what (?:is|are)|what's|explain|meaning of|define|teach me(?: about)?)\s+(?:the |a |an )?(?P<term>[a-z][\w -]{2,38})", q)
+    if m:
+        words = m.group("term").split()
+        # "what is MY burn" is a dossier question, not a definition request
+        if words and words[0] in ("my", "our", "your"):
+            pass
+        elif any(w in _TERM_INDEX for w in words) or m.group("term").strip() in _TERM_INDEX:
+            return "teach"
     rules: list[tuple[Intent, str]] = [
         # red-team first: "what will investors SAY" is an objection question,
         # not a capital question — the say/ask context decides
         ("redteam", r"\b(objection|pitch|red team|red-team|weakness|investors? (say|will say|would say|ask))\b"),
+        ("teach", r"\b(teach me|explain like|knowledge transfer|founder school|new to (business|startups|this)|first[- ]time founder|learn (the )?basics|how (do|does) (start-?ups|startups|businesses?|saas|funding) work)\b"),
         ("dna", r"\b(philosoph\w*|psycholog\w*|product dna|explain (the |this |that )?\w*( feature| product| pattern| pricing| design)|why (does|did|is) (this|that|their|it)\b|how (does|did) [a-z ]{3,30} work)\b"),
         ("capital", r"\b(raise|funding|invest|dilut|bootstrap|valuation|cap\b|safe|equity|money)\w*"),
         ("market", r"\b(tam|sam|som)\b|\bmarket(ing| size)?\b|big enough"),
@@ -379,6 +410,50 @@ def _advise_dna(q: str, report: dict) -> dict:
     }
 
 
+
+def _advise_teach(q: str, report: dict) -> dict:
+    """The mentor voice: find the lesson or term the founder is asking about."""
+    from .data.dna import BUSINESS_GLOSSARY, PSYCH_GLOSSARY
+    from .data.school import LESSONS, PHASES
+    low = q.lower()
+
+    # exact glossary term first
+    for source, gloss in (("business", BUSINESS_GLOSSARY), ("psychology", PSYCH_GLOSSARY)):
+        for term, definition in gloss.items():
+            for alias in term.replace("(", "").split(" / "):
+                if re.search(rf"\b{re.escape(alias.lower())}\b", low):
+                    lesson_hit = next((l for l in LESSONS.values() if alias.lower() in l["lesson"].lower()
+                                       or any(alias.lower() in t for t in l.get("terms", []))), None)
+                    bullets = [definition, f"Source: the {source} vocabulary in Founder School (Tab 15)."]
+                    if lesson_hit:
+                        bullets.append(f"The lesson '{lesson_hit['title']}' shows it in context: {lesson_hit['truth']}")
+                    return {"answer": f"{term}: {definition}", "bullets": bullets,
+                            "open_tabs": ["school"], "followups": ["Teach me the money mechanics", "What kills companies like this?"]}
+
+    # otherwise: best lesson by word overlap (stemmed, title-match boosted)
+    def _stem(w: str) -> str:
+        return w[:-1] if w.endswith("s") else w
+
+    words = {_stem(w) for w in re.findall(r"[a-z]{4,}", low)} - {"what", "explain", "about", "teach", "like", "understand"}
+    phase_of = {lid: ph["phase"] for ph in PHASES for lid in ph["lesson_ids"]}
+    best, best_id, best_score = None, "what_is_a_startup", 0
+    for lid, l in LESSONS.items():
+        text = " ".join(_stem(w) for w in re.findall(r"[a-z]{4,}", (l["title"] + " " + l["lesson"]).lower()))
+        score = len(words & set(text.split()))
+        if "startup" in lid and any(w in text for w in words):
+            score += 2  # "how do startups work" should hit the intro lesson
+        if score > best_score:
+            best, best_id, best_score = l, lid, score
+    followups = [LESSONS[lid]["title"] for lid in phase_of
+                 if phase_of[lid] == phase_of[best_id] and lid != best_id][:2]
+    return {
+        "answer": f"{best['title']}. {best['lesson']}",
+        "bullets": [f"The uncomfortable truth: {best['truth']}", f"Do this now: {best['action']}"],
+        "open_tabs": ["school"],
+        "followups": followups or ["Teach me the money mechanics", "What is a startup really?"],
+    }
+
+
 _HANDLERS = {
     "hello": _advise_hello,
     "capital": _advise_capital,
@@ -392,5 +467,6 @@ _HANDLERS = {
     "risk": _advise_risk,
     "redteam": _advise_redteam,
     "dna": _advise_dna,
+    "teach": _advise_teach,
     "next": _advise_next,
 }

@@ -45,7 +45,7 @@ python genesis.py uninstall  # stop + clean up (--deep removes venv/node_modules
 Windows: `start.bat` does the same thing. Flags if you want them: `--dev`, `--no-tor`,
 `--no-watchdog`, `--no-browser`, `--rebuild`.
 
-## The 15 tabs, quickly
+## The 16 tabs, quickly
 
 1. **Structural** - pain points, demand triggers, moats, a signal score
 2. **Features** - feature history decompiled from GitHub releases, build-now vs do-not-build roadmap
@@ -61,7 +61,8 @@ Windows: `start.bat` does the same thing. Flags if you want them: `--dev`, `--no
 12. **Playbook** - 6 phases, KYC friction, scaling hurdles, kill criteria
 13. **Market sizing** - bottom-up TAM/SAM/SOM with visible formulas, raise vs bootstrap math
 14. **Product DNA** - the philosophy and psychology behind every feature, every term explained in plain words
-15. **Red team** - an enterprise buyer, a skeptical VC and a regulator attack your plan
+15. **Founder school** - the zero-to-one knowledge transfer: what a startup is, money mechanics with your own numbers, user psychology, distribution, runway discipline, fundraising - every term defined
+16. **Red team** - an enterprise buyer, a skeptical VC and a regulator attack your plan
 
 Every section links its sources. If a source is blocked, that one section degrades,
 the rest of the run continues.
@@ -91,14 +92,14 @@ writing of each section, Tor routes Tab 11 through SOCKS5.
 genesis.py               service manager (install / run / supervise / stop), stdlib only
 backend/app/
   main.py                FastAPI app (stream, health, advisor, verdict, exports)
-  pipeline.py            recon -> 15 agents
+  pipeline.py            recon -> 16 agents
   models.py              request/report/evidence models
   text.py                keyphrases, money/tier extraction, feature classification
   advise.py              real-time advisor (answers from your own dossier)
   verdict.py             the GO / NO-GO decision protocol
   engines/               subject identity (kills acronym collisions)
   scrapers/              search cascade, wikipedia, hn, reddit, github, wayback, filings, tor
-  agents/                recon + 15 analysis agents
+  agents/                recon + 16 analysis agents
   data/                  compliance KB (US + India), failure records, channels, scaffolds
 frontend/                Next.js 14, strict TS, one typed renderer per tab
 .github/workflows/       offline tests + strict build on every push
@@ -109,7 +110,7 @@ frontend/                Next.js 14, strict TS, one typed renderer per tab
 I got tired of breaking things by hand, so:
 
 ```bash
-cd backend && .venv/Scripts/python -m pytest tests -q     # ~245 offline tests
+cd backend && .venv/Scripts/python -m pytest tests -q     # ~260 offline tests
 python scripts/smoke_test.py                              # 14/14 sections, no network
 python tests_e2e/lifecycle_test.py                        # the service manager, all lifecycle stages
 python tests_e2e/live_functional_test.py                  # live HTTP journey (stack must be running)

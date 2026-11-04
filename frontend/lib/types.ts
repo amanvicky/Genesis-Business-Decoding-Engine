@@ -36,6 +36,7 @@ export const TAB_IDS = [
   "playbook",
   "marketsize",
   "dna",
+  "school",
   "adversary",
 ] as const;
 
@@ -64,7 +65,8 @@ export const TABS = [
   { id: "playbook", n: 12, title: "The Systematic Execution Playbook", icon: "➤", blurb: "Phased sequencing, KYC friction, scaling" },
   { id: "marketsize", n: 13, title: "Market Sizing & Capital Strategy", icon: "◎", blurb: "TAM/SAM/SOM math, raise vs bootstrap, founder fit" },
   { id: "dna", n: 14, title: "Product DNA — Philosophy & Psychology", icon: "☯", blurb: "why every feature exists, in plain words" },
-  { id: "adversary", n: 15, title: "Adversarial Red-Team Simulator", icon: "⚔", blurb: "Buyers, VCs & auditors cross-examine your plan" },
+  { id: "school", n: 15, title: "Founder School — The Knowledge Transfer", icon: "✦", blurb: "the zero-to-one curriculum, taught with your own numbers" },
+  { id: "adversary", n: 16, title: "Adversarial Red-Team Simulator", icon: "⚔", blurb: "Buyers, VCs & auditors cross-examine your plan" },
 ] as const satisfies readonly TabDef[];
 
 /* ---------------------------------------------------- section data shapes */
@@ -415,6 +417,30 @@ export interface DnaData {
   readonly ai_insight?: string;
 }
 
+export interface SchoolData {
+  readonly phases?: readonly {
+    readonly phase: number;
+    readonly name: string;
+    readonly why: string;
+    readonly lessons: readonly {
+      readonly id: string;
+      readonly title: string;
+      readonly lesson: string;
+      readonly truth: string;
+      readonly action: string;
+      readonly terms: readonly string[];
+      readonly with_your_numbers?: string;
+    }[];
+  }[];
+  readonly vocabulary?: {
+    readonly business?: Readonly<Record<string, string>>;
+    readonly psychology?: Readonly<Record<string, string>>;
+  };
+  readonly sector_note?: string;
+  readonly note?: string;
+  readonly ai_insight?: string;
+}
+
 /** TabId → its data shape. The single source of truth for renderers. */
 export interface SectionDataMap {
   structural: StructuralData;
@@ -431,6 +457,7 @@ export interface SectionDataMap {
   playbook: PlaybookData;
   marketsize: MarketSizeData;
   dna: DnaData;
+  school: SchoolData;
   adversary: AdversaryData;
 }
 

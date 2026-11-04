@@ -22,6 +22,7 @@ from .agents import (
     FrictionAgent,
     DnaAgent,
     MarketSizeAgent,
+    SchoolAgent,
     PlaybookAgent,
     PremortemAgent,
     PricingAgent,
@@ -49,6 +50,7 @@ AGENTS: list[type[Agent]] = [
     PlaybookAgent,
     MarketSizeAgent,  # reads pricing/financial sections — after both
     DnaAgent,  # reads the feature list from the features tab
+    SchoolAgent,  # knowledge transfer; personalizes with the computed numbers
     AdversaryAgent,  # must run last — it cross-examines the assembled report
 ]
 

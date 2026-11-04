@@ -6,6 +6,7 @@ import { downloadReport } from "@/lib/api";
 import { Badge } from "@/components/ui";
 import { ComplianceTab, FeaturesTab, PremortemTab, StructuralTab } from "@/components/tabs/AnalysisTabs";
 import { DnaTab, FinancialTab, FrictionTab, MarketSizeTab, PricingTab, TimelineTab } from "@/components/tabs/BusinessTabs";
+import { SchoolTab } from "@/components/tabs/SchoolTab";
 import { DarkWebTab, DistributionTab, PlaybookTab, TechArchTab } from "@/components/tabs/ExecTabs";
 import AdversaryTab from "@/components/tabs/AdversaryTab";
 import AdvisorPanel from "@/components/AdvisorPanel";
@@ -67,6 +68,8 @@ export default function ReportViewer({
         return <PlaybookTab data={sectionData(section, "playbook") ?? {}} />;
       case "dna":
         return <DnaTab data={sectionData(section, "dna") ?? {}} />;
+      case "school":
+        return <SchoolTab data={sectionData(section, "school") ?? {}} />;
       case "adversary":
         return <AdversaryTab data={sectionData(section, "adversary") ?? {}} />;
     }
