@@ -45,6 +45,46 @@ python genesis.py uninstall  # stop + clean up (--deep removes venv/node_modules
 Windows: `start.bat` does the same thing. Flags if you want them: `--dev`, `--no-tor`,
 `--no-watchdog`, `--no-browser`, `--rebuild`.
 
+
+## Proof it's real
+
+Every screenshot below is a genuine capture of the running app (regenerate them
+yourself with [proofs/capture.mjs](proofs/capture.mjs) — 14 shots, one command).
+
+Landing. Type a company or an idea:
+
+![landing](proofs/screenshots/01_landing_input_panel.png)
+
+The agent console mid-decode — every step streams:
+
+![console](proofs/screenshots/02_agent_console_live.png)
+
+Structural verdict, and the compliance decoder:
+
+![structural](proofs/screenshots/03_report_structural.png)
+![compliance](proofs/screenshots/05_compliance_matrix.png)
+
+Product DNA — the philosophy and psychology behind every feature:
+
+![dna](proofs/screenshots/10_product_dna.png)
+
+Market sizing and stock performance:
+
+![sizing](proofs/screenshots/09_market_sizing.png)
+![stock](proofs/screenshots/11_stock_performance.png)
+
+Founder school — taught with your own numbers:
+
+![school](proofs/screenshots/12_founder_school.png)
+
+Ask Genesis (answers from your dossier) and the Verdict Protocol (go / no-go):
+
+![advisor](proofs/screenshots/13_ask_genesis_advisor.png)
+![verdict](proofs/screenshots/14_verdict_protocol.png)
+
+The full set (compliance matrix, pricing sandbox, burn calculator, red-team and
+more) lives in [proofs/](proofs/).
+
 ## The 17 tabs, quickly
 
 1. **Structural** - pain points, demand triggers, moats, a signal score
