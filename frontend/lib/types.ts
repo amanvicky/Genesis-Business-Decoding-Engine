@@ -382,6 +382,7 @@ export interface MarketSizeData {
 }
 
 export interface DnaData {
+  readonly sequencing?: readonly { readonly when: string; readonly feature: string }[];
   readonly product_philosophy?: {
     readonly headline?: string;
     readonly top_patterns?: readonly { readonly name: string; readonly mentions: number; readonly philosophy: string }[];
@@ -391,6 +392,14 @@ export interface DnaData {
     readonly feature: string;
     readonly class?: string;
     readonly source?: string;
+    readonly timing?: {
+      readonly when: string;
+      readonly year: number | null;
+      readonly company_age: number | null;
+      readonly stage: string | null;
+      readonly why_then: string;
+      readonly major_reason: string;
+    };
     readonly patterns: readonly {
       readonly name: string;
       readonly philosophy: string;

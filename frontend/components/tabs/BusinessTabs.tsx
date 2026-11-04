@@ -567,6 +567,19 @@ export function DnaTab({ data }: { data: DnaData }) {
   const gp = Object.entries(data.glossary_psych ?? {});
   return (
     <div className="space-y-4">
+      {(data.sequencing ?? []).length > 0 && (
+        <Section title="The sequencing story — what they built, in what order, and why then">
+          <div className="space-y-1.5">
+            {(data.sequencing ?? []).map((s, i) => (
+              <div key={i} className="flex gap-3 text-xs leading-relaxed text-zinc-300">
+                <span className="w-40 shrink-0 font-mono text-[10px] text-cyan-500/90">{s.when}</span>
+                <span>{s.feature}</span>
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
+
       {data.product_philosophy && (
         <Card className="p-4">
           <p className="text-sm leading-relaxed text-zinc-200">{data.product_philosophy.headline}</p>
@@ -611,6 +624,15 @@ export function DnaTab({ data }: { data: DnaData }) {
                   <p className="text-sm font-medium text-zinc-200">{fb.feature}</p>
                   {fb.class && <Badge tone={fb.class === "day1" ? "green" : fb.class === "enterprise" ? "red" : "cyan"}>{fb.class}</Badge>}
                 </div>
+                {fb.timing && (
+                  <div className="mt-2 rounded border border-cyan-900/40 bg-cyan-950/10 p-2.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-[11px] uppercase tracking-wider text-cyan-400">why then</p>
+                      {fb.timing.stage && <Badge tone="zinc">{fb.timing.stage}</Badge>}
+                    </div>
+                    <p className="mt-1 text-xs leading-relaxed text-zinc-300">{fb.timing.major_reason}</p>
+                  </div>
+                )}
                 <div className="mt-2 grid grid-cols-1 gap-2">
                   {fb.patterns.map((pat) => <PatternCard key={fb.feature + pat.name} pat={pat} />)}
                 </div>

@@ -196,6 +196,73 @@ PATTERNS: list[Pattern] = [
     },
 ]
 
+
+# WHY THEN: the same feature means different things depending on WHEN the
+# company added it. A freemium tier in year 1 is a land-grab; the same tier in
+# year 8 is a defensive response. This is the timing logic per pattern.
+TIMING_NOTES = {
+    "Freemium / free tier": {
+        "early": "a land-grab: giving the product away while competitors charge, to buy distribution with margin",
+        "late": "a defensive move: matching a competitor's free tier after it already took share at the bottom",
+    },
+    "Streaks & habit mechanics": {
+        "early": "unusual this early - habit mechanics before core value usually signal growth-hacking pressure",
+        "late": "retention maturity: the acquisition engine works, so spend shifts to keeping users daily",
+    },
+    "Onboarding checklists & progress bars": {
+        "early": "activation obsessiveness from day one - the founders measured where users dropped and engineered against it",
+        "late": "conversion repair: the product works, but too many new users never reach the value",
+    },
+    "Notifications & digests": {
+        "early": "re-engagement panic or genuine loop design; check if the core is sticky before judging",
+        "late": "an attention business maturing - the notification surface becomes a product of its own",
+    },
+    "Referrals & invites": {
+        "early": "viral ambition from the start - the product is designed to be better with more people",
+        "late": "CAC pressure: paid channels got expensive, so the user base became the channel",
+    },
+    "Templates & starter content": {
+        "early": "attacking the blank page immediately - the founders knew time-to-value was the kill risk",
+        "late": "an ecosystem play: templates become the content-marketing engine and a community magnet",
+    },
+    "Integrations & ecosystem": {
+        "early": "plugging into an existing platform deliberately, to borrow its users and trust",
+        "late": "the ecosystem moat: at scale, integrations make churn economically painful for customers",
+    },
+    "Enterprise controls (SSO, audit, roles)": {
+        "early": "rare and risky this early - usually one whale customer pulled it forward with a contract",
+        "late": "the classic monetization move: charging the installed base for trust and procurement checkboxes",
+    },
+    "Urgency & scarcity mechanics": {
+        "early": "launch mechanics - converting the first wave of fence-sitters while attention is free",
+        "late": "promotional cycles on a mature funnel; watch for fake deadlines eroding brand trust",
+    },
+    "Social proof surfaces": {
+        "early": "borrowed credibility while the brand is unknown - logos do the talking",
+        "late": "social proof at scale becomes self-reinforcing: the customers themselves are the moat",
+    },
+    "Personalization & recommendations": {
+        "early": "premature unless behavioral data already exists; this early it is usually rule-based posing",
+        "late": "the data flywheel matured: enough behavioral data that relevance becomes a real retention lever",
+    },
+    "AI copilots & auto-magic": {
+        "early": "post-2023 this is table-stakes wave-riding; before that, genuinely ahead of the curve",
+        "late": "defensive parity: the industry moved and NOT having it became the risk",
+    },
+    "Usage-based & per-seat pricing": {
+        "early": "pricing aligned with value from day one, so growth self-funds",
+        "late": "a monetization reset on the installed base - powerful, and customers notice",
+    },
+    "Open source & community": {
+        "early": "developer-trust strategy from the start; the code is the marketing budget",
+        "late": "opening up an established product to reignite distribution",
+    },
+    "Retention by friction": {
+        "early": "an alarming sign this early: friction before value is the classic death spiral",
+        "late": "dark-pattern maturity; it recovers churn numbers and quietly damages the brand",
+    },
+}
+
 # plain-language glossaries. every term used above must be defined here.
 BUSINESS_GLOSSARY = {
     "CAC": "Customer Acquisition Cost - what it costs you (money + effort) to get one paying customer.",

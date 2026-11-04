@@ -112,6 +112,28 @@ class DnaAgent(Agent):
 
         outcomes = _outcomes(ev)
 
+        founded = ev.wiki.get("founded_year") if ev.wiki else None
+
+        def _timing(date_str: str, pattern_name: str) -> dict:
+            """WHY THEN: the stage logic for adding this pattern at that moment."""
+            year = int(date_str[:4]) if date_str and re.match(r"^(19|20)\d\d", str(date_str)) else None
+            age = (year - founded) if (year and founded) else None
+            stage_key = None
+            if age is not None:
+                stage_key = "search" if age <= 2 else "growth" if age <= 5 else "scale"
+            stage = {"search": "search (year 0-2)", "growth": "growth (year 3-5)", "scale": "scale (year 6+)"}.get(stage_key)
+            note = (KB.TIMING_NOTES.get(pattern_name, {}) or {})
+            why_then = (note.get("early") if stage_key == "search" else
+                        note.get("late") if stage_key in ("growth", "scale") else None)
+            when = date_str or "undated"
+            when += f" (company year {age})" if age is not None else ""
+            return {"when": when, "year": year, "company_age": age, "stage": stage,
+                    "why_then": why_then or "timing context unknown - the date carried no company-age anchor",
+                    "major_reason": (
+                        f"Added {when}: {why_then}. The purpose: {note and (KB.PATTERNS and [p2 for p2 in KB.PATTERNS if p2['name'] == pattern_name][0]['philosophy'])}"
+                        if why_then else f"Added {when}."
+                    )}
+
         # per-feature breakdown (company mode has real feature history to mine)
         feature_breakdowns: list[dict] = []
         for f in feats[:60]:
@@ -131,10 +153,12 @@ class DnaAgent(Agent):
                 entry["played_out"] = [{"kind": o["kind"], "text": o["text"], "url": o["url"]} for o in near[:2]]
                 entry["worked"] = p["worked"]
                 entries.append(entry)
+            timing = _timing(f.get("date", ""), hits[0]["name"])
             feature_breakdowns.append({
                 "feature": f.get("feature", "")[:140],
                 "class": f.get("class", ""),
                 "source": f.get("source", ""),
+                "timing": timing,
                 "patterns": entries,
             })
             if len(feature_breakdowns) >= 10:
@@ -194,8 +218,15 @@ class DnaAgent(Agent):
             used_principles |= {ps["principle"] for r in idea_lens["recommended"] for ps in r["psychology"]}
         glossary_psych = {n: KB.PSYCH_GLOSSARY[n] for n in sorted(used_principles) if n in KB.PSYCH_GLOSSARY}
 
+        sequencing = [
+            {"when": fb["timing"]["when"], "feature": fb["feature"]}
+            for fb in sorted(feature_breakdowns, key=lambda x: x["timing"]["year"] or 9999)
+            if fb["timing"]["year"]
+        ][:12]
+
         return {
             "product_philosophy": product_philosophy,
+            "sequencing": sequencing,
             "features": feature_breakdowns,
             "idea_lens": idea_lens,
             "glossary_business": glossary_business,
