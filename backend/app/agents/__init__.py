@@ -6,6 +6,7 @@ from .distribution import DistributionAgent
 from .dna import DnaAgent
 from .features import FeaturesAgent
 from .financial import FinancialAgent
+from .markets import MarketsAgent
 from .marketsize import MarketSizeAgent
 from .friction import FrictionAgent
 from .playbook import PlaybookAgent
@@ -31,6 +32,7 @@ __all__ = [
     "FrictionAgent",
     "FinancialAgent",
     "MarketSizeAgent",
+    "MarketsAgent",
     "DistributionAgent",
     "DnaAgent",
     "TechArchAgent",

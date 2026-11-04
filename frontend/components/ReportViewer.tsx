@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui";
 import { ComplianceTab, FeaturesTab, PremortemTab, StructuralTab } from "@/components/tabs/AnalysisTabs";
 import { DnaTab, FinancialTab, FrictionTab, MarketSizeTab, PricingTab, TimelineTab } from "@/components/tabs/BusinessTabs";
 import { SchoolTab } from "@/components/tabs/SchoolTab";
+import { MarketPerfTab } from "@/components/tabs/MarketPerfTab";
 import { DarkWebTab, DistributionTab, PlaybookTab, TechArchTab } from "@/components/tabs/ExecTabs";
 import AdversaryTab from "@/components/tabs/AdversaryTab";
 import AdvisorPanel from "@/components/AdvisorPanel";
@@ -70,6 +71,8 @@ export default function ReportViewer({
         return <DnaTab data={sectionData(section, "dna") ?? {}} />;
       case "school":
         return <SchoolTab data={sectionData(section, "school") ?? {}} />;
+      case "markets":
+        return <MarketPerfTab data={sectionData(section, "markets") ?? {}} />;
       case "adversary":
         return <AdversaryTab data={sectionData(section, "adversary") ?? {}} />;
     }

@@ -54,6 +54,7 @@ def detect_intent(question: str) -> Intent:
         # not a capital question — the say/ask context decides
         ("redteam", r"\b(objection|pitch|red team|red-team|weakness|investors? (say|will say|would say|ask))\b"),
         ("teach", r"\b(teach me|explain like|knowledge transfer|founder school|new to (business|startups|this)|first[- ]time founder|learn (the )?basics|how (do|does) (start-?ups|startups|businesses?|saas|funding) work)\b"),
+        ("markets", r"\b(stock (price|performance)|share price|how (is|did) the stock|rises? and falls?|listed|publicly traded)\b"),
         ("dna", r"\b(philosoph\w*|psycholog\w*|product dna|explain (the |this |that )?\w*( feature| product| pattern| pricing| design)|why (does|did|is) (this|that|their|it)\b|how (does|did) [a-z ]{3,30} work)\b"),
         ("capital", r"\b(raise|funding|invest|dilut|bootstrap|valuation|cap\b|safe|equity|money)\w*"),
         ("market", r"\b(tam|sam|som)\b|\bmarket(ing| size)?\b|big enough"),
@@ -411,6 +412,24 @@ def _advise_dna(q: str, report: dict) -> dict:
 
 
 
+def _advise_markets(q: str, report: dict) -> dict:
+    mk = _section(report, "markets")
+    if not mk or mk.get("traded") is None:
+        return {"answer": "No market performance data in this report (private company, offline run, or lookup failed).",
+                "bullets": [], "open_tabs": ["markets"], "followups": ["What should I do next?"]}
+    perf = mk.get("performance") or {}
+    lines = []
+    for w in (perf.get("best_weeks") or [])[:2]:
+        lines.append(f"Rose {w['change_pct']:+.1f}% week of {w['date']} ({w['from']} to {w['to']})")
+    for w in (perf.get("worst_weeks") or [])[:2]:
+        lines.append(f"Fell {w['change_pct']:.1f}% week of {w['date']} ({w['from']} to {w['to']})")
+    dd = perf.get("max_drawdown") or {}
+    if dd:
+        lines.append(f"Worst peak-to-trough drawdown: {dd.get('pct')}% (as of {dd.get('date')})")
+    return {"answer": str(mk.get("summary") or ""), "bullets": lines, "open_tabs": ["markets"],
+            "followups": ["What's my biggest risk?", "Is my market big enough?"]}
+
+
 def _advise_teach(q: str, report: dict) -> dict:
     """The mentor voice: find the lesson or term the founder is asking about."""
     from .data.dna import BUSINESS_GLOSSARY, PSYCH_GLOSSARY
@@ -468,5 +487,6 @@ _HANDLERS = {
     "redteam": _advise_redteam,
     "dna": _advise_dna,
     "teach": _advise_teach,
+    "markets": _advise_markets,
     "next": _advise_next,
 }

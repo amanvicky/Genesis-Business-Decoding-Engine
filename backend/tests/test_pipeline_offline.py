@@ -37,7 +37,7 @@ class TestOfflineDecode:
 
     def test_all_fourteen_sections(self, events):
         secs = [e["section"]["id"] for e in events if e["type"] == "section"]
-        assert len(secs) == 16
+        assert len(secs) == 17
         assert set(secs) == set(TAB_ORDER)
 
     def test_no_error_events(self, events):
@@ -57,7 +57,7 @@ class TestOfflineDecode:
 
     def test_company_mode_too(self):
         events = _run("company", "Stripe")
-        assert len([e for e in events if e["type"] == "section"]) == 16
+        assert len([e for e in events if e["type"] == "section"]) == 17
 
     def test_pricing_sandbox_receives_burn(self, events):
         """_post_process must wire financial burn into the pricing sandbox."""
@@ -81,7 +81,7 @@ class TestFailureContainment:
         monkeypatch.setattr(StructuralAgent, "build", boom)
         events = _run()
         secs = {e["section"]["id"]: e["section"] for e in events if e["type"] == "section"}
-        assert len(secs) == 16                      # still a full report
+        assert len(secs) == 17                      # still a full report
         assert "RuntimeError" in secs["structural"]["data"]["error"]
         assert secs["structural"]["data"]["partial"] is True
         assert [e for e in events if e.get("type") == "error"] == []

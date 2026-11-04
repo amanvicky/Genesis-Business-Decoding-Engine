@@ -37,6 +37,7 @@ export const TAB_IDS = [
   "marketsize",
   "dna",
   "school",
+  "markets",
   "adversary",
 ] as const;
 
@@ -66,7 +67,8 @@ export const TABS = [
   { id: "marketsize", n: 13, title: "Market Sizing & Capital Strategy", icon: "◎", blurb: "TAM/SAM/SOM math, raise vs bootstrap, founder fit" },
   { id: "dna", n: 14, title: "Product DNA — Philosophy & Psychology", icon: "☯", blurb: "why every feature exists, in plain words" },
   { id: "school", n: 15, title: "Founder School — The Knowledge Transfer", icon: "✦", blurb: "the zero-to-one curriculum, taught with your own numbers" },
-  { id: "adversary", n: 16, title: "Adversarial Red-Team Simulator", icon: "⚔", blurb: "Buyers, VCs & auditors cross-examine your plan" },
+  { id: "markets", n: 16, title: "Stock Performance — Rise & Fall", icon: "▲", blurb: "1-year chart, 52w range, the biggest rises and falls" },
+  { id: "adversary", n: 17, title: "Adversarial Red-Team Simulator", icon: "⚔", blurb: "Buyers, VCs & auditors cross-examine your plan" },
 ] as const satisfies readonly TabDef[];
 
 /* ---------------------------------------------------- section data shapes */
@@ -441,6 +443,29 @@ export interface SchoolData {
   readonly ai_insight?: string;
 }
 
+export interface MarketPerfData {
+  readonly traded?: boolean | null;
+  readonly symbol?: string;
+  readonly company_name?: string;
+  readonly index?: { readonly symbol: string; readonly name: string };
+  readonly currency_display?: string;
+  readonly performance?: {
+    readonly current?: number;
+    readonly change_1y_pct?: number;
+    readonly high_52w?: { readonly price: number; readonly date: string };
+    readonly low_52w?: { readonly price: number; readonly date: string };
+    readonly ytd_pct?: number;
+    readonly max_drawdown?: { readonly pct: number; readonly date: string };
+    readonly best_weeks?: readonly { readonly date: string; readonly change_pct: number; readonly from: number; readonly to: number }[];
+    readonly worst_weeks?: readonly { readonly date: string; readonly change_pct: number; readonly from: number; readonly to: number }[];
+    readonly series?: readonly { readonly date: string; readonly close: number }[];
+  };
+  readonly sparkline?: readonly number[];
+  readonly summary?: string;
+  readonly note?: string;
+  readonly ai_insight?: string;
+}
+
 /** TabId → its data shape. The single source of truth for renderers. */
 export interface SectionDataMap {
   structural: StructuralData;
@@ -458,6 +483,7 @@ export interface SectionDataMap {
   marketsize: MarketSizeData;
   dna: DnaData;
   school: SchoolData;
+  markets: MarketPerfData;
   adversary: AdversaryData;
 }
 
