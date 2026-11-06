@@ -177,9 +177,10 @@ def _reasoning_trail(question: str, report: dict) -> list[str]:
         "burn": ["Tab 8 — financial reality"],
         "customers": ["Tab 9 — distribution loops"],
         "risk": ["Tab 4 — failure post-mortems"],
-        "redteam": ["Tab 14 — adversarial panel"],
+        "redteam": ["Tab 18 — adversarial panel"],
         "dna": ["Tab 14 — product DNA"],
         "markets": ["Tab 16 — stock performance"],
+        "deepdive": ["Tab 17 — company deep-dive"],
         "next": ["your dossier's verdicts"],
         "hello": [],
     }

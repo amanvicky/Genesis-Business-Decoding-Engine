@@ -85,7 +85,7 @@ Ask Genesis (answers from your dossier) and the Verdict Protocol (go / no-go):
 The full set (compliance matrix, pricing sandbox, burn calculator, red-team and
 more) lives in [proofs/](proofs/).
 
-## The 17 tabs, quickly
+## The 18 tabs, quickly
 
 1. **Structural** - pain points, demand triggers, moats, a signal score
 2. **Features** - feature history decompiled from GitHub releases, build-now vs do-not-build roadmap
@@ -103,7 +103,8 @@ more) lives in [proofs/](proofs/).
 14. **Product DNA** - the philosophy and psychology behind every feature, every term explained in plain words
 15. **Founder school** - the zero-to-one knowledge transfer: what a startup is, money mechanics with your own numbers, user psychology, distribution, runway discipline, fundraising - every term defined
 16. **Stock performance** - 1-year chart, 52-week range, biggest weekly rises and falls, max drawdown (private companies get the market index as context)
-17. **Red team** - an enterprise buyer, a skeptical VC and a regulator attack your plan
+17. **Company deep-dive** - what the company actually does (problem → solution → trigger), every feature with the issue people had before it, the reality check of what you'll come across, and the concrete marketing mechanics they use (no "they do digital marketing" filler)
+18. **Red team** - an enterprise buyer, a skeptical VC and a regulator attack your plan
 
 Every section links its sources. If a source is blocked, that one section degrades,
 the rest of the run continues.

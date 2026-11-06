@@ -24,6 +24,7 @@ from .agents import (
     MarketSizeAgent,
     MarketsAgent,
     SchoolAgent,
+    DeepDiveAgent,
     PlaybookAgent,
     PremortemAgent,
     PricingAgent,
@@ -53,6 +54,7 @@ AGENTS: list[type[Agent]] = [
     DnaAgent,  # reads the feature list from the features tab
     SchoolAgent,  # knowledge transfer; personalizes with the computed numbers
     MarketsAgent,  # stock performance; reads EDGAR evidence for tickers
+    DeepDiveAgent,  # reads features/dna/timeline/premortem/compliance/dist/fin — after all of them
     AdversaryAgent,  # must run last — it cross-examines the assembled report
 ]
 

@@ -37,7 +37,7 @@ class TestOfflineDecode:
 
     def test_all_fourteen_sections(self, events):
         secs = [e["section"]["id"] for e in events if e["type"] == "section"]
-        assert len(secs) == 17
+        assert len(secs) == 18
         assert set(secs) == set(TAB_ORDER)
 
     def test_no_error_events(self, events):
@@ -57,7 +57,7 @@ class TestOfflineDecode:
 
     def test_company_mode_too(self):
         events = _run("company", "Stripe")
-        assert len([e for e in events if e["type"] == "section"]) == 17
+        assert len([e for e in events if e["type"] == "section"]) == 18
 
     def test_pricing_sandbox_receives_burn(self, events):
         """_post_process must wire financial burn into the pricing sandbox."""
@@ -70,8 +70,16 @@ class TestOfflineDecode:
 
     def test_subject_whitespace_stripped(self):
         events = _run("idea", "   padded subject name   ")
-        done = [e for e in events if e["type"] == "done"][0]
+        done = [e for e in events if e.get("type") == "done"][0]
         assert done["report"]["subject"] == "padded subject name"
+
+    def test_deepdive_has_all_four_layers_and_runs_before_adversary(self, events):
+        order = [e["section"]["id"] for e in events if e["type"] == "section"]
+        assert order.index("deepdive") < order.index("adversary")
+        done = [e for e in events if e.get("type") == "done"][0]["report"]
+        dd = done["sections"]["deepdive"]["data"]
+        assert {"what_they_do", "feature_inventory", "reality_check", "marketing"} <= set(dd)
+        assert len(dd["reality_check"]["items"]) == 8
 
 
 class TestFailureContainment:
@@ -81,7 +89,7 @@ class TestFailureContainment:
         monkeypatch.setattr(StructuralAgent, "build", boom)
         events = _run()
         secs = {e["section"]["id"]: e["section"] for e in events if e["type"] == "section"}
-        assert len(secs) == 17                      # still a full report
+        assert len(secs) == 18                      # still a full report
         assert "RuntimeError" in secs["structural"]["data"]["error"]
         assert secs["structural"]["data"]["partial"] is True
         assert [e for e in events if e.get("type") == "error"] == []

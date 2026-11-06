@@ -55,6 +55,7 @@ def detect_intent(question: str) -> Intent:
         ("redteam", r"\b(objection|pitch|red team|red-team|weakness|investors? (say|will say|would say|ask))\b"),
         ("teach", r"\b(teach me|explain like|knowledge transfer|founder school|new to (business|startups|this)|first[- ]time founder|learn (the )?basics|how (do|does) (start-?ups|startups|businesses?|saas|funding) work)\b"),
         ("markets", r"\b(stock (price|performance)|share price|how (is|did) the stock|rises? and falls?|listed|publicly traded)\b"),
+        ("deepdive", r"\b(how (did|do|does) (they|the company|this company)|what (do|does|did) (they|the company|this company) (do|sell|make|offer)|their marketing|the company'?s marketing|how (did|do) they (market|promote|start|grow|begin|acquire|win)|company (story|origin|history)|origin (story|of the)|reality check|things (i('| i)?ll|to) (face|consider|come across)|what will i (come|face)|feature (breakdown|inventory)|every (single )?(feature|option)|all (of )?the (features|options))\b"),
         ("dna", r"\b(philosoph\w*|psycholog\w*|product dna|explain (the |this |that )?\w*( feature| product| pattern| pricing| design)|why (does|did|is) (this|that|their|it)\b|how (does|did) [a-z ]{3,30} work)\b"),
         ("capital", r"\b(raise|funding|invest|dilut|bootstrap|valuation|cap\b|safe|equity|money)\w*"),
         ("market", r"\b(tam|sam|som)\b|\bmarket(ing| size)?\b|big enough"),
@@ -430,6 +431,71 @@ def _advise_markets(q: str, report: dict) -> dict:
             "followups": ["What's my biggest risk?", "Is my market big enough?"]}
 
 
+def _advise_deepdive(q: str, report: dict) -> dict:
+    """The deep-dive voice: what they do, their features, the reality, their marketing."""
+    dd = _section(report, "deepdive")
+    if not dd:
+        return {"answer": "No deep-dive section in this report yet — re-run the decode to build it.",
+                "bullets": [], "open_tabs": ["deepdive"], "followups": ["What should I do next?"]}
+    low = q.lower()
+    wtd = dd.get("what_they_do") or {}
+
+    # marketing sub-question
+    if re.search(r"\b(marketing|promot|audience|market (it|the|their)|acquire)\b", low):
+        mk = dd.get("marketing") or {}
+        bullets = []
+        for m in (mk.get("mechanics") or [])[:4]:
+            sig = f" (evidence: {', '.join(m.get('signals', [])[:3])})" if m.get("signals") else ""
+            bullets.append(f"{m['mechanic']}{sig} — what they promote: {m['what_they_promote']}. {m['psych']}")
+        if mk.get("the_hook"):
+            bullets.append(f"The hook: {mk['the_hook']} — the entry surface everything else pulls people through.")
+        if mk.get("channel_ranking"):
+            bullets.append(f"Top channels for this category: {' · '.join(mk['channel_ranking'])}.")
+        return {
+            "answer": f"How {_subject(report)} actually reaches people — the concrete mechanics, not the 'they do digital marketing' filler:",
+            "bullets": bullets or ["No marketing mechanics were visible in this run's evidence — decode with network for the full picture."],
+            "open_tabs": ["deepdive", "distribution"],
+            "followups": ["What do they actually do?", "What will I come across building this?"],
+        }
+
+    # reality-check sub-question
+    if re.search(r"\b(reality|consider|come across|will i face|up against|hidden|truth)\b", low):
+        items = (dd.get("reality_check") or {}).get("items") or []
+        return {
+            "answer": "The reality of building in this space — observations of what actually happens, not instructions:",
+            "bullets": [f"{i['area']} — {i['what'][:180]}" for i in items[:5]] or ["No reality checks computed."],
+            "open_tabs": ["deepdive", "premortem"],
+            "followups": ["How did they market this?", "What do they actually do?"],
+        }
+
+    # feature inventory sub-question
+    if re.search(r"\b(feature|option|inventory)\b", low):
+        inv = dd.get("feature_inventory") or []
+        bullets = [
+            f"{f['feature']} — before it: {f['the_issue_before'][:120]} impact: {f['the_impact'][:90]}"
+            for f in inv[:4]
+        ]
+        return {
+            "answer": f"{len(inv)} features inventoried for {_subject(report)}, each with the issue people had before it, the trigger that produced it, and what it changed:",
+            "bullets": bullets or ["No feature inventory in this run — decode with network."],
+            "open_tabs": ["deepdive", "features"],
+            "followups": ["How did they market this?", "What's the psychology behind their features?"],
+        }
+
+    # default: the what-they-do layer
+    return {
+        "answer": f"What {_subject(report)} actually does:",
+        "bullets": [
+            f"Problem: {str(wtd.get('the_problem', ''))[:200]}",
+            f"Solution: {str(wtd.get('the_solution', ''))[:200]}",
+            f"Trigger: {str(wtd.get('the_trigger', ''))[:160]}",
+            f"Founder logic: {str(wtd.get('founder_logic', ''))[:160]}",
+        ],
+        "open_tabs": ["deepdive", "dna"],
+        "followups": ["How did they market this?", "What will I come across building this?", "Break down their features"],
+    }
+
+
 def _advise_teach(q: str, report: dict) -> dict:
     """The mentor voice: find the lesson or term the founder is asking about."""
     from .data.dna import BUSINESS_GLOSSARY, PSYCH_GLOSSARY
@@ -488,5 +554,6 @@ _HANDLERS = {
     "dna": _advise_dna,
     "teach": _advise_teach,
     "markets": _advise_markets,
+    "deepdive": _advise_deepdive,
     "next": _advise_next,
 }

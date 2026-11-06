@@ -8,6 +8,7 @@ import { ComplianceTab, FeaturesTab, PremortemTab, StructuralTab } from "@/compo
 import { DnaTab, FinancialTab, FrictionTab, MarketSizeTab, PricingTab, TimelineTab } from "@/components/tabs/BusinessTabs";
 import { SchoolTab } from "@/components/tabs/SchoolTab";
 import { MarketPerfTab } from "@/components/tabs/MarketPerfTab";
+import { DeepDiveTab } from "@/components/tabs/DeepDiveTab";
 import { DarkWebTab, DistributionTab, PlaybookTab, TechArchTab } from "@/components/tabs/ExecTabs";
 import AdversaryTab from "@/components/tabs/AdversaryTab";
 import AdvisorPanel from "@/components/AdvisorPanel";
@@ -73,6 +74,8 @@ export default function ReportViewer({
         return <SchoolTab data={sectionData(section, "school") ?? {}} />;
       case "markets":
         return <MarketPerfTab data={sectionData(section, "markets") ?? {}} />;
+      case "deepdive":
+        return <DeepDiveTab data={sectionData(section, "deepdive") ?? {}} />;
       case "adversary":
         return <AdversaryTab data={sectionData(section, "adversary") ?? {}} />;
     }

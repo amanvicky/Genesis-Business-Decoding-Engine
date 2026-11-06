@@ -38,6 +38,7 @@ export const TAB_IDS = [
   "dna",
   "school",
   "markets",
+  "deepdive",
   "adversary",
 ] as const;
 
@@ -68,7 +69,8 @@ export const TABS = [
   { id: "dna", n: 14, title: "Product DNA — Philosophy & Psychology", icon: "☯", blurb: "why every feature exists, in plain words" },
   { id: "school", n: 15, title: "Founder School — The Knowledge Transfer", icon: "✦", blurb: "the zero-to-one curriculum, taught with your own numbers" },
   { id: "markets", n: 16, title: "Stock Performance — Rise & Fall", icon: "▲", blurb: "1-year chart, 52w range, the biggest rises and falls" },
-  { id: "adversary", n: 17, title: "Adversarial Red-Team Simulator", icon: "⚔", blurb: "Buyers, VCs & auditors cross-examine your plan" },
+  { id: "deepdive", n: 17, title: "Company Deep-Dive — What, Why, Reality & Marketing", icon: "❖", blurb: "what they do, every feature's origin story, the reality check, the marketing mechanics" },
+  { id: "adversary", n: 18, title: "Adversarial Red-Team Simulator", icon: "⚔", blurb: "Buyers, VCs & auditors cross-examine your plan" },
 ] as const satisfies readonly TabDef[];
 
 /* ---------------------------------------------------- section data shapes */
@@ -475,6 +477,45 @@ export interface MarketPerfData {
   readonly ai_insight?: string;
 }
 
+export interface DeepDiveData {
+  readonly subject?: string;
+  readonly mode?: string;
+  readonly what_they_do?: {
+    readonly the_problem?: string;
+    readonly the_solution?: string;
+    readonly the_trigger?: string;
+    readonly founder_logic?: string;
+  };
+  readonly feature_inventory?: readonly {
+    readonly feature: string;
+    readonly kind?: string;
+    readonly what_it_does?: string;
+    readonly the_issue_before?: string;
+    readonly the_trigger?: string;
+    readonly the_impact?: string;
+    readonly psych_basis?: readonly string[];
+    readonly evolution?: string | null;
+  }[];
+  readonly reality_check?: {
+    readonly items?: readonly { readonly area: string; readonly what: string }[];
+  };
+  readonly marketing?: {
+    readonly mechanics?: readonly {
+      readonly mechanic: string;
+      readonly signals?: readonly string[];
+      readonly dna_confirmed?: boolean;
+      readonly how_they_used_it?: string;
+      readonly what_they_promote?: string;
+      readonly psych?: string;
+    }[];
+    readonly the_hook?: string;
+    readonly channel_ranking?: readonly string[];
+    readonly note?: string;
+  };
+  readonly note?: string;
+  readonly ai_insight?: string;
+}
+
 /** TabId → its data shape. The single source of truth for renderers. */
 export interface SectionDataMap {
   structural: StructuralData;
@@ -493,6 +534,7 @@ export interface SectionDataMap {
   dna: DnaData;
   school: SchoolData;
   markets: MarketPerfData;
+  deepdive: DeepDiveData;
   adversary: AdversaryData;
 }
 

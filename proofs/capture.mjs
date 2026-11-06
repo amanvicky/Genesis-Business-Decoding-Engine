@@ -40,7 +40,7 @@ await sleep(1500);
 const clickTab = async (n) => {
   await page.evaluate((nn) => {
     const tabs = [...document.querySelectorAll("button")].filter((b) =>
-      /^(◈|▦|⚖|☠|◷|∑|⚡|▮|⇄|⌘|◉|➤|◎|☯|✦|▲|⚔)\s*\d+$/.test((b.textContent || "").replace(/\s+/g, " ").trim()),
+      /^(◈|▦|⚖|☠|◷|∑|⚡|▮|⇄|⌘|◉|➤|◎|☯|✦|▲|❖|⚔)\s*\d+$/.test((b.textContent || "").replace(/\s+/g, " ").trim()),
     );
     // textContent is like "◈1" (icon and number concatenated) - parse the digits
     const btn = tabs.find((b) => parseInt((b.textContent || "").replace(/\D+/g, ""), 10) === nn);
@@ -52,7 +52,8 @@ const clickTab = async (n) => {
 
 const tabsShot = { "03_report_structural": 1, "04_feature_binary_roadmap": 2, "05_compliance_matrix": 3,
   "06_pricing_sandbox": 6, "07_burn_calculator": 8, "09_market_sizing": 13,
-  "10_product_dna": 14, "12_founder_school": 15, "11_stock_performance": 16, "08_adversary_redteam": 17 };
+  "10_product_dna": 14, "12_founder_school": 15, "11_stock_performance": 16,
+  "15_company_deep_dive": 17, "08_adversary_redteam": 18 };
 for (const [name, n] of Object.entries(tabsShot)) {
   await clickTab(n);
   await shot(name);
@@ -100,4 +101,4 @@ await sleep(2500);
 await shot("14_verdict_protocol");
 
 await browser.close();
-console.log("captured 14 screenshots to", OUT);
+console.log("captured 15 screenshots to", OUT);

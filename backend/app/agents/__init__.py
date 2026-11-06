@@ -2,6 +2,7 @@ from .adversary import AdversaryAgent
 from .base import Agent, Emit
 from .compliance import ComplianceAgent
 from .darkweb import DarkWebAgent
+from .deepdive import DeepDiveAgent
 from .distribution import DistributionAgent
 from .dna import DnaAgent
 from .features import FeaturesAgent
@@ -38,5 +39,6 @@ __all__ = [
     "TechArchAgent",
     "DarkWebAgent",
     "PlaybookAgent",
+    "DeepDiveAgent",
     "AdversaryAgent",
 ]

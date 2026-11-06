@@ -111,8 +111,8 @@ export default function Page() {
             <span className="block text-zinc-500">Structure. Features. Compliance. Pricing. Friction. Failure modes. Execution.</span>
           </h1>
           <p className="mt-3 max-w-xl text-center text-sm text-zinc-600">
-            Seventeen analysis agents scrape free public sources — surface web, Wikipedia, GitHub releases, HN, review
-            platforms, Wayback pricing archives, and optionally Tor-routed OSINT — and assemble a 12-tab intelligence
+            Eighteen analysis agents scrape free public sources — surface web, Wikipedia, GitHub releases, HN, review
+            platforms, Wayback pricing archives, and optionally Tor-routed OSINT — and assemble an 18-tab intelligence
             dossier. No accounts, no API keys, no cost.
           </p>
           <div className="mt-8 w-full">
