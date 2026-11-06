@@ -67,7 +67,7 @@ class TestTeachRouting:
         for q in ("what is churn", "explain CAC", "what is runway"):
             assert detect_intent(q) == "teach", q
 
-    def test_possessive_stays_dossier_question(self):
+    def test_possessive_stays_a_numbers_question(self):
         assert detect_intent("what's my burn and runway?") == "burn"
         assert detect_intent("what is my runway") == "burn"
 

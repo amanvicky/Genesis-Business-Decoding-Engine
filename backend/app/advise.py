@@ -1,4 +1,4 @@
-"""Real-time advisor: answers questions using the dossier's own numbers.
+"""Real-time advisor: answers questions using the brief's own numbers.
 
 Deterministic intent routing over the report, no LLM needed. Streams NDJSON:
   {"type": "log", "msg": "..."}                     reasoning trail
@@ -44,7 +44,7 @@ def detect_intent(question: str) -> Intent:
     m = re.search(r"\b(?:what (?:is|are)|what's|explain|meaning of|define|teach me(?: about)?)\s+(?:the |a |an )?(?P<term>[a-z][\w -]{2,38})", q)
     if m:
         words = m.group("term").split()
-        # "what is MY burn" is a dossier question, not a definition request
+        # "what is MY burn" is a brief question, not a definition request
         if words and words[0] in ("my", "our", "your"):
             pass
         elif any(w in _TERM_INDEX for w in words) or m.group("term").strip() in _TERM_INDEX:
@@ -102,7 +102,7 @@ def _subject(report: dict) -> str:
 
 
 def advise(question: str, report: dict) -> dict:
-    """Route the question to the dossier's own numbers. Pure function."""
+    """Route the question to the brief's own numbers. Pure function."""
     q = (question or "").strip()[:MAX_QUESTION]
     intent = detect_intent(q)
     handler = _HANDLERS.get(intent, _advise_next)
@@ -114,7 +114,7 @@ def advise(question: str, report: dict) -> dict:
 def _advise_hello(q: str, report: dict) -> dict:
     return {
         "answer": (
-            f"I'm Genesis — I already decoded {_subject(report)} into a 14-tab dossier. "
+            f"I'm Genesis — I already decoded {_subject(report)} into an 18-tab brief. "
             "Ask me anything in it: numbers, decisions, next steps. I answer from YOUR report, not generic advice."
         ),
         "bullets": [
@@ -339,7 +339,7 @@ def _advise_redteam(q: str, report: dict) -> dict:
 
 
 def _advise_next(q: str, report: dict) -> dict:
-    """Default: compose the NOW/WEEK-1 decision list from the dossier's own verdicts."""
+    """Default: compose the NOW/WEEK-1 decision list from the brief's own verdicts."""
     struct = _section(report, "structural")
     ms = _section(report, "marketsize")
     comp = _section(report, "compliance")
@@ -348,7 +348,7 @@ def _advise_next(q: str, report: dict) -> dict:
     if "UNKNOWN" in verdict:
         now.append("Re-run the decode ONLINE — your current run gathered no evidence, so pain/signal is unmeasured.")
     elif "Weak" in verdict:
-        now.append("Signal is weak: 20 problem interviews BEFORE any code. The dossier's pain tables tell you what to ask.")
+        now.append("Signal is weak: 20 problem interviews BEFORE any code. The brief's pain tables tell you what to ask.")
     else:
         now.append("Signal exists — run the first-10 plan (Tab 9) inside the top-ranked channel this week.")
     critical = comp.get("critical_count")
@@ -361,7 +361,7 @@ def _advise_next(q: str, report: dict) -> dict:
     if adv.get("fatal_count"):
         now.append(f"Answer the {adv['fatal_count']} fatal red-team challenges — each one is a plan-killer if ignored.")
     return {
-        "answer": f"Where {_subject(report)} stands, straight from your dossier:",
+        "answer": f"Where {_subject(report)} stands, straight from your brief:",
         "bullets": now[:4] + ["Ask me anything specific — pricing, competitors, raise, compliance, risks."],
         "open_tabs": ["structural", "marketsize", "compliance"],
         "followups": ["Should I raise or bootstrap?", "Who already does this?", "What kills companies like this?"],

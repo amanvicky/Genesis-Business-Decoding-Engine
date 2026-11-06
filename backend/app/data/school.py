@@ -287,11 +287,11 @@ LESSONS: dict[str, Lesson] = {
             "things that predict that future: market size (is the ceiling high?), evidence of demand (are "
             "people paying or begging?), retention (do they stay?), the team (can you learn faster than "
             "others?), and distribution (is there a repeatable way to grow?). Notice: your product is one "
-            "input among many. This is why the dossier's tabs map almost one-to-one to an investor's "
+            "input among many. This is why the brief's tabs map almost one-to-one to an investor's "
             "question list - the research you already have IS the diligence pack."
         ),
         "truth": "Investors fund momentum and evidence, not potential alone. Every month of real usage data is worth more than any deck.",
-        "action": "Re-read your dossier as an investor would. Which tab would YOU attack first? That's your weak flank - fix it before anyone else sees it.",
+        "action": "Re-read your brief as an investor would. Which tab would YOU attack first? That's your weak flank - fix it before anyone else sees it.",
         "terms": ["TAM / SAM / SOM", "NRR", "unit economics"],
     },
 }

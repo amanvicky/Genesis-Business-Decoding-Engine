@@ -24,7 +24,7 @@ from .scrapers import tor as tor_mod
 
 app = FastAPI(title="Genesis — Business Decoding & Replication Engine", version=__version__)
 # Only the local dashboard may call this API from a browser — "*" let any
-# website the founder visits read the dossier via CORS.
+# website the founder visits read the decoded report via CORS.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
@@ -113,7 +113,7 @@ async def advise_stream(request: Request):
     """Real-time founder advisor: NDJSON reasoning trail → grounded answer.
 
     Body: {"question": "...", "report": {<full report>}} — stateless by design;
-    the dossier the founder already decoded IS the context.
+    the brief the founder already decoded IS the context.
     """
     body = await _report_body(request)
     question = str(body.get("question") or "")
@@ -123,7 +123,7 @@ async def advise_stream(request: Request):
         raise HTTPException(status_code=422, detail=f"question too long (max {advise.MAX_QUESTION} chars)")
     report = body.get("report")
     if not isinstance(report, dict):
-        raise HTTPException(status_code=422, detail="report (the decoded dossier) is required")
+        raise HTTPException(status_code=422, detail="report (the decoded brief) is required")
 
     async def generate():
         import asyncio
@@ -181,7 +181,7 @@ def _reasoning_trail(question: str, report: dict) -> list[str]:
         "dna": ["Tab 14 — product DNA"],
         "markets": ["Tab 16 — stock performance"],
         "deepdive": ["Tab 17 — company deep-dive"],
-        "next": ["your dossier's verdicts"],
+        "next": ["your brief's verdicts"],
         "hello": [],
     }
     for t in tab_map.get(intent, []):
@@ -197,7 +197,7 @@ async def verdict_endpoint(request: Request):
     body = await _report_body(request)
     report = body.get("report")
     if not isinstance(report, dict):
-        raise HTTPException(status_code=422, detail="report (the decoded dossier) is required")
+        raise HTTPException(status_code=422, detail="report (the decoded brief) is required")
     answers = body.get("fmf_answers")
     if answers is not None:
         if (not isinstance(answers, list) or len(answers) > verdict._MAX_FMF_ANSWERS

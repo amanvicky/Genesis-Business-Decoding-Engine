@@ -163,7 +163,7 @@ export async function streamAdvice(
   }
 }
 
-/** The Verdict Protocol: dossier + FMF answers → deterministic decision memo. */
+/** The Verdict Protocol: brief + FMF answers → deterministic decision memo. */
 export async function requestVerdict(report: Report, fmfAnswers: boolean[]): Promise<VerdictMemo> {
   const res = await fetch(url("/api/verdict" as ApiRoute), {
     method: "POST",

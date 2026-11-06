@@ -494,7 +494,7 @@ export function MarketSizeTab({ data }: { data: MarketSizeData }) {
       )}
 
       {data.investor_question_map && (
-        <Section title="Every investor question — answered by a tab in this dossier">
+        <Section title="Every investor question — answered by a tab in this brief">
           <Rows
             rows={(data.investor_question_map ?? []).map((r) => ({ question: r.question, answered_by: r.answered_by }))}
             cols={[

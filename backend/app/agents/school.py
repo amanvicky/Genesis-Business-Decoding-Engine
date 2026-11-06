@@ -48,13 +48,13 @@ class SchoolAgent(Agent):
         capital = computed.get("capital_needed")
         gm = computed.get("gross_margin_assumption") or (0.62 if ev.sector in ("fintech", "payroll") else 0.82)
 
-        # personalize the money lessons with the founder's own dossier numbers
+        # personalize the money lessons with the founder's own decoded numbers
         personal: dict[str, str] = {}
         if arpa and burn:
             monthly_profit = arpa * gm
             payback_months = round(arpa / monthly_profit) if monthly_profit else None
             personal["the_one_equation"] = (
-                f"With YOUR dossier's numbers: one customer pays {_num(arpa, currency)}/month at "
+                f"With YOUR brief's numbers: one customer pays {_num(arpa, currency)}/month at "
                 f"{int(gm * 100)}% gross margin = {_num(monthly_profit, currency)} profit/month. Your burn is "
                 f"{_num(burn, currency)}/month, so you need about {breakeven} such customers to cover the whole burn. "
                 "That's the whole game - now every feature decision is 'does this get me to that number faster?'"
@@ -62,7 +62,7 @@ class SchoolAgent(Agent):
             personal["cac_ltv"] = (
                 f"Your 12-month CAC ceiling: if a customer pays {_num(arpa, currency)}/month, spend at most "
                 f"{_num(arpa * 12 * gm, currency)} to acquire one and you break even in year one - everything "
-                f"they stay beyond that is profit. Your dossier's current LTV:CAC proxy is "
+                f"they stay beyond that is profit. Your brief's current LTV:CAC proxy is "
                 f"{(ms.get('unit_economics') or {}).get('ltv_cac_ratio', '—')}."
             )
         if capital:
@@ -78,7 +78,7 @@ class SchoolAgent(Agent):
             )
 
         sector_note = (
-            f"Watching a {ev.sector} company in this dossier? Notice which tab patterns repeat across its "
+            f"Watching a {ev.sector} company in this brief? Notice which tab patterns repeat across its "
             f"features - that's the sector's playbook showing itself."
         )
 

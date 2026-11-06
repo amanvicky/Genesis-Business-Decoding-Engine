@@ -9,7 +9,7 @@ Four layers, all in plain words, all evidence-backed:
                       are separated into product_milestones so the inventory stays
                       a product surface, not a news feed.
   REALITY CHECK     - the things a builder will actually come across (observations,
-                      not advice), personalized with the dossier's own numbers
+                      not advice), personalized with the brief's own numbers
   MARKETING         - the concrete mechanics detected in the evidence, scored by
                       how many of the mechanic's own signals each snippet hits
 """

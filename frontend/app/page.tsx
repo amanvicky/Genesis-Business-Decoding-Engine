@@ -171,7 +171,7 @@ export default function Page() {
           <section className="grid min-h-[calc(100svh-4rem)] grid-cols-1 items-start gap-10 py-10 lg:grid-cols-12">
             <div className="lg:col-span-7">
               <h1 className="font-display text-[clamp(2.5rem,4.5vw,4.25rem)] font-bold leading-[1.04] tracking-[-0.02em] text-zinc-100">
-                Read any company<br className="sm:hidden" /> like a dossier.
+                Read any company<br className="sm:hidden" /> in full.
               </h1>
               <p className="mt-4 max-w-[34ch] text-lg text-zinc-400">
                 Eighteen free agents decode a business into an eighteen-tab intelligence brief.
@@ -198,7 +198,7 @@ export default function Page() {
                 <div className="min-h-0 flex-1 p-3 pt-3">
                   <img
                     src="/captures/report_deepdive.png"
-                    alt="The dossier this decode produced: the company deep-dive tab"
+                    alt="The brief this decode produced: the company deep-dive tab"
                     width={2880}
                     height={1800}
                     className="h-[280px] w-full border border-edge object-cover object-left-top sm:h-[320px] lg:h-full lg:object-top"
@@ -216,7 +216,7 @@ export default function Page() {
             <p className="mt-2 max-w-[52ch] text-sm text-zinc-400">
               Captures of a live decode of Notion. Six of the eighteen tabs; the rest render the same way.
             </p>
-            <div className="mt-6 flex gap-1 overflow-x-auto pb-1" role="tablist" aria-label="dossier tab captures">
+            <div className="mt-6 flex gap-1 overflow-x-auto pb-1" role="tablist" aria-label="brief tab captures">
               {CAPTURED.map((c, i) => {
                 const tab = TABS.find((t) => t.id === c.id);
                 return (
@@ -239,7 +239,7 @@ export default function Page() {
             <figure className="mt-4" data-slot data-kind="product">
               <img
                 src={capture.file}
-                alt={`Genesis dossier, ${capture.label} tab`}
+                alt={`Genesis brief, ${capture.label} tab`}
                 width={2880}
                 height={1800}
                 loading="lazy"

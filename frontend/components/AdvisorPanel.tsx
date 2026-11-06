@@ -17,7 +17,7 @@ interface Msg {
 const SEED: readonly Msg[] = [
   {
     role: "genesis",
-    text: "Ask me anything in this dossier — capital, competitors, build order, risks. I answer from YOUR numbers.",
+    text: "Ask me anything in this brief — capital, competitors, build order, risks. I answer from YOUR numbers.",
     followups: ["Should I raise or bootstrap?", "What do I build first?", "Who already does this?", "What's my biggest risk?"],
   },
 ];
@@ -39,7 +39,7 @@ export default function AdvisorPanel({ report, onClose, onOpenTab }: {
     setInput("");
     setMsgs((m) => [...m, { role: "user", text: q }]);
     setBusy(true);
-    setTrail("reading your dossier…");
+    setTrail("reading your brief…");
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
@@ -75,7 +75,7 @@ export default function AdvisorPanel({ report, onClose, onOpenTab }: {
       <div className="flex items-center justify-between border-b border-edge px-4 py-3">
         <div>
           <p className="text-sm font-semibold text-emerald-400">◈ Ask Genesis</p>
-          <p className="text-[11px] text-zinc-600">real-time answers from your dossier — no generic advice</p>
+          <p className="text-[11px] text-zinc-600">real-time answers from your brief — no generic advice</p>
         </div>
         <button onClick={onClose} className="text-zinc-500 transition-colors hover:text-zinc-300" aria-label="Close advisor">✕</button>
       </div>

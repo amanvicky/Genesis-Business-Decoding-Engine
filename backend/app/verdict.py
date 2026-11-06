@@ -1,4 +1,4 @@
-"""Verdict Protocol: turns a finished dossier into a GO / NO-GO call.
+"""Verdict Protocol: turns a finished brief into a GO / NO-GO call.
 
 Gates come from the report itself (structural score, market math, red-team
 fatals), founder-market-fit comes from the founder's own answers. No LLM in

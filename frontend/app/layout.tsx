@@ -19,7 +19,7 @@ const mono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "Genesis — decode any company into an 18-tab intelligence brief",
   description:
-    "Eighteen free agents scrape public sources and assemble a dossier: structure, features, compliance, pricing, friction, failure modes, marketing, and an execution playbook. No API keys, no cost.",
+    "Eighteen free agents scrape public sources and assemble a brief: structure, features, compliance, pricing, friction, failure modes, marketing, and an execution playbook. No API keys, no cost.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

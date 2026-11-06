@@ -4,7 +4,7 @@ import type { Config } from "tailwindcss";
  * Hallmark token block — the single source for every colour the app uses.
  * Deep ink paper (cool, hue 250), one amber signal (hue 75), data colours
  * (rise green, fall red, info cool, psych violet) tinted, never pure.
- * The framework shade names stay so the dossier's 18 content tabs inherit
+ * The framework shade names stay so the brief's 18 content tabs inherit
  * the system without touching their markup.
  */
 const ink = (l: number, c = 0.012) => `oklch(${l}% ${c} 250)`;

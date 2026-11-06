@@ -32,7 +32,7 @@ class TestWhatTheyDo:
     def test_idea_mode_framed_for_the_builder(self):
         data, _ = _agent(mode="idea")
         wtd = data["what_they_do"]
-        assert "dossier" in wtd["the_problem"].lower() or "friction" in wtd["the_problem"].lower()
+        assert "friction" in wtd["the_problem"].lower()
 
     def test_origin_from_timeline_when_no_wiki(self):
         agent = DeepDiveAgent()

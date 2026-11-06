@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
 
 Feed it a company (ADP, Stripe, Razorpay, your competitor) or just a rough idea.
-It comes back with a 14-tab dossier: does the model hold up, what features to copy
+It comes back with an 18-tab brief: does the model hold up, what features to copy
 and what to skip, the compliance traps (per country/state), why companies like this
 died, real revenue from SEC filings, pricing math you can edit live, what users
 complain about, your burn and breakeven, free distribution channels, starter code,
@@ -14,7 +14,7 @@ and a red-team panel that argues with your plan. Every claim links its source.
 
 And when you're done reading, there's a chat panel that answers questions using
 your own numbers ("should I raise?", "who already does this?") and a verdict
-protocol that forces a GO / NO-GO call so the dossier actually ends in a decision.
+protocol that forces a GO / NO-GO call so the brief actually ends in a decision.
 
 No API keys. No accounts. Nothing leaves your machine.
 
@@ -77,7 +77,7 @@ Founder school — taught with your own numbers:
 
 ![school](proofs/screenshots/12_founder_school.png)
 
-Ask Genesis (answers from your dossier) and the Verdict Protocol (go / no-go):
+Ask Genesis (answers from your brief) and the Verdict Protocol (go / no-go):
 
 ![advisor](proofs/screenshots/13_ask_genesis_advisor.png)
 ![verdict](proofs/screenshots/14_verdict_protocol.png)
@@ -137,7 +137,7 @@ backend/app/
   pipeline.py            recon -> 17 agents
   models.py              request/report/evidence models
   text.py                keyphrases, money/tier extraction, feature classification
-  advise.py              real-time advisor (answers from your own dossier)
+  advise.py              real-time advisor (answers from your own brief)
   verdict.py             the GO / NO-GO decision protocol
   engines/               subject identity (kills acronym collisions)
   scrapers/              search cascade, wikipedia, hn, reddit, github, wayback, filings, tor
