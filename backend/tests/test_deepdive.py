@@ -73,14 +73,30 @@ class TestFeatureInventory:
         issue = data["feature_inventory"][0]["the_issue_before"]
         assert "sales call" in issue  # from USER_ISSUES["Freemium / free tier"]
 
-    def test_capped_at_fourteen_and_deduped(self):
+    def test_capped_at_sixteen_and_deduped(self):
         feats = [{"feature": f"free tier integration template thing number {i}", "detail": "", "class": "day1"}
                  for i in range(40)]
         feats.append({"feature": "free tier integration template thing number 3", "detail": "", "class": "day1"})
         agent = DeepDiveAgent()
         agent.sections = {"features": {"data": {"features": feats}}}
         data = asyncio.run(agent.build(_ev()))
-        assert len(data["feature_inventory"]) == 14
+        assert len(data["feature_inventory"]) == 16
+
+    def test_event_rows_go_to_milestones_not_inventory(self):
+        agent = DeepDiveAgent()
+        agent.sections = {"features": {"data": {"features": [
+            {"feature": "Notion 1.0 released in August 2016", "detail": "", "date": "2016-08", "source": "wikipedia-history"},
+            {"feature": "Notion acquired Skiff in February 2024", "detail": "", "date": "2024-02"},
+            {"feature": "databases with multiple views", "detail": "", "class": "day1"},
+        ]}}}
+        data = asyncio.run(agent.build(_ev()))
+        names = {f["feature"] for f in data["feature_inventory"]}
+        assert "databases with multiple views" in names
+        assert not any("released" in n or "acquired" in n for n in names)
+        ms = data["product_milestones"]
+        assert len(ms) == 2
+        assert any("Skiff" in m["what"] for m in ms)
+        assert ms[0]["when"]  # dated milestones ranked first
 
     def test_streaks_feature_gets_evolution_lens(self):
         agent = DeepDiveAgent()
@@ -111,7 +127,9 @@ class TestFeatureInventory:
         data = asyncio.run(agent.build(_ev()))
         assert "Series B" in data["feature_inventory"][0]["the_trigger"]
 
-    def test_trigger_not_circular_when_event_is_the_feature_sentence(self):
+    def test_event_feature_sentence_never_enters_inventory(self):
+        # an event-like row IS a milestone now - so it can't collide with the
+        # timeline inside the inventory at all
         agent = DeepDiveAgent()
         agent.sections = {
             "features": {"data": {"features": [
@@ -121,8 +139,8 @@ class TestFeatureInventory:
                 {"date": "2016-06", "what": "raised seed round"}]}},
         }
         data = asyncio.run(agent.build(_ev()))
-        trigger = data["feature_inventory"][0]["the_trigger"]
-        assert "raised seed round" in trigger or "Shipped around 2016" in trigger
+        assert data["feature_inventory"] == []
+        assert len(data["product_milestones"]) == 1
 
     def test_solution_line_never_ends_mid_word(self):
         agent = DeepDiveAgent()
@@ -250,6 +268,173 @@ class TestKBIntegrity:
         assert missing == set(), f"USER_ISSUES keys not matching DNA patterns: {missing}"
 
 
+SITE_HTML = """
+<html><head><meta name="description" content="Notion is the connected workspace
+for docs, projects and teams."></head><body>
+<nav><h3>Log in</h3><h3>Get started</h3></nav>
+<main><h1>Notion 2.0 released with connected databases</h1>
+<h2>Notion AI</h2><h2>Databases &amp; views</h2><h2>Templates gallery</h2>
+<h3>Sign up</h3><h3>Download the app everywhere</h3></main>
+<footer><h4>careers</h4></footer></body></html>
+"""
+
+
+class TestSiteMining:
+    def _with_fetcher(self, html_by_url: dict):
+        import app.agents.deepdive as AD
+
+        class FakeFetcher:
+            offline = False
+
+            async def try_text(self, url, **kw):
+                return html_by_url.get(url)
+
+        orig = AD.Fetcher
+        AD.Fetcher = lambda ev: FakeFetcher()  # type: ignore[misc]
+        try:
+            ev = _ev()
+            ev.wiki_domain_hint = "notion.so"
+            data = asyncio.run(DeepDiveAgent().build(ev))
+        finally:
+            AD.Fetcher = orig
+        return data
+
+    def test_site_headings_become_on_site_features(self):
+        data = self._with_fetcher({"https://notion.so": SITE_HTML})
+        names = {f["feature"]: f for f in data["feature_inventory"]}
+        assert "Notion AI" in names
+        assert "Databases & views" in names
+        assert names["Notion AI"]["kind"] == "on-site"
+
+    def test_nav_junk_and_events_filtered(self):
+        data = self._with_fetcher({"https://notion.so": SITE_HTML})
+        names = {f["feature"] for f in data["feature_inventory"]}
+        assert "Log in" not in names and "Sign up" not in names
+        assert not any("released" in n for n in names)
+
+    def test_meta_description_feeds_the_solution(self):
+        data = self._with_fetcher({"https://notion.so": SITE_HTML})
+        sol = data["what_they_do"]["the_solution"]
+        assert "connected workspace" in sol
+
+    def test_offline_skips_mining_gracefully(self):
+        data, _ = _agent()
+        assert data["feature_inventory"] == [] or all(
+            f["kind"] != "on-site" for f in data["feature_inventory"])
+
+    def test_domain_found_from_evidence_urls_when_hint_empty(self):
+        agent = DeepDiveAgent()
+        ev = _ev()
+        ev.wiki_domain_hint = ""
+        ev.search = [
+            {"title": "s", "url": "https://news.google.com/rss/articles/notion-abc"},
+            {"title": "s", "url": "https://www.notion.so/help/databases"},
+            {"title": "s", "url": "https://trustpilot.com/review/notion"},
+        ]
+        d = agent._domain_scan(ev.search, ["notion"])
+        assert d == "notion.so"
+
+    def test_domain_scan_rejects_non_domain_urls(self):
+        agent = DeepDiveAgent()
+        assert agent._domain_scan([{"url": "https://user@10.0.0.5:8080/x"}], ["notion"]) == ""
+        assert agent._domain_scan([{"url": "not a url"}], ["notion"]) == ""
+
+
+class TestUserWords:
+    def test_problem_quotes_real_voices(self):
+        agent = DeepDiveAgent()
+        agent.sections = {"friction": {"data": {"representative_voices": [
+            {"source": "r/startups", "text": "we switched three times because the export always broke halfway",
+             "url": "https://reddit/x"},
+            {"source": "Trustpilot", "text": "support never answered my tickets for weeks", "url": "https://tp/x"},
+            {"source": "G2", "text": "too expensive for small teams like ours", "url": "https://g2/x"},
+        ]}}}
+        data = asyncio.run(agent.build(_ev()))
+        uw = data["what_they_do"]["the_problem_in_user_words"]
+        assert len(uw) == 3
+        assert uw[0]["source"] == "r/startups"
+        assert "export always broke" in uw[0]["quote"]
+
+    def test_dedupes_and_drops_tiny_quotes(self):
+        agent = DeepDiveAgent()
+        agent.sections = {"structural": {"data": {"pain_points": [
+            {"source": "HN", "text": "short", "url": ""},
+            {"source": "HN", "text": "the onboarding took hours and most people quit before finishing", "url": ""},
+            {"source": "HN", "text": "the onboarding took hours and most people quit before finishing", "url": ""},
+        ]}}}
+        data = asyncio.run(agent.build(_ev()))
+        uw = data["what_they_do"]["the_problem_in_user_words"]
+        assert len(uw) == 1
+
+    def test_rating_boilerplate_and_doubled_echo_dropped(self):
+        agent = DeepDiveAgent()
+        agent.sections = {"friction": {"data": {"representative_voices": [
+            {"source": "Trustpilot",
+             "text": "Notion is rated \"Average\" with 3.1/5 on Trustpilot. Notion is rated \"Average\" with 3.1/5 on Trustpilot Trustpilot",
+             "url": "https://tp"},
+            {"source": "r/saas", "text": "we moved off it after the import wizard ate our whole workspace twice", "url": "https://rd"},
+        ]}}}
+        data = asyncio.run(agent.build(_ev()))
+        uw = data["what_they_do"]["the_problem_in_user_words"]
+        assert len(uw) == 1
+        assert "moved off it" in uw[0]["quote"]
+
+
+class TestRealityPersonalization:
+    def test_tiers_and_alternatives_injected(self):
+        agent = DeepDiveAgent()
+        agent.sections = {
+            "pricing": {"data": {"tiers": [{"name": "Free"}, {"name": "Plus"}, {"name": "Business"}]}},
+            "features": {"data": {"alternatives": {"candidates": ["Coda", "ClickUp"]}}},
+        }
+        data = asyncio.run(agent.build(_ev()))
+        items = {i["area"]: i["what"] for i in data["reality_check"]["items"]}
+        comp = [w for a, w in items.items() if "Competition" in a]
+        assert comp and "Coda" in comp[0] and "3 tiers" in comp[0]
+
+    def test_support_line_counts_public_voices(self):
+        agent = DeepDiveAgent()
+        agent.sections = {"structural": {"data": {"pain_points": [
+            {"source": "HN", "text": f"complaint number {i} about the workflow being broken", "url": ""}
+            for i in range(4)]}}}
+        data = asyncio.run(agent.build(_ev()))
+        target = next(i for i in data["reality_check"]["items"] if "Support" in i["area"])
+        assert "4" in target["what"]
+
+
+class TestMarketingV2:
+    def test_higher_scoring_snippet_wins_and_url_kept(self):
+        ev = _ev()
+        ev.search = [
+            {"title": "weak hit", "snippet": "they have a free tier", "url": "https://weak"},
+            {"title": "strong hit", "snippet": "the free tier and free plan beat every freemium rival", "url": "https://strong"},
+        ]
+        data = asyncio.run(DeepDiveAgent().build(ev))
+        m = next(m for m in data["marketing"]["mechanics"] if "product is the ad" in m["mechanic"].lower())
+        assert "freemium rival" in m["how_they_used_it"]
+        assert m["evidence_url"] == "https://strong"
+
+    def test_current_push_from_newest_milestones(self):
+        agent = DeepDiveAgent()
+        agent.sections = {"features": {"data": {"features": [
+            {"feature": "Notion Mail launched for gmail", "detail": "", "date": "2025-01"},
+            {"feature": "Notion 1.0 released in August 2016", "detail": "", "date": "2016-08"},
+            {"feature": "databases", "detail": "", "class": "day1"},
+        ]}}}
+        data = asyncio.run(agent.build(_ev()))
+        push = data["marketing"]["current_push"]
+        assert push and "Mail" in push[0]
+
+    def test_hook_from_pricing_tiers(self):
+        agent = DeepDiveAgent()
+        agent.sections = {"pricing": {"data": {"tiers": [{"name": "Free"}, {"name": "Plus"}]}}}
+        data = asyncio.run(agent.build(_ev()))
+        assert "Free" in data["marketing"]["the_hook"]
+
+
+
+
+
 class TestSummary:
     def test_summary_counts_the_layers(self):
         data, summary = _agent()
@@ -289,3 +474,36 @@ class TestAdvisorRouting:
     def test_handler_without_section_is_honest(self):
         out = advise("what does this company do?", {"subject": "x", "sections": {}})
         assert "re-run" in out["answer"].lower()
+
+
+class TestOfficialSite:
+    def test_official_site_picked_from_wiki_extlinks(self):
+        from app.scrapers.wikipedia import _official_site
+        links = [
+            "https://twitter.com/notion",
+            "https://www.notion.so/",
+            "https://notion.com/pricing",
+            "https://en.wikipedia.org/wiki/Notion",
+        ]
+        assert _official_site(links, "Notion") == "notion.com" or _official_site(links, "Notion") == "notion.so"
+
+    def test_official_site_requires_subject_token(self):
+        from app.scrapers.wikipedia import _official_site
+        links = ["https://example-corp.com", "https://webflow.com"]
+        assert _official_site(links, "Notion") == ""
+
+    def test_official_site_handles_protocol_relative(self):
+        from app.scrapers.wikipedia import _official_site
+        assert _official_site(["//stripe.com"], "Stripe") == "stripe.com"
+
+
+class TestJunkQuotes:
+    def test_news_noise_never_becomes_a_quote(self):
+        agent = DeepDiveAgent()
+        agent.sections = {"friction": {"data": {"representative_voices": [
+            {"source": "Churn posts", "text": "Trump will rally in Iowa and Kansas after initially canceling weekend trips before midterms ABC7 Los Angeles", "url": "https://x1"},
+            {"source": "Churn posts", "text": "Vince Shorts RV Town Hall becomes a year of broken promises, postponements, cancellations, and delays", "url": "https://x2"},
+        ]}}}
+        ev = _ev(subject="Notion")
+        data = asyncio.run(agent.build(ev))
+        assert data["what_they_do"]["the_problem_in_user_words"] == []

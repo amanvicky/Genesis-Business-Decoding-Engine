@@ -482,6 +482,11 @@ export interface DeepDiveData {
   readonly mode?: string;
   readonly what_they_do?: {
     readonly the_problem?: string;
+    readonly the_problem_in_user_words?: readonly {
+      readonly quote: string;
+      readonly source: string;
+      readonly url?: string | null;
+    }[];
     readonly the_solution?: string;
     readonly the_trigger?: string;
     readonly founder_logic?: string;
@@ -496,6 +501,11 @@ export interface DeepDiveData {
     readonly psych_basis?: readonly string[];
     readonly evolution?: string | null;
   }[];
+  readonly product_milestones?: readonly {
+    readonly what: string;
+    readonly when: string;
+    readonly url?: string | null;
+  }[];
   readonly reality_check?: {
     readonly items?: readonly { readonly area: string; readonly what: string }[];
   };
@@ -505,10 +515,12 @@ export interface DeepDiveData {
       readonly signals?: readonly string[];
       readonly dna_confirmed?: boolean;
       readonly how_they_used_it?: string;
+      readonly evidence_url?: string | null;
       readonly what_they_promote?: string;
       readonly psych?: string;
     }[];
     readonly the_hook?: string;
+    readonly current_push?: readonly string[];
     readonly channel_ranking?: readonly string[];
     readonly note?: string;
   };

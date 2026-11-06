@@ -90,6 +90,20 @@ class ReconAgent(Agent):
             else:
                 await emit({"type": "log", "level": "warn", "agent": self.id, "msg": "no Wikipedia entry found — timeline will use search evidence"})
 
+        # 2b. The company's own declared site (Wikipedia external links) is the
+        # most reliable domain hint — it outranks whatever a search result happened
+        # to carry. Downstream agents read wiki_domain_hint at build time, so
+        # updating it here is enough.
+        if mode == "company":
+            wsite = ((ev.wiki or {}).get("website") or "").strip()
+            if wsite:
+                wd = domain_of(wsite)
+                if (wd and wd not in ("en.wikipedia.org",)
+                        and re.fullmatch(r"[a-z0-9-]+(\.[a-z0-9-]+)+", wd)
+                        and safe_public_http_url(f"https://{wd}")):
+                    ev.wiki_domain_hint = wd  # type: ignore[attr-defined]
+                    await emit({"type": "log", "level": "success", "agent": self.id, "msg": f"official site locked: {wd} (from Wikipedia external links)"})
+
         # 3. Source triangulation: anchor results to a verified subject identity
         #    (kills acronym collisions like adPEAS-vs-ADP before analysis sees them)
         from ..engines.triangulation import triangulate

@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import re
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 
 from .client import Fetcher
 from ..text import clean, find_years, sentences
@@ -68,14 +68,60 @@ async def company_brief(fetcher: Fetcher, subject: str) -> dict:
     history = _slice_section(extract, ("History", "Founding", "Early history", "Background"))
     founded = _founding_year(extract or summary_json.get("extract", ""))
 
+    website = ""
+    ext = await fetcher.try_json(
+        f"{API}?action=query&prop=extlinks&titles={quote(picked)}&ellimit=30&format=json&formatversion=2&origin=*"
+    )
+    links: list[str] = []
+    try:
+        pages = ((ext or {}).get("query", {}) or {}).get("pages", [])
+        if pages and isinstance(pages, list):
+            links = [e.get("url", "") for e in (pages[0].get("extlinks") or []) if isinstance(e, dict)]
+    except Exception:
+        links = []
+    site = _official_site(links, subject)
+    if site:
+        website = f"https://{site}"
+
     return {
         "title": picked,
         "summary": clean(summary_json.get("extract", "") or (sentences(extract)[0] if extract else "")),
         "extract": extract[:12000],
         "history": history[:6000],
         "founded_year": founded,
+        "website": website,
         "url": f"https://en.wikipedia.org/wiki/{quote(picked.replace(' ', '_'))}",
     }
+
+
+def _official_site(links: list[str], subject: str) -> str:
+    """The company's own domain from the article's external links: must contain
+    a subject token and not be a reference/social/archive domain."""
+    tokens = [t for t in re.findall(r"[a-z0-9]{4,}", subject.lower())]
+    bad = ("wikipedia.org", "wikimedia", "archive.org", "twitter.com", "x.com",
+           "facebook.com", "youtube.com", "linkedin.com", "instagram.com", "reddit.com",
+           "medium.com", "github.com", "apple.com", "play.google.com", "crunchbase.com",
+           "bloomberg.com", "forbes.com", "techcrunch.com", "theverge.com", "producthunt.com")
+    best = ""
+    for link in links or []:
+        link = (link or "").strip()
+        if link.startswith("//"):
+            link = "https:" + link
+        if not link.startswith("http"):
+            link = "https://" + link
+        try:
+            net = urlparse(link).netloc.lower().removeprefix("www.")
+        except Exception:
+            continue
+        if not net or any(b in net for b in bad):
+            continue
+        if not re.fullmatch(r"[a-z0-9-]+(\.[a-z0-9-]+)+", net):
+            continue
+        if tokens and not any(t in net for t in tokens):
+            continue
+        if not best or len(net) < len(best):
+            best = net
+    return best
 
 
 def _strip_headers(text: str) -> str:
