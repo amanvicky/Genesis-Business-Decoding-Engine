@@ -5,7 +5,7 @@ import re
 from urllib.parse import quote, urlparse
 
 from .client import Fetcher
-from ..text import clean, find_years, sentences
+from ..text import clean, sentences
 
 API = "https://en.wikipedia.org/w/api.php"
 
@@ -66,7 +66,12 @@ async def company_brief(fetcher: Fetcher, subject: str) -> dict:
     extract = _strip_headers(extract)
 
     history = _slice_section(extract, ("History", "Founding", "Early history", "Background"))
-    founded = _founding_year(extract or summary_json.get("extract", ""))
+    founded = _founding_year(extract or summary_json.get("extract", ""), history)
+    if founded is None:
+        # The infobox is stripped from plaintext extracts — Zoho's article says
+        # "founded by Sridhar Vembu" and never prints the year. Wikidata carries
+        # it structured (P571 inception) on the same keyless API.
+        founded = await _wikidata_inception(fetcher, picked)
 
     website = ""
     ext = await fetcher.try_json(
@@ -151,23 +156,91 @@ def _slice_section(text: str, headings: tuple[str, ...]) -> str:
     return "\n".join(out)
 
 
-def _founding_year(text: str) -> int | None:
-    if not text:
+_FOUNDED_WORD = re.compile(r"\b(?:founded|founding|incorporated|established)\b", re.I)
+_STARTED_WORD = re.compile(r"\b(?:started|launched|began)\b", re.I)
+_YEAR = re.compile(r"\b((?:19|20)\d{2})\b")
+
+
+def _nearest_year(s: str, m: re.Match) -> int | None:
+    """The year closest to the keyword match, within a 60-char reach."""
+    best, dist = None, 61
+    for ym in _YEAR.finditer(s):
+        d = min(abs(ym.start() - m.end()), abs(m.start() - ym.end()))
+        if d < dist:
+            best, dist = int(ym.group(1)), d
+    return best
+
+
+def _founding_year(text: str, history: str = "") -> int | None:
+    """The founding year, from years that actually sit next to founding words.
+
+    Priority: a year within reach of a founded/incorporated/established
+    mention ("Founded in 1996, ... by 2005 it had 1,000 staff" → 1996, not the
+    last year in the sentence), then an explicit "founded in YYYY" pattern,
+    then started/launched/began mentions — summary first, then the History
+    section. A bare year elsewhere ("as of 2025, 120M users") is NOT a
+    founding year; returning None is more honest than guessing.
+    """
+    def scan(blob: str, word_re: re.Pattern) -> int | None:
+        for s in sentences(blob or ""):
+            for m in word_re.finditer(s):
+                y = _nearest_year(s, m)
+                if y is not None:
+                    return y
         return None
-    sents = sentences(text)
-    # 1) A sentence that explicitly talks about founding/incorporation — take
-    #    its LAST year ("founded Stripe in Palo Alto, California, in 2010").
-    for s in sents:
-        if re.search(r"\b(?:founded|incorporated|established)\b", s, re.I):
-            years = re.findall(r"\b(?:19|20)\d{2}\b", s)
-            if years:
-                return int(years[-1])
-    # 2) A started/launched sentence — take its FIRST year
-    #    ("In 1949, Henry Taub started Automatic Payrolls System").
-    for s in sents:
-        if re.search(r"\b(?:started|launched|began)\b", s, re.I):
-            years = re.findall(r"\b(?:19|20)\d{2}\b", s)
-            if years:
-                return int(years[0])
-    years = find_years(text)
-    return years[0][0] if years else None
+
+    for blob in (text, history):
+        y = scan(blob, _FOUNDED_WORD)
+        if y is not None:
+            return y
+    for blob in (text, history):
+        m = re.search(
+            r"(?:founded|incorporated|established)[^.]{0,80}?in\s+((?:19|20)\d{2})",
+            (blob or "")[:20000],
+            re.I,
+        )
+        if m:
+            return int(m.group(1))
+    for blob in (text, history):
+        y = scan(blob, _STARTED_WORD)
+        if y is not None:
+            return y
+    return None
+
+
+async def _wikidata_inception(fetcher: Fetcher, title: str) -> int | None:
+    """The structured inception year (Wikidata P571) of the article's subject."""
+    data = await fetcher.try_json(
+        "https://www.wikidata.org/w/api.php?action=wbgetentities&sites=enwiki"
+        f"&titles={quote(title)}&props=claims&format=json&origin=*"
+    )
+    entities = (data or {}).get("entities", {}) or {}
+    ent = next(iter(entities.values()), {}) if isinstance(entities, dict) else {}
+    for snak in (ent.get("claims", {}) or {}).get("P571", []) or []:
+        value = (((snak.get("mainsnak") or {}).get("datavalue")) or {}).get("value") or {}
+        m = re.search(r"([12]\d{3})", str(value.get("time", "")))
+        if m:
+            return int(m.group(1))
+    return None
+
+
+async def wiki_search(fetcher: Fetcher, query: str, limit: int = 8) -> list[dict]:
+    """MediaWiki fulltext search — the bot-tolerant last rung of the surface-web
+    cascade. When every web engine rate-limits a datacenter IP at once, the
+    subject's encyclopedia footprint still reaches the pipeline. Rows are
+    shaped like search results so every downstream consumer works unchanged."""
+    data = await fetcher.try_json(
+        f"{API}?action=query&list=search&srsearch={quote(query)}&srlimit={limit}&format=json&origin=*"
+    )
+    out: list[dict] = []
+    for hit in ((data or {}).get("query", {}) or {}).get("search", []) or []:
+        title = clean(hit.get("title", ""))
+        if not title:
+            continue
+        snippet = re.sub(r"<[^>]+>", " ", hit.get("snippet", "") or "")
+        out.append({
+            "title": title,
+            "url": f"https://en.wikipedia.org/wiki/{quote(title.replace(' ', '_'))}",
+            "snippet": clean(snippet)[:300],
+        })
+    return out

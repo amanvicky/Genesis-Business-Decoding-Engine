@@ -62,6 +62,20 @@ class ReconAgent(Agent):
             if fresh:
                 await emit({"type": "log", "level": "success", "agent": self.id, "msg": f"news coverage: {fresh} recent articles (Google/Bing News RSS)"})
 
+        # 1c. Every web engine can rate-limit a datacenter IP at once. Wikipedia's
+        # own search API is keyless and bot-tolerant — never leave the surface
+        # layer dark when the subject has an encyclopedia footprint.
+        if len(ev.search) < 3:
+            wiki_hits = await wikipedia.wiki_search(f, q, 8)
+            fresh = 0
+            for r in wiki_hits:
+                if r["url"] not in seen:
+                    seen.add(r["url"])
+                    ev.search.append(r)
+                    fresh += 1
+            if fresh:
+                await emit({"type": "log", "level": "warn", "agent": self.id, "msg": f"web engines rate-limited — Wikipedia search fallback: {fresh} article matches"})
+
         # Infer the company's website domain from search results (company mode)
         company_domain = ""
         if mode == "company":

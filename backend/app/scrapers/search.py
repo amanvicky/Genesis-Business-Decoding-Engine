@@ -3,19 +3,34 @@
 Cascade: DuckDuckGo lite → DuckDuckGo html → public SearXNG (JSON) → Mojeek
 → Google News RSS → Bing News RSS.
 Any engine can block datacenter traffic; the cascade keeps recon alive.
+Blocked engines cool down for 10 minutes and get another chance afterwards —
+a rate limit lifts, so the cascade must heal.
 News RSS is also queried directly for company subjects (see news_search).
 """
 from __future__ import annotations
 
+import time
 import xml.etree.ElementTree as ET
 from urllib.parse import quote_plus
 
 from .client import Fetcher, UA, soup
 from ..text import clean
 
-# Engines that failed hard (blocked/off-air) this process are skipped afterwards.
-_ENGINE_DEAD: set[str] = set()
+# One decode fires 3 concurrent queries; 6 legit empty responses before an
+# engine is considered blocked. Blocked/off-air engines pause for 10 minutes
+# (rate limits lift — permanent bans would cripple a long-running session).
+_EMPTY_LIMIT = 6
+_COOLDOWN_S = 600.0
+_ENGINE_COOLDOWN: dict[str, float] = {}
 _ENGINE_EMPTY: dict[str, int] = {}
+
+
+def _paused(name: str) -> bool:
+    return time.monotonic() < _ENGINE_COOLDOWN.get(name, 0.0)
+
+
+def _pause(name: str) -> None:
+    _ENGINE_COOLDOWN[name] = time.monotonic() + _COOLDOWN_S
 
 
 async def ddg_search(fetcher: Fetcher, query: str, limit: int = 12) -> list[dict]:
@@ -27,34 +42,37 @@ async def ddg_search(fetcher: Fetcher, query: str, limit: int = 12) -> list[dict
         ("gnews", _gnews_rss),
         ("bnews", _bnews_rss),
     ):
-        if name in _ENGINE_DEAD:
+        if _paused(name):
             continue
         try:
             results = await backend(fetcher, query, limit)
         except Exception:
-            _ENGINE_DEAD.add(name)
+            _pause(name)
             continue
         if results:
+            _ENGINE_EMPTY.pop(name, None)
             return results
-        # A blocked challenge page returns 200 with zero results: allow a few
-        # legitimate empty queries before retiring the engine for the session.
+        # A blocked challenge page returns 200 with zero results: allow several
+        # legitimate empty queries before pausing the engine.
         _ENGINE_EMPTY[name] = _ENGINE_EMPTY.get(name, 0) + 1
-        if _ENGINE_EMPTY[name] >= 3:
-            _ENGINE_DEAD.add(name)
+        if _ENGINE_EMPTY[name] >= _EMPTY_LIMIT:
+            _ENGINE_EMPTY.pop(name, None)
+            _pause(name)
     return []
 
 
 async def news_search(fetcher: Fetcher, query: str, limit: int = 10) -> list[dict]:
     """Direct news coverage (works even when general web engines block us)."""
     for name, backend in (("gnews", _gnews_rss), ("bnews", _bnews_rss)):
-        if name in _ENGINE_DEAD:
+        if _paused(name):
             continue
         try:
             results = await backend(fetcher, query, limit)
         except Exception:
-            _ENGINE_DEAD.add(name)
+            _pause(name)
             continue
         if results:
+            _ENGINE_EMPTY.pop(name, None)
             return results
     return []
 
