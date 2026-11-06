@@ -49,6 +49,16 @@ _NAV_JUNK = re.compile(
 
 _SITE_PATHS = ("", "/features", "/product", "/platform", "/pricing")
 
+# a sitemap path counts as a product/feature page when one of these is in it
+_SITEMAP_KEYWORDS = ("feature", "ai", "product", "template", "integrat", "calendar", "mail",
+                     "docs", "database", "collab", "project", "task", "clip", "site",
+                     "security", "enterprise", "mobile", "desktop", "automation", "help",
+                     "academy", "guide", "use-case", "usecase", "solutions", "customer",
+                     "workspace", "notes", "wiki", "release", "changelog", "what-is")
+
+_SITEMAP_SKIP = ("privacy", "terms", "careers", "jobs", "legal", "cookie", "press",
+                 "brand", ".pdf", ".png", ".jpg", ".svg", "status", "affiliat")
+
 
 def _evolution_for(principles: list[str]) -> str | None:
     for p in principles:
@@ -85,15 +95,22 @@ class DeepDiveAgent(Agent):
 
         # ---------- 1. what they do ----------
         user_words = self._user_words(sections, ev)
+        problem_text = (
+            f"People dealing with {ev.sector} work are living with friction the current tools never fully "
+            "removed - the evidence shows it in their own words below. The problem is rarely that no tool "
+            "exists; it's that the existing ones stop halfway."
+        ) if is_idea else (
+            f"{ev.subject} exists because a specific job in {ev.sector} was being done badly by the default "
+            "options. The public record shows where the old way broke:"
+        )
+        clusters = (((sections.get("friction") or {}).get("data") or {}).get("complaint_clusters") or [])
+        if clusters and not is_idea:
+            top = clusters[0]
+            share = top.get("share") or top.get("count") or ""
+            if share:
+                problem_text += f" The loudest public complaint right now: {top.get('cluster', '—')} ({share} of matched voices)."
         what_they_do = {
-            "the_problem": (
-                f"People dealing with {ev.sector} work are living with friction the current tools never fully "
-                "removed - the evidence shows it in their own words below. The problem is rarely that no tool "
-                "exists; it's that the existing ones stop halfway."
-            ) if is_idea else (
-                f"{ev.subject} exists because a specific job in {ev.sector} was being done badly by the default "
-                "options. The public record shows where the old way broke:"
-            ),
+            "the_problem": problem_text,
             "the_problem_in_user_words": user_words,
             "the_solution": self._solution_summary(site_feats, raw_rows, site_meta, ev),
             "the_trigger": self._origin_story(ev, timeline),
@@ -185,26 +202,82 @@ class DeepDiveAgent(Agent):
             pass
         return ""
 
+    def _sitemap_urls(self, html: str, base: str) -> list[str]:
+        """Every same-host URL in a sitemap.xml, minus junk paths."""
+        from urllib.parse import urlparse
+        host = urlparse(base).netloc.lower()
+        out: list[str] = []
+        for loc in re.findall(r"<loc>\s*([^<\s]+)\s*</loc>", html or "", re.I):
+            u = loc.strip().rstrip("/")
+            low = u.lower()
+            if not u.startswith("http") or u in out:
+                continue
+            try:
+                net = urlparse(u).netloc.lower().removeprefix("www.")
+            except Exception:
+                continue
+            if net != host.removeprefix("www."):
+                continue
+            if any(b in low for b in _SITEMAP_SKIP):
+                continue
+            out.append(u)
+        return out
+
+    def _page_score(self, url: str) -> int:
+        low = url.lower()
+        return sum(2 for kw in _SITEMAP_KEYWORDS if kw in low)
+
+    async def _gather_sitemap(self, f: Fetcher, base: str) -> list[str]:
+        """URLs from the sitemap, following one level of sitemap-index."""
+        sm = await f.try_text(f"{base}/sitemap.xml")
+        if not sm:
+            return []
+        urls = self._sitemap_urls(sm, base)
+        subs = [u for u in urls if u.endswith(".xml")]
+        plain = [u for u in urls if not u.endswith(".xml")]
+        if subs and not plain:
+            sub_pages = await asyncio.gather(*[f.try_text(u) for u in subs[:2]])
+            for sp in sub_pages:
+                if isinstance(sp, str):
+                    plain.extend(self._sitemap_urls(sp, base))
+        return plain
+
     async def _site_intel(self, f: Fetcher, ev: Evidence) -> tuple[list[dict], str]:
-        """Fetch the company's own marketing pages and extract feature headings."""
+        """Fetch the company's own pages and extract real feature names +
+        descriptions: the fixed marketing surfaces, then sitemap-scored pages
+        (each carrying its meta description as the feature's real one-liner)."""
         domain = await self._resolve_domain(f, ev)
         if not domain or f.offline:
             return [], ""
         base = f"https://{domain}"
         if not safe_public_http_url(base):
             return [], ""
-        pages = await asyncio.gather(*[f.try_text(f"{base}{path}") for path in _SITE_PATHS])
+        targets = [f"{base}{p}" for p in _SITE_PATHS]
+        try:
+            sitemap_urls = await self._gather_sitemap(f, base)
+        except Exception:
+            sitemap_urls = []
+        scored = sorted(((self._page_score(u), u) for u in sitemap_urls), key=lambda x: (-x[0], len(x[1])))
+        # only pages that actually look like product/feature pages, cap the fetch budget
+        targets += [u for s, u in scored if s >= 2][:12]
+        pages = await asyncio.gather(*[f.try_text(t) for t in targets])
         feats: list[dict] = []
         meta = ""
-        for r in pages:
-            if not isinstance(r, str) or len(r) < 200:
+        for url, r in zip(targets, pages):
+            if not isinstance(r, str) or len(r) < 100:
                 continue
-            page_feats, page_meta = self._parse_site_page(r, f"{base}")
-            meta = meta or page_meta
+            is_deep = url != base  # sitemap/feature pages: their meta describes the feature
+            page_feats, page_meta = self._parse_site_page(r, url, with_meta=is_deep)
+            if not is_deep:
+                meta = meta or page_meta
             feats.extend(page_feats)
+        # SPA sites repeat one site-wide <meta> on every page - a detail equal to
+        # the homepage tagline is not a real description
+        if meta:
+            feats = [{**x, "detail": ""} if x.get("detail") == meta else x for x in feats]
         return feats, meta
 
-    def _parse_site_page(self, html: str, page_url: str) -> tuple[list[dict], str]:
+    def _parse_site_page(self, html: str, page_url: str, with_meta: bool = False) -> tuple[list[dict], str]:
         from ..scrapers.client import soup
         from ..text import clean
         try:
@@ -217,13 +290,31 @@ class DeepDiveAgent(Agent):
         mt = s.find("meta", attrs={"name": "description"}) or s.find("meta", attrs={"property": "og:description"})
         if mt and mt.get("content"):
             meta = clean(str(mt.get("content")))[:300]
+
+        def _text_under(h) -> str:
+            """The paragraph/list text between this heading and the next one —
+            the feature's own description on its page."""
+            bits: list[str] = []
+            for sib in h.find_all_next():
+                if sib.name in ("h1", "h2", "h3"):
+                    break
+                if sib.name in ("p", "li"):
+                    t = clean(sib.get_text(" "))
+                    if 30 <= len(t) <= 240:
+                        bits.append(t)
+                if len(" ".join(bits)) > 240:
+                    break
+            return " ".join(bits)[:240]
+
+        detail = meta if with_meta else ""
         out: list[dict] = []
         for h in s.find_all(["h1", "h2", "h3"]):
             t = clean(h.get_text(" "))
             t = t.rstrip(" →←•·|-–—").strip()
             if not (3 <= len(t) <= 90) or self._looks_like_event(t) or _NAV_JUNK.search(t):
                 continue
-            out.append({"feature": t[:140], "detail": "", "class": "on-site",
+            row_detail = _text_under(h) if with_meta else ""
+            out.append({"feature": t[:140], "detail": (row_detail or detail)[:200], "class": "on-site",
                         "date": "", "source": "company-site", "url": page_url})
         return out, meta
 
@@ -280,11 +371,18 @@ class DeepDiveAgent(Agent):
         return out[:3]
 
     def _origin_story(self, ev: Evidence, timeline: dict) -> str:
-        """The founding sentence from the evidence, or the first timeline event."""
+        """The real founding story: the 'founded by X' sentence from the wiki
+        history, then the founding sentence from the summary, then first event."""
         if ev.wiki:
+            # history section first — it tells the story, not just the fact
+            for blob in (str(ev.wiki.get("history") or ""), str(ev.wiki.get("extract") or "")):
+                for sent in re.split(r"(?<=[.!?])\s+", blob):
+                    if (len(sent) > 40
+                            and re.search(r"\bfounded by\b|\bstarted by\b|\bcreated by\b|\bwas founded\b|\bfounded in\b", sent, re.I)):
+                        return sent[:360]
             summ = str(ev.wiki.get("summary") or "")
             for sent in re.split(r"(?<=[.!?])\s+", summ):
-                if len(sent) > 40 and re.search(r"\b(founded|founding|created|started|began|developed by)\b", sent, re.I):
+                if len(sent) > 40 and re.search(r"\b(founded|created|started|began|developed by)\b", sent, re.I):
                     return sent[:340]
             if summ:
                 return summ[:400]
@@ -334,14 +432,25 @@ class DeepDiveAgent(Agent):
         undated = [m for m in milestones if not m["when"]]
         milestones = (dated + undated)[:6]
 
-        inventory: list[dict] = []
-        seen: set[str] = set()
-        for f in list(site_feats) + list(product_rows):
-            name = " ".join((f.get("feature") or "").split())[:140]
+        # merge all rows; when the same name appears twice, the row carrying a
+        # real description (from the feature's own page) wins
+        merged: dict[str, dict] = {}
+        order: list[str] = []
+        for r in list(site_feats) + list(product_rows):
+            name = " ".join((r.get("feature") or "").split())[:140]
             key = name.lower()[:60]
-            if not name or key in seen:
+            if not name:
                 continue
-            seen.add(key)
+            if key not in merged:
+                merged[key] = r
+                order.append(key)
+            elif (r.get("detail") or "") and not merged[key].get("detail"):
+                merged[key] = {**merged[key], "detail": r.get("detail")}
+
+        inventory: list[dict] = []
+        for key in order:
+            f = merged[key]
+            name = " ".join((f.get("feature") or "").split())[:140]
             patterns = self._patterns_for(name + " " + str(f.get("detail", "")))
             principle_names = [n for pat in patterns for n, _ in pat["psychology"]]
             issue = next((KB.USER_ISSUES.get(p["name"]) for p in patterns if p["name"] in KB.USER_ISSUES), None)
@@ -359,7 +468,7 @@ class DeepDiveAgent(Agent):
                 "psych_basis": principle_names[:3],
                 "evolution": _evolution_for(principle_names[:3]),
             })
-            if len(inventory) >= 16:
+            if len(inventory) >= 24:
                 break
         return inventory, milestones
 

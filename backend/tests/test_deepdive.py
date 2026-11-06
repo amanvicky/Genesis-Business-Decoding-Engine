@@ -73,14 +73,23 @@ class TestFeatureInventory:
         issue = data["feature_inventory"][0]["the_issue_before"]
         assert "sales call" in issue  # from USER_ISSUES["Freemium / free tier"]
 
-    def test_capped_at_sixteen_and_deduped(self):
+    def test_capped_at_twenty_four_and_deduped(self):
         feats = [{"feature": f"free tier integration template thing number {i}", "detail": "", "class": "day1"}
                  for i in range(40)]
         feats.append({"feature": "free tier integration template thing number 3", "detail": "", "class": "day1"})
         agent = DeepDiveAgent()
         agent.sections = {"features": {"data": {"features": feats}}}
         data = asyncio.run(agent.build(_ev()))
-        assert len(data["feature_inventory"]) == 16
+        assert len(data["feature_inventory"]) == 24
+
+    def test_dedupe_prefers_row_with_real_description(self):
+        agent = DeepDiveAgent()
+        site_rows = [{"feature": "Databases", "detail": "relational tables with multiple views and rollups",
+                      "class": "on-site", "source": "company-site", "url": "https://x", "date": ""},
+                     {"feature": "databases", "detail": "", "class": "day1", "source": "web-snippet"}]
+        inventory, _ = agent._inventory(site_rows, [], {}, {})
+        db = next(f for f in inventory if f["feature"].lower() == "databases")
+        assert "relational tables" in db["what_it_does"]
 
     def test_event_rows_go_to_milestones_not_inventory(self):
         agent = DeepDiveAgent()
@@ -507,3 +516,173 @@ class TestJunkQuotes:
         ev = _ev(subject="Notion")
         data = asyncio.run(agent.build(ev))
         assert data["what_they_do"]["the_problem_in_user_words"] == []
+
+
+SITEMAP = """<?xml version="1.0"?>
+<urlset>
+<url><loc>https://notion.com/help/databases</loc></url>
+<url><loc>https://notion.com/help/notion-ai</loc></url>
+<url><loc>https://notion.com/privacy</loc></url>
+<url><loc>https://notion.com/careers</loc></url>
+<url><loc>https://notion.com/help/templates</loc></url>
+</urlset>"""
+
+DB_PAGE = """<html><head><meta name="description" content="Databases let you store anything,
+view it as a table, board or calendar, and roll up related pages across your workspace.">
+</head><body class="page"><h1>Databases</h1><p>The heart of the product.</p>
+<h2>Sign up</h2></body></html>"""
+
+AI_PAGE = """<html><head><meta name="description" content="Notion AI answers questions,
+writes drafts and autofills databases across your whole workspace, instantly.">
+</head><body class="page"><h1>Notion AI</h1><p>Your assistant inside the tool.</p></body></html>"""
+
+
+class TestSitemapHarvest:
+    def _with_fetcher(self):
+        import app.agents.deepdive as AD
+
+        class FakeFetcher:
+            offline = False
+
+            async def try_text(self, url, **kw):
+                if url.endswith("/sitemap.xml"):
+                    return SITEMAP
+                if url == "https://notion.com/help/databases":
+                    return DB_PAGE
+                if url == "https://notion.com/help/notion-ai":
+                    return AI_PAGE
+                if url == "https://notion.com/help/templates":
+                    return AI_PAGE  # reuse
+                return None
+
+        orig = AD.Fetcher
+        AD.Fetcher = lambda ev: FakeFetcher()  # type: ignore[misc]
+        try:
+            ev = _ev()
+            ev.wiki_domain_hint = "notion.com"
+            data = asyncio.run(DeepDiveAgent().build(ev))
+        finally:
+            AD.Fetcher = orig
+        return data
+
+    def test_feature_pages_become_inventory_with_real_descriptions(self):
+        data = self._with_fetcher()
+        names = {f["feature"].lower(): f for f in data["feature_inventory"]}
+        assert "notion ai" in names
+        assert "databases" in names
+        # the text under the heading is the real description, meta is the fallback
+        assert "assistant inside the tool" in names["notion ai"]["what_it_does"]
+        assert "roll up related pages" in names["databases"]["what_it_does"]
+
+    def test_junk_paths_never_fetched(self):
+        data = self._with_fetcher()
+        names = {f["feature"].lower() for f in data["feature_inventory"]}
+        assert "privacy" not in " ".join(names) and "careers" not in " ".join(names)
+
+    def test_all_get_on_site_kind_and_trigger(self):
+        data = self._with_fetcher()
+        for f in data["feature_inventory"]:
+            if f["kind"] == "on-site":
+                assert "current selling surface" in f["the_trigger"]
+
+
+class TestFoundingStory:
+    def test_founded_by_sentence_wins_with_names(self):
+        ev = _ev()
+        ev.wiki = {"title": "Notion", "summary": "Notion is a productivity app.",
+                   "history": "The company began in 2013. Notion was founded by Ivan Zhao and Simon Last in 2013 in San Francisco.",
+                   "extract": ""}
+        agent = DeepDiveAgent()
+        data = asyncio.run(agent.build(ev))
+        assert "Ivan Zhao" in data["what_they_do"]["the_trigger"]
+
+    def test_summary_fallback_when_no_history(self):
+        ev = _ev()
+        ev.wiki = {"title": "X", "summary": "X Corp was created in 2019 to fix payroll.",
+                   "history": "", "extract": ""}
+        agent = DeepDiveAgent()
+        data = asyncio.run(agent.build(ev))
+        assert "payroll" in data["what_they_do"]["the_trigger"]
+
+
+class TestProblemCluster:
+    def test_dominant_cluster_anchored_into_problem(self):
+        agent = DeepDiveAgent()
+        agent.sections = {"friction": {"data": {"complaint_clusters": [
+            {"cluster": "Pricing & value", "share": "31%"},
+        ]}}}
+        data = asyncio.run(agent.build(_ev()))
+        assert "Pricing & value" in data["what_they_do"]["the_problem"]
+        assert "31%" in data["what_they_do"]["the_problem"]
+
+    def test_idea_mode_stays_framer_without_cluster(self):
+        agent = DeepDiveAgent()
+        agent.sections = {"friction": {"data": {"complaint_clusters": [
+            {"cluster": "Pricing & value", "share": "31%"},
+        ]}}}
+        ev = _ev(mode="idea")
+        data = asyncio.run(agent.build(ev))
+        assert "friction the current tools" in data["what_they_do"]["the_problem"]
+
+
+class TestHeadingDescriptions:
+    def _build(self, pages):
+        import app.agents.deepdive as AD
+
+        class FakeFetcher:
+            offline = False
+
+            async def try_text(self, url, **kw):
+                if url.endswith("/sitemap.xml"):
+                    return '<urlset><url><loc>https://notion.com/help/databases</loc></url></urlset>'
+                return pages.get(url)
+
+        orig = AD.Fetcher
+        AD.Fetcher = lambda ev: FakeFetcher()  # type: ignore[misc]
+        try:
+            ev = _ev()
+            ev.wiki_domain_hint = "notion.com"
+            data = asyncio.run(DeepDiveAgent().build(ev))
+        finally:
+            AD.Fetcher = orig
+        return data
+
+    def test_text_under_heading_becomes_the_description(self):
+        page = ("<html><body><h1>Databases</h1><p>Store anything as a table, board or calendar "
+                "and relate pages to each other.</p><h2>Sign up</h2></body></html>")
+        data = self._build({"https://notion.com/help/databases": page})
+        db = next((f for f in data["feature_inventory"] if f["feature"].lower() == "databases"), None)
+        assert db and "table, board or calendar" in db["what_it_does"]
+
+    def test_sitewide_tagline_never_repeats_on_every_card(self):
+        tagline = "Build custom agents and automate busywork, the AI workspace for teams."
+        homepage = f'<html><head><meta name="description" content="{tagline}"></head><body><h1>Notion</h1><p>One workspace.</p></body></html>'
+        page_a = f'<html><head><meta name="description" content="{tagline}"></head><body><h1>Web Clipper</h1></body></html>'
+        page_b = f'<html><head><meta name="description" content="{tagline}"></head><body><h1>Notion Mail</h1></body></html>'
+
+        import app.agents.deepdive as AD
+
+        class FakeFetcher:
+            offline = False
+
+            async def try_text(self, url, **kw):
+                if url.endswith("/sitemap.xml"):
+                    return ("<urlset><url><loc>https://notion.com/help/clipper</loc></url>"
+                            "<url><loc>https://notion.com/help/mail</loc></url></urlset>")
+                return {"https://notion.com": homepage,
+                        "https://notion.com/help/clipper": page_a,
+                        "https://notion.com/help/mail": page_b}.get(url)
+
+        orig = AD.Fetcher
+        AD.Fetcher = lambda ev: FakeFetcher()  # type: ignore[misc]
+        try:
+            ev = _ev()
+            ev.wiki_domain_hint = "notion.com"
+            data = asyncio.run(DeepDiveAgent().build(ev))
+        finally:
+            AD.Fetcher = orig
+        cards = [f for f in data["feature_inventory"] if f["feature"] in ("Web Clipper", "Notion Mail")]
+        assert len(cards) == 2
+        # the shared site-wide tagline is blanked - each card falls back to its own name
+        for c in cards:
+            assert c["what_it_does"] != tagline
