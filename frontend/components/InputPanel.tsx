@@ -45,7 +45,15 @@ export default function InputPanel({
     "w-full border border-zinc-600 bg-panel/60 px-3 py-2 text-sm text-zinc-200 placeholder-zinc-600";
 
   return (
-    <form onSubmit={submit} className="w-full">
+    <form
+      onSubmit={submit}
+      onKeyDown={(e) => {
+        // the shortcut is advertised on the panel, not the field — it must
+        // survive clicking the market chips or the mode toggle first
+        if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) submit(e);
+      }}
+      className="w-full"
+    >
       {/* Mode toggle */}
       <div className="mb-4 grid grid-cols-2 gap-2">
         {(
@@ -71,9 +79,6 @@ export default function InputPanel({
       <textarea
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) submit(e);
-        }}
         rows={2}
         placeholder={mode === "company" ? "e.g. Rippling, Zoho, Razorpay, ADP…" : "e.g. Payroll compliance automation for Indian SMBs…"}
         className={`${inputCls} resize-none leading-relaxed`}

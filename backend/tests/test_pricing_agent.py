@@ -48,6 +48,15 @@ class TestBuild:
         assert data["unit_economics"]["ltv_cac_ratio"] is not None
         assert data["tiers"] == ev.current_pricing
 
+    def test_cac_payback_is_months_not_years(self):
+        # the field is named cac_payback_months: CAC / monthly net margin.
+        # A ×12 slip once shipped 12×-overstated months to the advisor.
+        ev = _ev()
+        ev.current_pricing = _tiers(("Starter", "$29"), ("Pro", "$99"), ("Enterprise", "$499"))
+        ue = asyncio.run(PricingAgent().build(ev))["unit_economics"]
+        expected = round(180 / (ue["arpa"] * ue["assumed_gross_margin"]), 1)
+        assert ue["cac_payback_months"] == expected
+
     def test_build_without_tiers_uses_geo_default(self):
         data = asyncio.run(PricingAgent().build(_ev("india")))
         assert data["unit_economics"]["arpa"] == 999

@@ -135,7 +135,7 @@ function PricingSandbox({ data, ue }: { data: PricingData; ue: NonNullable<Prici
   const derived = useMemo(() => {
     const m = Math.min(Math.max(inp.margin, 0), 1);
     const netMarginUnit = inp.arpa * (m - gateway.pct) - gateway.fixed;
-    const ltv = inp.churnMonthly > 0 ? (netMarginUnit / inp.churnMonthly) : Infinity;
+    const ltv = inp.churnMonthly > 0 ? (netMarginUnit * 100) / inp.churnMonthly : Infinity; // churn is a percent: lifetime = 100/churn months
     const ltvCac = inp.cac > 0 && Number.isFinite(ltv) ? ltv / inp.cac : Infinity;
     const payback = netMarginUnit > 0 ? inp.cac / netMarginUnit : Infinity;
     const breakeven = netMarginUnit > 0 ? Math.ceil(inp.opex / netMarginUnit) : Infinity;

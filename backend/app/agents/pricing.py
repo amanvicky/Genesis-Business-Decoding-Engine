@@ -37,7 +37,7 @@ class PricingAgent(Agent):
         currency = "₹" if ev.req.geography.value == "india" else "$"
         if arpa and ltv:
             ratio = ltv / cac_organic
-            payback = (cac_organic / (arpa * gross_margin)) * 12 if arpa * gross_margin else None
+            payback = (cac_organic / (arpa * gross_margin)) if arpa * gross_margin else None
         else:
             ratio, payback = None, None
 
