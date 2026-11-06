@@ -102,7 +102,7 @@ export default function AdvisorPanel({ report, onClose, onOpenTab }: {
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {m.openTabs!.map((t) => (
                     <button key={t} onClick={() => onOpenTab(t)} className="rounded border border-cyan-900/60 px-1.5 py-0.5 text-[10px] text-cyan-400 hover:bg-cyan-950/30">
-                      open {t} ↗
+                      open {t}
                     </button>
                   ))}
                 </div>

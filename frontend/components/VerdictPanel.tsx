@@ -166,7 +166,7 @@ export default function VerdictPanel({ report, onClose }: { report: Report; onCl
             )}
             <button onClick={download}
               className="w-full rounded border border-edge py-1.5 text-xs text-zinc-400 transition-colors hover:border-emerald-700 hover:text-emerald-400">
-              ↓ Verdict memo (.md)
+              Verdict memo (.md)
             </button>
           </div>
         )}

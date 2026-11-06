@@ -41,26 +41,28 @@ export default function InputPanel({
     });
   };
 
+  const inputCls =
+    "w-full border border-zinc-600 bg-panel/60 px-3 py-2 text-sm text-zinc-200 placeholder-zinc-600";
+
   return (
-    <form onSubmit={submit} className="mx-auto w-full max-w-2xl">
+    <form onSubmit={submit} className="w-full">
       {/* Mode toggle */}
       <div className="mb-4 grid grid-cols-2 gap-2">
         {(
           [
-            { m: "company" as Mode, t: "Decode a company", s: "ADP, Stripe, a competitor…" },
-            { m: "idea" as Mode, t: "Validate a raw idea", s: "describe the business in a sentence" },
+            { m: "company" as Mode, t: "Decode a company" },
+            { m: "idea" as Mode, t: "Validate a raw idea" },
           ]
-        ).map(({ m, t, s }) => (
+        ).map(({ m, t }) => (
           <button
             key={m}
             type="button"
             onClick={() => setMode(m)}
-            className={`rounded-lg border px-4 py-3 text-left transition-all duration-200 ${
-              mode === m ? "border-emerald-700/70 bg-emerald-950/20" : "border-edge bg-panel/60 hover:border-zinc-700"
+            className={`border px-4 py-3.5 text-left transition-colors duration-150 ${
+              mode === m ? "border-amber-700 bg-amber-950/20" : "border-edge bg-panel/60 hover:border-zinc-600"
             }`}
           >
-            <div className={`text-sm font-medium ${mode === m ? "text-emerald-400" : "text-zinc-300"}`}>{t}</div>
-            <div className="mt-0.5 text-xs text-zinc-600">{s}</div>
+            <div className={`text-sm font-medium ${mode === m ? "text-amber-400" : "text-zinc-300"}`}>{t}</div>
           </button>
         ))}
       </div>
@@ -74,20 +76,20 @@ export default function InputPanel({
         }}
         rows={2}
         placeholder={mode === "company" ? "e.g. Rippling, Zoho, Razorpay, ADP…" : "e.g. Payroll compliance automation for Indian SMBs…"}
-        className="w-full resize-none rounded-lg border border-edge bg-panel/60 px-4 py-3 text-sm text-zinc-200 placeholder-zinc-600 outline-none transition-colors duration-200 focus:border-emerald-800/70"
+        className={`${inputCls} resize-none leading-relaxed`}
       />
 
       {/* Geography segmented control */}
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <span className="text-xs uppercase tracking-wider text-zinc-600">Market</span>
-        <div className="flex overflow-hidden rounded-md border border-edge">
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <span className="text-xs text-zinc-500">Market</span>
+        <div className="flex border border-edge">
           {GEOS.map((g) => (
             <button
               key={g.value}
               type="button"
               onClick={() => setGeography(g.value)}
-              className={`px-3 py-1.5 text-xs transition-colors duration-150 ${
-                geography === g.value ? "bg-emerald-950/40 text-emerald-400" : "text-zinc-500 hover:text-zinc-300"
+              className={`px-3 py-3.5 text-xs transition-colors duration-150 ${
+                geography === g.value ? "bg-amber-950/40 text-amber-400" : "text-zinc-500 hover:text-zinc-300"
               }`}
             >
               {g.label}
@@ -97,29 +99,29 @@ export default function InputPanel({
       </div>
 
       {/* Advanced */}
-      <button type="button" onClick={() => setAdvanced(!advanced)} className="mt-3 text-xs text-zinc-600 transition-colors hover:text-zinc-400">
+      <button type="button" onClick={() => setAdvanced(!advanced)} className="mt-3 flex min-h-[44px] items-center text-xs text-zinc-500 transition-colors duration-150 hover:text-zinc-300">
         {advanced ? "▾" : "▸"} advanced parameters
       </button>
       {advanced && (
-        <div className="mt-2 grid grid-cols-1 gap-3 rounded-lg border border-edge bg-panel/40 p-3 sm:grid-cols-3">
+        <div className="mt-2 grid grid-cols-1 gap-3 border border-edge bg-panel/40 p-3 sm:grid-cols-3">
           <label className="text-xs text-zinc-500">
             Team size
-            <input type="number" min={1} max={200} value={teamSize} onChange={(e) => setTeamSize(Math.max(1, Number(e.target.value) || 1))} className="mt-1 w-full rounded border border-edge bg-base px-2 py-1.5 text-sm text-zinc-200 outline-none focus:border-emerald-800/70" />
+            <input type="number" min={1} max={200} value={teamSize} onChange={(e) => setTeamSize(Math.max(1, Number(e.target.value) || 1))} className={`mt-1 ${inputCls}`} />
           </label>
           <label className="text-xs text-zinc-500">
             Runway target (months)
-            <input type="number" min={1} max={60} value={runway} onChange={(e) => setRunway(Math.min(60, Math.max(1, Number(e.target.value) || 1)))} className="mt-1 w-full rounded border border-edge bg-base px-2 py-1.5 text-sm text-zinc-200 outline-none focus:border-emerald-800/70" />
+            <input type="number" min={1} max={60} value={runway} onChange={(e) => setRunway(Math.min(60, Math.max(1, Number(e.target.value) || 1)))} className={`mt-1 ${inputCls}`} />
           </label>
           <label className="flex items-end gap-2 text-xs text-zinc-500">
-            <input type="checkbox" checked={darkweb} onChange={(e) => setDarkweb(e.target.checked)} className="accent-emerald-600" />
+            <input type="checkbox" checked={darkweb} onChange={(e) => setDarkweb(e.target.checked)} className="accent-amber-400" />
             <span>
               Tor OSINT module
-              <span className="block text-[10px] text-zinc-700">lawful passive OSINT; degrades without Tor</span>
+              <span className="block text-xs text-zinc-600">lawful passive OSINT; degrades without Tor</span>
             </span>
           </label>
           <label className="text-xs text-zinc-500 sm:col-span-3">
             Optional context (sector, ICP, constraints)
-            <input value={context} onChange={(e) => setContext(e.target.value)} placeholder="e.g. B2B SaaS for US dental clinics; 2 technical founders" className="mt-1 w-full rounded border border-edge bg-base px-2 py-1.5 text-sm text-zinc-200 placeholder-zinc-700 outline-none focus:border-emerald-800/70" />
+            <input value={context} onChange={(e) => setContext(e.target.value)} placeholder="e.g. B2B SaaS for US dental clinics; 2 technical founders" className={`mt-1 ${inputCls}`} />
           </label>
         </div>
       )}
@@ -128,12 +130,12 @@ export default function InputPanel({
       <button
         type="submit"
         disabled={!valid || running}
-        className="mt-5 w-full rounded-lg border border-emerald-800/70 bg-emerald-950/30 py-3 text-sm font-medium tracking-wide text-emerald-400 transition-all duration-200 enabled:hover:border-emerald-600 enabled:hover:bg-emerald-900/30 disabled:cursor-not-allowed disabled:opacity-40"
+        className="mt-5 min-h-[46px] w-full bg-amber-400 px-4 py-2.5 text-sm font-medium text-[color:var(--color-accent-ink)] transition-colors duration-150 enabled:hover:bg-amber-500 disabled:cursor-not-allowed disabled:opacity-55"
       >
-        {running ? "DECODE IN PROGRESS…" : "RUN GENESIS DECODE"}
+        {running ? "Decoding…" : "Run the decode"}
       </button>
-      <p className="mt-2 text-center text-[11px] text-zinc-700">
-        Runs entirely on free public sources · ⌘/Ctrl+Enter to launch
+      <p className="mt-2 text-xs text-zinc-500">
+        Runs entirely on free public sources. ⌘/Ctrl+Enter to launch.
       </p>
     </form>
   );

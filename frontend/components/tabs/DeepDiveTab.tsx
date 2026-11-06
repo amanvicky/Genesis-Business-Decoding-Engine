@@ -32,7 +32,7 @@ function WhatTheyDo({ data }: { data: NonNullable<DeepDiveData["what_they_do"]> 
                 <li key={i} className="text-xs leading-relaxed text-zinc-300">
                   <span className="text-zinc-100">&ldquo;{q.quote}&rdquo;</span>
                   {q.source && <span className="ml-1.5 text-[10px] text-zinc-500">— {q.source}</span>}
-                  {q.url && <a href={q.url} target="_blank" rel="noreferrer" className="ml-1 text-[10px] text-cyan-500/80 hover:text-cyan-400">source ↗</a>}
+                  {q.url && <a href={q.url} target="_blank" rel="noreferrer" className="ml-1 text-[10px] text-cyan-500/80 hover:text-cyan-400">source</a>}
                 </li>
               ))}
             </ul>
@@ -92,7 +92,7 @@ function Milestones({ items }: { items: NonNullable<DeepDiveData["product_milest
             <span className="w-24 shrink-0 font-mono text-[10px] text-cyan-500/90">{m.when || "undated"}</span>
             <span>
               {m.what}
-              {m.url && <a href={m.url} target="_blank" rel="noreferrer" className="ml-1 text-[10px] text-cyan-500/80 hover:text-cyan-400">source ↗</a>}
+              {m.url && <a href={m.url} target="_blank" rel="noreferrer" className="ml-1 text-[10px] text-cyan-500/80 hover:text-cyan-400">source</a>}
             </span>
           </div>
         ))}
@@ -147,7 +147,7 @@ function Marketing({ data }: { data: NonNullable<DeepDiveData["marketing"]> }) {
             )}
             <p className="mt-1.5 text-xs leading-relaxed text-zinc-300">
               {m.how_they_used_it}
-              {m.evidence_url && <a href={m.evidence_url} target="_blank" rel="noreferrer" className="ml-1 text-[10px] text-cyan-500/80 hover:text-cyan-400">source ↗</a>}
+              {m.evidence_url && <a href={m.evidence_url} target="_blank" rel="noreferrer" className="ml-1 text-[10px] text-cyan-500/80 hover:text-cyan-400">source</a>}
             </p>
             <p className="mt-1.5 text-xs text-zinc-400"><span className="text-cyan-500">they promote:</span> {m.what_they_promote}</p>
             <p className="mt-1 text-xs text-zinc-500"><span className="text-purple-400">why it works:</span> {m.psych}</p>

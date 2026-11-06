@@ -110,33 +110,33 @@ export default function ReportViewer({
               disabled={exporting}
               className="rounded border border-edge px-3 py-1.5 text-xs text-zinc-400 transition-colors hover:border-emerald-700 hover:text-emerald-400 disabled:opacity-40"
             >
-              ↓ Markdown
+              Markdown
             </button>
             <button
               onClick={() => doExport("json")}
               disabled={exporting}
               className="rounded border border-edge px-3 py-1.5 text-xs text-zinc-400 transition-colors hover:border-cyan-700 hover:text-cyan-400 disabled:opacity-40"
             >
-              ↓ JSON
+              JSON
             </button>
             <button
               onClick={() => setVerdictOpen(true)}
               className="rounded border border-amber-800/70 bg-amber-950/20 px-3 py-1.5 text-xs font-medium text-amber-400 transition-colors hover:bg-amber-900/30"
             >
-              ⚖ Verdict
+              Verdict
             </button>
             <button
               onClick={() => setAdvisorOpen(true)}
               className="rounded border border-emerald-800/70 bg-emerald-950/30 px-3 py-1.5 text-xs font-medium text-emerald-400 transition-colors hover:bg-emerald-900/30"
             >
-              ◈ Ask Genesis
+              Ask Genesis
             </button>
             <button
               onClick={() => doExport("zip")}
               disabled={exporting}
               className="rounded border border-edge px-3 py-1.5 text-xs text-zinc-400 transition-colors hover:border-emerald-700 hover:text-emerald-400 disabled:opacity-40"
             >
-              ↓ Playbook ZIP
+              Playbook ZIP
             </button>
           </div>
           {exportErr && <p className="max-w-xs text-right text-[11px] text-red-400/90">{exportErr}</p>}
@@ -156,8 +156,8 @@ export default function ReportViewer({
                 setActive(t.id);
               }}
               title={t.title}
-              className={`flex items-center gap-1.5 rounded px-2.5 py-1.5 text-xs transition-all duration-150 ${
-                isActive ? "bg-emerald-950/40 text-emerald-400" : arrived ? "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200" : "text-zinc-700"
+              className={`flex items-center gap-1.5 px-2.5 py-2 text-xs transition-colors duration-150 ${
+                isActive ? "bg-amber-950/40 text-amber-400" : arrived ? "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200" : "text-zinc-700"
               }`}
             >
               <span>{t.icon}</span>

@@ -1,0 +1,20 @@
+[
+ {
+  "shape": "the instrument: the tool is the page, the brief is the proof",
+  "theme": "custom",
+  "axes": "dark/grotesk-medium/warm-70",
+  "hero": "the decode input at the fold with the run log and its own dossier capture beside it",
+  "nav": "wordmark left, one repo link right",
+  "footer": "a mast with live health chips over the honesty line",
+  "imagery": "product captures via capture.mjs (report pane + six tabs)",
+  "entry": "app shell redesign: oklch token system in tailwind.config, amber signal, Space Grotesk display, IBM Plex Mono material, radius 0",
+  "fingerprint": "form-hero+live-console+capture, ledger sections, mast footer",
+  "sections": "hero (input+console+capture), the brief (capture strip), the pipeline ledger, sources well, one command, footer mast",
+  "signature": "the input that runs eighteen agents, its console and the produced brief in one panel",
+  "waived": "64, 44c, 39b",
+  "prompt": "hallmark whole app shell, all tones, real screenshots + real numbers, run a decode",
+  "scope": "page+app",
+  "date": "2026-11-06",
+  "mode": "build"
+ }
+]

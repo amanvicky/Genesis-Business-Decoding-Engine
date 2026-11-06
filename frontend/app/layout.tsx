@@ -1,15 +1,30 @@
 import type { Metadata } from "next";
+import { Space_Grotesk, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 
+const display = Space_Grotesk({
+  subsets: ["latin"],
+  weight: ["500", "700"],
+  variable: "--font-display",
+  display: "swap",
+});
+
+const mono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-mono",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
-  title: "Genesis — Business Decoding & Replication Engine",
+  title: "Genesis — decode any company into an 18-tab intelligence brief",
   description:
-    "Zero-cost, open-source intelligence platform: decode any company or raw idea into structure, features, compliance, pricing, friction, failure modes, and an execution playbook.",
+    "Eighteen free agents scrape public sources and assemble a dossier: structure, features, compliance, pricing, friction, failure modes, marketing, and an execution playbook. No API keys, no cost.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className={`${display.variable} ${mono.variable}`}>
       <body className="min-h-screen">{children}</body>
     </html>
   );

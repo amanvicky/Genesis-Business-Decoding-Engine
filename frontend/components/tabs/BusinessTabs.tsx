@@ -95,7 +95,7 @@ export function PricingTab({ data }: { data: PricingData }) {
                 <div className="flex items-center justify-between">
                   <span className="font-mono text-xs text-emerald-500">{h.date}</span>
                   <a href={h.snapshot} target="_blank" rel="noreferrer" className="text-[11px] text-cyan-500/80 hover:text-cyan-400">
-                    snapshot ↗
+                    snapshot
                   </a>
                 </div>
                 <p className="mt-1 text-xs text-zinc-500">{h.prices.map((p) => p.raw).join(" · ")}</p>
@@ -156,7 +156,7 @@ function PricingSandbox({ data, ue }: { data: PricingData; ue: NonNullable<Prici
         step="any"
         value={value}
         onChange={onChange}
-        className="mt-1 w-full rounded border border-edge bg-base px-2 py-1 font-mono text-sm text-zinc-200 outline-none focus:border-emerald-800/70"
+        className="mt-1 w-full rounded border border-edge bg-paper px-2 py-1 font-mono text-sm text-zinc-200 outline-none focus:border-emerald-800/70"
       />
       {hint && <span className="mt-0.5 block text-[10px] text-zinc-700">{hint}</span>}
     </label>
@@ -207,7 +207,7 @@ function PricingSandbox({ data, ue }: { data: PricingData; ue: NonNullable<Prici
                     min={0}
                     value={price}
                     onChange={(e) => setTiers(tiers.map((v, j) => (j === i ? Math.max(0, Number(e.target.value) || 0) : v)))}
-                    className="w-24 rounded border border-edge bg-base px-2 py-1 font-mono text-xs text-zinc-200 outline-none focus:border-emerald-800/70"
+                    className="w-24 rounded border border-edge bg-paper px-2 py-1 font-mono text-xs text-zinc-200 outline-none focus:border-emerald-800/70"
                   />
                   <div className="h-2.5 flex-1 overflow-hidden rounded bg-zinc-900">
                     <div
@@ -339,7 +339,7 @@ export function FinancialTab({ data }: { data: FinancialData }) {
         min={0}
         value={inp[key]}
         onChange={(e) => setInp({ ...inp, [key]: Math.max(0, Number(e.target.value) || 0) })}
-        className="mt-1 w-full rounded border border-edge bg-base px-2 py-1 font-mono text-sm text-zinc-200 outline-none focus:border-emerald-800/70"
+        className="mt-1 w-full rounded border border-edge bg-paper px-2 py-1 font-mono text-sm text-zinc-200 outline-none focus:border-emerald-800/70"
       />
     </label>
   );
@@ -547,7 +547,7 @@ function PatternCard({ pat }: { pat: NonNullable<DnaData["features"]>[number]["p
             {pat.played_out!.map((o, i) => (
               <li key={i} className="text-xs leading-relaxed text-zinc-300">
                 {o.text}
-                {o.url && <a href={o.url} target="_blank" rel="noreferrer" className="ml-1 text-[10px] text-cyan-500/80 hover:text-cyan-400">source ↗</a>}
+                {o.url && <a href={o.url} target="_blank" rel="noreferrer" className="ml-1 text-[10px] text-cyan-500/80 hover:text-cyan-400">source</a>}
               </li>
             ))}
           </ul>
@@ -595,7 +595,7 @@ export function DnaTab({ data }: { data: DnaData }) {
                 {data.product_philosophy.credibility!.map((c, i) => (
                   <li key={i} className="text-xs leading-relaxed text-zinc-300">
                     {c.text}
-                    {c.url && <a href={c.url} target="_blank" rel="noreferrer" className="ml-1 text-[10px] text-cyan-500/80 hover:text-cyan-400">source ↗</a>}
+                    {c.url && <a href={c.url} target="_blank" rel="noreferrer" className="ml-1 text-[10px] text-cyan-500/80 hover:text-cyan-400">source</a>}
                   </li>
                 ))}
               </ul>

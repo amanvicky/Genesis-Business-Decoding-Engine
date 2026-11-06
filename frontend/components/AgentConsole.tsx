@@ -33,7 +33,7 @@ function toLines(events: readonly ConsoleEvent[]): ConsoleLine[] {
         msg: `${mark} ${ev.title}${ms}`,
       });
     } else if (ev.type === "section") {
-      out.push({ time: new Date().toLocaleTimeString(), agent: ev.section.id, level: "success", msg: `section ready — Tab ${ev.section.id}` });
+      out.push({ time: new Date().toLocaleTimeString(), agent: ev.section.id, level: "success", msg: `section ready, Tab ${ev.section.id}` });
     } else if (ev.type === "error") {
       out.push({ time: new Date().toLocaleTimeString(), agent: "genesis", level: "error", msg: ev.msg });
     }
@@ -50,25 +50,25 @@ export default function AgentConsole({ events, running }: { events: readonly Con
   }, [events.length]);
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-lg border border-edge bg-[#0b0b0e]">
+    <div className="flex h-full flex-col overflow-hidden border border-edge bg-paper-2">
       <div className="flex items-center justify-between border-b border-edge px-3 py-2">
-        <span className="text-xs uppercase tracking-wider text-zinc-500">agent console</span>
+        <span className="text-xs text-zinc-500">agent console</span>
         {running && (
-          <span className="flex items-center gap-2 text-xs text-emerald-500">
-            <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-emerald-500" /> live
+          <span className="flex items-center gap-2 text-xs text-amber-400">
+            <span className="h-1.5 w-1.5 animate-pulse-dot bg-amber-400" /> live
           </span>
         )}
       </div>
       <div ref={boxRef} className="flex-1 overflow-y-auto p-3 font-mono text-xs leading-relaxed">
-        {lines.length === 0 && !running && <p className="text-zinc-700">// console idle — run a decode to see intelligence gathering</p>}
+        {lines.length === 0 && !running && <p className="text-zinc-700">// console idle: run a decode to see intelligence gathering</p>}
         {lines.map((l, i) => (
           <div key={i} className="flex gap-2">
             <span className="shrink-0 text-zinc-700">{l.time}</span>
             <span className={`shrink-0 ${LEVEL_STYLE[l.level]}`}>[{l.agent}]</span>
-            <span className={`${LEVEL_STYLE[l.level]} console-glow break-words`}>{l.msg}</span>
+            <span className={`shrink-0 ${LEVEL_STYLE[l.level]} break-words`}>{l.msg}</span>
           </div>
         ))}
-        {running && <span className="inline-block h-3.5 w-2 animate-pulse-dot bg-emerald-500/80" />}
+        {running && <span className="inline-block h-3.5 w-2 animate-pulse-dot bg-amber-400/80" />}
       </div>
     </div>
   );
@@ -76,8 +76,8 @@ export default function AgentConsole({ events, running }: { events: readonly Con
 
 export function StatusRail({ status }: { status: Readonly<Record<string, AgentState>> }) {
   return (
-    <div className="rounded-lg border border-edge bg-panel/60 p-3">
-      <div className="mb-2 text-xs uppercase tracking-wider text-zinc-500">pipeline</div>
+    <div className="border border-edge bg-panel/60 p-3">
+      <div className="mb-2 text-xs text-zinc-500">pipeline</div>
       <ol className="space-y-1">
         {TABS.map((t) => {
           const s = status[t.id];

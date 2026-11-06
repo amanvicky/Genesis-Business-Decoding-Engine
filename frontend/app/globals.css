@@ -1,41 +1,73 @@
+/* Hallmark · shape: the instrument — the tool is the page, the brief is the proof · genre: modern-minimal (custom) · theme: custom · job: try · idea: "the dossier is the product: an intelligence brief you can run, not a pitch you read" · vibe: "terminal discipline, editorial scale, brutalist edges, dark restraint"
+ * paper: oklch(13% 0.012 250) · accent: oklch(78% 0.14 75) · display: Space Grotesk · body: system-ui · mono: IBM Plex Mono (material) · hero: the decode input at the fold, console preview live beneath · nav: wordmark left, one repo link right · footer: a mast, wordmark over the honesty line · imagery: product captures (capture.mjs) · signature: the input that runs eighteen agents
+ * axes: dark/grotesk-medium/warm-70 · posture: restrained · contrast: pass · fold: pass
+ * hero-review: fix · 4 findings · 4 resolved · finish-review: subagent · 5 findings · 5 resolved · gap: none · v2.0.0 */
+/* Hallmark · pre-emit critique: P4 H4 E4 S5 R4 V5 · weakest: E, shell had glow and pulse tics to strip; stripped console-glow, kept the arrival dot as live state only */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
   color-scheme: dark;
+  --space-3xs: 2px; --space-2xs: 4px; --space-xs: 8px; --space-sm: 12px; --space-md: 16px; --space-lg: 24px; --space-xl: 40px; --space-2xl: 64px; --space-3xl: 96px; --space-4xl: 144px;
+  --text-xs: 0.8125rem; --text-sm: 0.875rem; --text-md: 1rem; --text-lg: 1.25rem;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1); --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-micro: 120ms; --dur-short: 220ms;
+  --color-paper: oklch(13% 0.012 250);
+  --color-paper-2: oklch(16% 0.012 250);
+  --color-paper-3: oklch(19% 0.012 250);
+  --color-ink: oklch(92% 0.008 250);
+  --color-ink-2: oklch(76% 0.010 250);
+  --color-muted: oklch(62% 0.014 250);
+  --color-rule: oklch(27% 0.014 250);
+  --color-accent: oklch(78% 0.14 75);
+  --color-accent-ink: oklch(21% 0.055 75);
+  --color-focus: oklch(83% 0.15 75);
+  --font-body: var(--font-sans-body, system-ui), system-ui, sans-serif;
+  --radius-card: 0px;
+  --rule-hair: 1px;
+  --shadow-card: none;
+  --tracking-display: -0.02em;
 }
 
-html {
-  scroll-behavior: smooth;
-}
+html, body { overflow-x: clip; }
+html { scrollbar-color: var(--color-rule) var(--color-paper); scroll-behavior: smooth; }
 
 body {
-  @apply bg-base text-zinc-300 antialiased;
+  margin: 0;
+  background: var(--color-paper);
+  color: var(--color-ink-2);
+  font-family: var(--font-body);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  caret-color: var(--color-accent);
   font-feature-settings: "cv02", "cv03";
 }
 
-::selection {
-  @apply bg-emerald-500/25 text-emerald-100;
+::selection { background: color-mix(in oklab, var(--color-accent) 22%, transparent); color: var(--color-ink); }
+
+/* Hallmark · waive 64 · the console's material is mono and "0 keys"/"port 3000" are measured figures · mono is legal for code and measurements; these read as console output and units, not prose
+ * Hallmark · dismissed 26a · the focus ring is global in this file (:focus-visible 2px var(--color-focus), instant); the render tier passes 26a · the static per-file check cannot see a global rule
+ * Hallmark · waive 39b · the copy control is an inline app control in a code-block header · app controls run 32 to 40px; a 44px chip breaks the 30px bar
+ * Hallmark · waive 44c · the hero is the tool itself: the decode form is the primary surface and the console preview is sized to the fold · the text-to-visual distance is a property of a form hero, not a marketing split
+ * Hallmark · dismissed 74 · zinc/amber/cyan/emerald/red/purple are this project's own token names, remapped to OKLCH in tailwind.config.ts (single source) */
+:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+
+button:not(:disabled):active { transform: translateY(1px); }
+
+h1, h2, h3 { overflow-wrap: break-word; min-width: 0; text-wrap: balance; }
+
+* { scrollbar-width: thin; scrollbar-color: var(--color-rule) transparent; }
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-thumb { background: var(--color-rule); border-radius: 0; }
+*::-webkit-scrollbar-track { background: transparent; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
 
-/* Calm, dark scrollbars */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: #2a2a30 transparent;
-}
-*::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-*::-webkit-scrollbar-thumb {
-  background: #2a2a30;
-  border-radius: 8px;
-}
-*::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.console-glow {
-  text-shadow: 0 0 6px rgba(52, 211, 153, 0.25);
-}
+/* the console preview settles its real lines once, then rests */
+@keyframes consoleSettle { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.console-line { animation: consoleSettle 0.5s var(--ease-out) both; animation-delay: calc(var(--i, 0) * 90ms); }
+@media (prefers-reduced-motion: reduce) { .console-line { animation: none; opacity: 1; transform: none; } }

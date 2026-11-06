@@ -107,7 +107,7 @@ export function FeaturesTab({ data }: { data: FeaturesData }) {
                 {c.text}{" "}
                 {c.url && (
                   <a href={c.url} target="_blank" rel="noreferrer" className="text-[11px] text-cyan-500/80 hover:text-cyan-400">
-                    source ↗
+                    source
                   </a>
                 )}
               </li>
