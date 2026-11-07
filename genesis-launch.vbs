@@ -1,6 +1,7 @@
 ' Genesis launcher: double-click = the dashboard opens in its own window, no
-' terminal. A visible console appears ONLY for the first-run setup (it has
-' real progress to show). Troubleshooting still has Genesis.bat.
+' terminal, ever. On a machine where setup never ran, the first-run pipeline
+' works hidden in the background (private Python/Node, deps, build) and the
+' dashboard window opens by itself when ready. Troubleshooting: Genesis.bat.
 Set fso = CreateObject("Scripting.FileSystemObject")
 Set sh  = CreateObject("WScript.Shell")
 
@@ -16,5 +17,6 @@ If pw <> "" Then
     sh.CurrentDirectory = app
     sh.Run """" & pw & """ genesis.py up", 0, False
 Else
-    sh.Run """" & app & "\Genesis.bat""", 1, False
+    ' nothing installed yet: run the zero-touch first run, hidden
+    sh.Run "powershell -NoProfile -ExecutionPolicy Bypass -File """ & app & "\scripts\first_run.ps1""", 0, False
 End If

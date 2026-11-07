@@ -2,10 +2,10 @@
 ; Per-user install into %LOCALAPPDATA%\Genesis: no admin rights, no registry
 ; changes beyond the normal uninstall entry, files only inside the install
 ; folder. The heavy lifting (private Python/Node if missing, deps, build)
-; happens on first launch via Genesis.bat -> scripts\setup_env.py.
+; happens on first launch via Genesis Setup.bat -> scripts\setup_env.py.
 
 #define MyAppName "Genesis"
-#define MyAppVersion "1.8.0"
+#define MyAppVersion "1.8.1"
 #define MyAppPublisher "Aman Vicky"
 #define MyAppURL "https://github.com/amanvicky/Genesis-Business-Decoding-Engine"
 
@@ -38,6 +38,7 @@ Name: "torkit"; Description: "Privacy layer (Tor): download the official client 
 Source: "..\genesis.py"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\Genesis.bat"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\genesis-launch.vbs"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\genesis-first-run.vbs"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\assets\genesis.ico"; DestDir: "{app}\assets"; Flags: ignoreversion
 Source: "..\scripts\*"; DestDir: "{app}\scripts"; Flags: ignoreversion recursesubdirs
 Source: "..\backend\*"; DestDir: "{app}\backend"; Excludes: ".venv,__pycache__,*.pyc,.pytest_cache,logs"; Flags: ignoreversion recursesubdirs
@@ -50,7 +51,15 @@ Name: "{autoprograms}\Genesis\Genesis"; Filename: "{app}\genesis-launch.vbs"; Ic
 Name: "{autodesktop}\Genesis"; Filename: "{app}\genesis-launch.vbs"; IconFilename: "{app}\assets\genesis.ico"; Tasks: desktopicon; Comment: "Decode any company into a 19-tab intelligence brief"
 
 [Run]
-Filename: "{app}\Genesis.bat"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent runasoriginaluser
+; zero-touch first run: the launcher is a hidden, detached bootstrapper —
+; private Python/Node, deps, build and services all happen in the background
+; and the dashboard window opens by itself. No console to babysit, no admin,
+; nothing outside the app folder.
+Filename: "{app}\genesis-first-run.vbs"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent runasoriginaluser
+
+[Messages]
+FinishedLabelNoIcons=[name] has been installed.%n%nGenesis is now preparing itself in the background — this happens once and needs nothing from you: a private Python and Node are downloaded into the app folder, dependencies install, and the dashboard window opens by itself when everything is ready (a few minutes on the first run).%n%nNothing outside its own folder is touched, and no admin rights were needed.
+FinishedLabel=[name] has been installed.%n%nGenesis is now preparing itself in the background — this happens once and needs nothing from you: a private Python and Node are downloaded into the app folder, dependencies install, and the dashboard window opens by itself when everything is ready (a few minutes on the first run).%n%nNothing outside its own folder is touched, and no admin rights were needed.
 
 [UninstallRun]
 Filename: "{cmd}"; Parameters: "/C cd /d ""{app}"" && (if exist runtime\python\python.exe (runtime\python\python.exe genesis.py stop) else (python genesis.py stop))"; Flags: runhidden; RunOnceId: "StopGenesis"

@@ -26,14 +26,15 @@ No API keys. No accounts. Nothing leaves your machine.
 
 ## Run it
 
-**Windows, like an app (recommended):** grab `Genesis-1.8.0-Setup.exe` from
+**Windows, like an app (recommended):** grab `Genesis-1.8.1-Setup.exe` from
 [Releases](https://github.com/amanvicky/Genesis-Business-Decoding-Engine/releases)
 and double-click it. Standard wizard, installs into your user folder — no admin,
-no PATH changes, nothing outside its own directory. The first launch does the
-heavy lifting (checks Python 3.10+ and Node 18+, privately installs anything
-missing into the app folder, builds the dashboard) and then opens the dashboard
-in its own window. After that: Start menu → **Genesis**. Uninstall from
-Apps & Features like any other app, or just delete the folder.
+no PATH changes, nothing outside its own directory. After the wizard, Genesis
+finishes preparing itself **in the background** (private Python and Node are
+downloaded into the app folder if missing, dependencies install, first build) —
+no console, nothing to click — and the dashboard window opens by itself when
+everything is ready. A few minutes, once. After that: Start menu → **Genesis**.
+Uninstall from Apps & Features like any other app, or just delete the folder.
 
 **From a plain folder** (zip or `git clone`): double-click **`Genesis Setup.bat`** —
 same deal, everything private to the folder. Day-to-day launcher: **`Genesis.bat`**
