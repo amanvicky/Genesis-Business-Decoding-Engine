@@ -5,7 +5,7 @@
 ; happens on first launch via Genesis.bat -> scripts\setup_env.py.
 
 #define MyAppName "Genesis"
-#define MyAppVersion "1.7.0"
+#define MyAppVersion "1.8.0"
 #define MyAppPublisher "Aman Vicky"
 #define MyAppURL "https://github.com/amanvicky/Genesis-Business-Decoding-Engine"
 
@@ -46,8 +46,8 @@ Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{autoprograms}\Genesis\Genesis"; Filename: "{app}\genesis-launch.vbs"; IconFilename: "{app}\assets\genesis.ico"; Comment: "Decode any company into an 18-tab intelligence brief"
-Name: "{autodesktop}\Genesis"; Filename: "{app}\genesis-launch.vbs"; IconFilename: "{app}\assets\genesis.ico"; Tasks: desktopicon; Comment: "Decode any company into an 18-tab intelligence brief"
+Name: "{autoprograms}\Genesis\Genesis"; Filename: "{app}\genesis-launch.vbs"; IconFilename: "{app}\assets\genesis.ico"; Comment: "Decode any company into a 19-tab intelligence brief"
+Name: "{autodesktop}\Genesis"; Filename: "{app}\genesis-launch.vbs"; IconFilename: "{app}\assets\genesis.ico"; Tasks: desktopicon; Comment: "Decode any company into a 19-tab intelligence brief"
 
 [Run]
 Filename: "{app}\Genesis.bat"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent runasoriginaluser

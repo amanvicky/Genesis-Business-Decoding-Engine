@@ -25,13 +25,15 @@ type RunPhase =
 const REPO = "https://github.com/amanvicky/Genesis-Business-Decoding-Engine";
 
 const SOURCES: readonly { name: string; gives: string }[] = [
+  { name: "The company's own site", gives: "features, pricing language, legal identity" },
   { name: "Surface search", gives: "pain and alternatives" },
   { name: "Wikipedia", gives: "the founding story" },
   { name: "GitHub releases", gives: "shipped features, dated" },
   { name: "Hacker News", gives: "operator sentiment" },
   { name: "Reddit", gives: "user complaints" },
   { name: "Wayback Machine", gives: "pricing history" },
-  { name: "SEC EDGAR", gives: "revenue history" },
+  { name: "SEC EDGAR", gives: "revenue history, registration fields" },
+  { name: "Domain registries (RDAP)", gives: "the domain's own registration record" },
   { name: "Have I Been Pwned", gives: "breach exposure" },
   { name: "Ahmia (Tor)", gives: "lawful OSINT" },
 ];
@@ -54,6 +56,7 @@ const AGENT_JOBS: readonly [string, string][] = [
   ["school", "the curriculum"],
   ["markets", "stock rises and falls"],
   ["deepdive", "the company, feature by feature"],
+  ["publicrecord", "registration & registry IDs"],
   ["adversary", "cross-examined"],
 ];
 
@@ -62,7 +65,7 @@ const PREVIEW_LINES: readonly { agent: string; level: LogLevel; msg: string }[] 
   { agent: "features", level: "info", msg: "decompiling feature history…" },
   { agent: "dna", level: "success", msg: "✓ Product DNA (17ms)" },
   { agent: "deepdive", level: "success", msg: "✓ Company Deep-Dive (655ms)" },
-  { agent: "genesis", level: "success", msg: "decode complete: 18/18 sections, 55 sources cited" },
+  { agent: "genesis", level: "success", msg: "decode complete: 19/19 sections, 55 sources cited" },
 ];
 
 const PREVIEW_LEVEL: Record<LogLevel, string> = {
@@ -174,7 +177,8 @@ export default function Page() {
                 Read any company<br className="sm:hidden" /> in full.
               </h1>
               <p className="mt-4 max-w-[34ch] text-lg text-zinc-400">
-                Eighteen free agents decode a business into an eighteen-tab intelligence brief.
+                Nineteen free agents decode a business — by name, by website URL, or from a raw idea — into a
+                nineteen-tab intelligence brief.
               </p>
               <div className="mt-8 max-w-2xl">
                 <InputPanel running={running} onRun={run} />
@@ -214,7 +218,7 @@ export default function Page() {
               The brief, tab by tab.
             </h2>
             <p className="mt-2 max-w-[52ch] text-sm text-zinc-400">
-              Captures of a live decode of Notion. Six of the eighteen tabs; the rest render the same way.
+              Captures of a live decode of Notion. Six of the nineteen tabs; the rest render the same way.
             </p>
             <div className="mt-6 flex gap-1 overflow-x-auto pb-1" role="tablist" aria-label="brief tab captures">
               {CAPTURED.map((c, i) => {
@@ -254,7 +258,7 @@ export default function Page() {
           {/* The pipeline */}
           <section className="border-t border-edge pt-24 pb-24 mb-16">
             <h2 className="font-display text-[clamp(2rem,2.5vw+1rem,3.5rem)] font-bold leading-[1.05] tracking-[-0.02em] text-zinc-100">
-              Eighteen agents, one pass.
+              Nineteen agents, one pass.
             </h2>
             <ol className="mt-6 grid grid-cols-1 gap-x-10 gap-y-0 md:grid-cols-2">
               {AGENT_JOBS.map(([id, job], i) => (
@@ -270,7 +274,7 @@ export default function Page() {
           {/* What it reads */}
           <section className="border-t border-edge pt-24 pb-24 mb-16">
             <h2 className="font-display text-[clamp(2rem,2.5vw+1rem,3.5rem)] font-bold leading-[1.05] tracking-[-0.02em] text-zinc-100">
-              Nine keyless sources.
+              Eleven keyless sources.
             </h2>
             <dl className="mt-6 grid grid-cols-1 gap-x-10 gap-y-3 bg-paper-2 p-6 md:grid-cols-2 lg:p-8">
               {SOURCES.map((s) => (

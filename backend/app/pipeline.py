@@ -23,6 +23,7 @@ from .agents import (
     DnaAgent,
     MarketSizeAgent,
     MarketsAgent,
+    RegistryAgent,
     SchoolAgent,
     DeepDiveAgent,
     PlaybookAgent,
@@ -34,7 +35,9 @@ from .agents import (
 )
 from .agents.base import Agent, Emit
 from .agents.recon import ReconAgent
-from .models import AnalyzeRequest, Evidence, Report
+from .models import AnalyzeRequest, Evidence, Mode, Report
+from .scrapers import site as site_mod
+from .scrapers.client import Fetcher
 from .text import detect_sector
 
 AGENTS: list[type[Agent]] = [
@@ -55,6 +58,7 @@ AGENTS: list[type[Agent]] = [
     SchoolAgent,  # knowledge transfer; personalizes with the computed numbers
     MarketsAgent,  # stock performance; reads EDGAR evidence for tickers
     DeepDiveAgent,  # reads features/dna/timeline/premortem/compliance/dist/fin — after all of them
+    RegistryAgent,  # the legal/registry layer; reads the site profile + EDGAR identity
     AdversaryAgent,  # must run last — it cross-examines the assembled report
 ]
 
@@ -73,7 +77,43 @@ def _post_process(sections: dict) -> None:
 async def run_pipeline(req: AnalyzeRequest, emit: Emit) -> Report:
     subject = req.query.strip()
     ev = Evidence(req=req, subject=subject)
-    ev.sector = detect_sector(subject + " " + (req.context or ""))
+
+    # URL mode: the company's own site is read FIRST — it names the brand, and
+    # its words become part of the shared evidence corpus every agent mines.
+    if req.mode is Mode.url:
+        target = site_mod.normalize_target(subject)
+        url, domain = target if target else ("https://" + subject, subject)
+        await emit({"type": "log", "level": "agent", "agent": "recon", "msg": f"url mode — reading {domain} directly (primary source)…"})
+        f0 = Fetcher(ev)
+        try:
+            profile = await site_mod.read_site(f0, url, domain)
+        except Exception as exc:
+            profile = {"url": url, "domain": domain, "error": f"{type(exc).__name__}: {exc}"[:200]}
+        if profile.get("error"):
+            await emit({"type": "log", "level": "warn", "agent": "recon", "msg": f"site read failed ({profile['error'][:80]}) — researching the domain name instead"})
+            subject = domain
+        else:
+            profile["pages"] = await site_mod.read_pages(f0, profile.get("links") or {})
+            profile["brand"] = site_mod.brand_of(profile) or domain.split(".")[0].title()
+            subject = profile["brand"]
+            ev.site = profile
+            ev.add_source(url, kind="site", title=profile.get("title") or domain)
+            from urllib.parse import urlparse as _up
+            for p in profile["pages"]:
+                ev.search.append({
+                    "title": f"{domain}{_up(p['url']).path or '/'} (own site)",
+                    "url": p["url"],
+                    "snippet": p["text"][:400],
+                })
+            await emit({"type": "log", "level": "success", "agent": "recon", "msg": (
+                f"primary source read: {subject}"
+                + (f" — “{profile.get('title') or ''}”" if profile.get("title") else "")
+                + f" · {len(profile['pages'])} own pages, {len(profile.get('tech') or [])} technologies, {len(profile.get('socials') or {})} socials"
+            )})
+        ev.subject = subject
+        ev.wiki_domain_hint = domain  # type: ignore[attr-defined]
+
+    ev.sector = detect_sector(subject + " " + (req.context or "") + " " + (ev.site or {}).get("text", "")[:1500])
 
     await emit({"type": "log", "level": "agent", "agent": "genesis", "msg": f"GENESIS pipeline engaged — decoding '{subject}'"})
     await emit({"type": "log", "level": "info", "agent": "genesis", "msg": f"LLM enrichment: {'available (Ollama)' if await llm.available() else 'offline — deterministic analysis engine only'}"})

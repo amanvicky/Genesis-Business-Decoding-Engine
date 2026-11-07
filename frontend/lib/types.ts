@@ -6,7 +6,7 @@
  * `SectionDataMap` so each tab renderer gets its own typed shape.
  */
 
-export type Mode = "company" | "idea";
+export type Mode = "company" | "idea" | "url";
 export type Geography = "india" | "us" | "global";
 
 export interface AnalyzeRequest {
@@ -39,6 +39,7 @@ export const TAB_IDS = [
   "school",
   "markets",
   "deepdive",
+  "publicrecord",
   "adversary",
 ] as const;
 
@@ -70,7 +71,8 @@ export const TABS = [
   { id: "school", n: 15, title: "Founder School — The Knowledge Transfer", icon: "✦", blurb: "the zero-to-one curriculum, taught with your own numbers" },
   { id: "markets", n: 16, title: "Stock Performance — Rise & Fall", icon: "▲", blurb: "1-year chart, 52w range, the biggest rises and falls" },
   { id: "deepdive", n: 17, title: "Company Deep-Dive — What, Why, Reality & Marketing", icon: "❖", blurb: "what they do, every feature's origin story, the reality check, the marketing mechanics" },
-  { id: "adversary", n: 18, title: "Adversarial Red-Team Simulator", icon: "⚔", blurb: "Buyers, VCs & auditors cross-examine your plan" },
+  { id: "publicrecord", n: 18, title: "Public Record — Registration & Corporate Footprint", icon: "§", blurb: "legal identity, government registry IDs, the domain record — everything publicly filed" },
+  { id: "adversary", n: 19, title: "Adversarial Red-Team Simulator", icon: "⚔", blurb: "Buyers, VCs & auditors cross-examine your plan" },
 ] as const satisfies readonly TabDef[];
 
 /* ---------------------------------------------------- section data shapes */
@@ -528,6 +530,72 @@ export interface DeepDiveData {
   readonly ai_insight?: string;
 }
 
+export interface RegistryRow {
+  readonly kind?: string;
+  readonly value?: string;
+  readonly context?: string;
+  readonly source?: string;
+}
+
+export interface PublicRecordData {
+  readonly mode?: string;
+  readonly domain?: string;
+  readonly site?: {
+    readonly url?: string;
+    readonly title?: string;
+    readonly description?: string;
+    readonly tech?: readonly string[];
+    readonly socials?: Readonly<Record<string, string>>;
+    readonly emails?: readonly string[];
+    readonly phones?: readonly string[];
+  } | null;
+  readonly legal_identity?: {
+    readonly legal_name?: string;
+    readonly legal_name_source?: string;
+    readonly registration_no?: string;
+    readonly registration_kind?: string;
+    readonly registration_source?: string;
+    readonly registered_office?: string;
+    readonly registered_office_source?: string;
+    readonly incorporation?: string;
+    readonly incorporation_source?: string;
+    readonly tax_id?: string;
+    readonly tax_id_kind?: string;
+    readonly tax_id_source?: string;
+    readonly address_jsonld?: string;
+    readonly address_source?: string;
+    readonly founding_date_selfdeclared?: string;
+  };
+  readonly registrations?: readonly RegistryRow[];
+  readonly domain_record?: {
+    readonly registrar?: string;
+    readonly registered?: string;
+    readonly expires?: string;
+    readonly last_changed?: string;
+    readonly status?: readonly string[];
+    readonly nameservers?: readonly string[];
+    readonly queried?: string;
+  } | null;
+  readonly edgar?: {
+    readonly cik?: number;
+    readonly name?: string;
+    readonly ticker?: string;
+    readonly entity_type?: string;
+    readonly state_of_incorporation?: string;
+    readonly sic?: string;
+    readonly sic_description?: string;
+    readonly exchanges?: readonly string[];
+    readonly fiscal_year_end?: string;
+    readonly former_names?: readonly string[];
+    readonly addresses?: readonly string[];
+  } | null;
+  readonly wikidata?: Readonly<Record<string, string>> | null;
+  readonly registry_mentions?: readonly { readonly title?: string; readonly snippet?: string; readonly url?: string }[];
+  readonly coverage?: readonly string[];
+  readonly note?: string;
+  readonly ai_insight?: string;
+}
+
 /** TabId → its data shape. The single source of truth for renderers. */
 export interface SectionDataMap {
   structural: StructuralData;
@@ -547,6 +615,7 @@ export interface SectionDataMap {
   school: SchoolData;
   markets: MarketPerfData;
   deepdive: DeepDiveData;
+  publicrecord: PublicRecordData;
   adversary: AdversaryData;
 }
 

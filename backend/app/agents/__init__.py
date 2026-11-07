@@ -12,6 +12,7 @@ from .marketsize import MarketSizeAgent
 from .friction import FrictionAgent
 from .playbook import PlaybookAgent
 from .premortem import PremortemAgent
+from .registry import RegistryAgent
 from .pricing import PricingAgent
 from .recon import ReconAgent
 from .school import SchoolAgent
@@ -40,5 +41,6 @@ __all__ = [
     "DarkWebAgent",
     "PlaybookAgent",
     "DeepDiveAgent",
+    "RegistryAgent",
     "AdversaryAgent",
 ]

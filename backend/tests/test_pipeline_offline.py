@@ -35,9 +35,9 @@ def events():
 
 class TestOfflineDecode:
 
-    def test_all_fourteen_sections(self, events):
+    def test_all_nineteen_sections(self, events):
         secs = [e["section"]["id"] for e in events if e["type"] == "section"]
-        assert len(secs) == 18
+        assert len(secs) == 19
         assert set(secs) == set(TAB_ORDER)
 
     def test_no_error_events(self, events):
@@ -57,7 +57,7 @@ class TestOfflineDecode:
 
     def test_company_mode_too(self):
         events = _run("company", "Stripe")
-        assert len([e for e in events if e["type"] == "section"]) == 18
+        assert len([e for e in events if e["type"] == "section"]) == 19
 
     def test_pricing_sandbox_receives_burn(self, events):
         """_post_process must wire financial burn into the pricing sandbox."""
@@ -67,6 +67,14 @@ class TestOfflineDecode:
         sandbox = done["sections"]["pricing"]["data"].get("sandbox") or {}
         if burn is not None:
             assert sandbox.get("opex_month") == burn
+
+    def test_url_mode_full_report_offline(self):
+        """url mode runs the whole pipeline offline: the site fetch degrades
+        (GENESIS_OFFLINE) and the domain name carries the research instead."""
+        events = _run("url", "example-startup.com")
+        assert len([e for e in events if e["type"] == "section"]) == 19
+        done = [e for e in events if e.get("type") == "done"][0]
+        assert done["report"]["request"]["mode"] == "url"
 
     def test_subject_whitespace_stripped(self):
         events = _run("idea", "   padded subject name   ")
@@ -89,7 +97,7 @@ class TestFailureContainment:
         monkeypatch.setattr(StructuralAgent, "build", boom)
         events = _run()
         secs = {e["section"]["id"]: e["section"] for e in events if e["type"] == "section"}
-        assert len(secs) == 18                      # still a full report
+        assert len(secs) == 19                      # still a full report
         assert "RuntimeError" in secs["structural"]["data"]["error"]
         assert secs["structural"]["data"]["partial"] is True
         assert [e for e in events if e.get("type") == "error"] == []

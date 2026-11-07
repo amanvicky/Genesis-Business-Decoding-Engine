@@ -25,7 +25,10 @@ export default function InputPanel({
   const [darkweb, setDarkweb] = useState(true);
   const [advanced, setAdvanced] = useState(false);
 
-  const valid = query.trim().length >= 2;
+  const valid =
+    mode === "url"
+      ? /^[^\s]+\.[^\s]{2,}$/.test(query.trim()) // a URL needs at least a dot and no spaces
+      : query.trim().length >= 2;
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,22 +58,24 @@ export default function InputPanel({
       className="w-full"
     >
       {/* Mode toggle */}
-      <div className="mb-4 grid grid-cols-2 gap-2">
+      <div className="mb-4 grid grid-cols-3 gap-2">
         {(
           [
-            { m: "company" as Mode, t: "Decode a company" },
-            { m: "idea" as Mode, t: "Validate a raw idea" },
+            { m: "company" as Mode, t: "Company name", d: "type the name" },
+            { m: "url" as Mode, t: "Website URL", d: "paste the address" },
+            { m: "idea" as Mode, t: "Raw idea", d: "describe the concept" },
           ]
-        ).map(({ m, t }) => (
+        ).map(({ m, t, d }) => (
           <button
             key={m}
             type="button"
             onClick={() => setMode(m)}
-            className={`border px-4 py-3.5 text-left transition-colors duration-150 ${
+            className={`border px-3 py-3 text-left transition-colors duration-150 ${
               mode === m ? "border-amber-700 bg-amber-950/20" : "border-edge bg-panel/60 hover:border-zinc-600"
             }`}
           >
             <div className={`text-sm font-medium ${mode === m ? "text-amber-400" : "text-zinc-300"}`}>{t}</div>
+            <div className="text-[11px] text-zinc-600">{d}</div>
           </button>
         ))}
       </div>
@@ -80,7 +85,13 @@ export default function InputPanel({
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         rows={2}
-        placeholder={mode === "company" ? "e.g. Rippling, Zoho, Razorpay, ADP…" : "e.g. Payroll compliance automation for Indian SMBs…"}
+        placeholder={
+          mode === "company"
+            ? "e.g. Rippling, Zoho, Razorpay, ADP…"
+            : mode === "url"
+              ? "https://stripe.com — the site itself gets read, plus the public registries"
+              : "e.g. Payroll compliance automation for Indian SMBs…"
+        }
         className={`${inputCls} resize-none leading-relaxed`}
       />
 

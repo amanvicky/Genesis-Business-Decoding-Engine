@@ -22,8 +22,11 @@ class ReconAgent(Agent):
 
     async def run_recon(self, ev: Evidence, emit: Emit) -> Evidence:
         f = Fetcher(ev)
-        q = ev.req.query
+        # url mode arrives with ev.subject already resolved to the site's own
+        # brand name — every query below must chase the brand, not the URL
+        q = ev.subject
         mode = ev.req.mode.value
+        company_like = mode in ("company", "url")
         geo = ev.req.geography.value
 
         await emit({"type": "log", "level": "agent", "agent": self.id, "msg": f"target: '{q}' (mode={mode}, geo={geo}, sector={ev.sector})"})
@@ -33,7 +36,7 @@ class ReconAgent(Agent):
 
         # 1. Surface web
         await emit({"type": "log", "level": "info", "agent": self.id, "msg": "scanning surface web (search cascade)…"})
-        if mode == "company":
+        if company_like:
             # Qualify with 'company': bare acronyms (ADP, BAT…) drag in unrelated domains.
             base_queries = [f"{q} company", f"{q} business model revenue how does", f"{q} pricing tiers plans"]
         else:
@@ -51,7 +54,7 @@ class ReconAgent(Agent):
 
         # 1b. Direct news coverage for company subjects — keyless RSS works even
         # where HTML search engines block automated traffic.
-        if mode == "company":
+        if company_like:
             news = await search.news_search(f, q, 10)
             fresh = 0
             for r in news:
@@ -76,26 +79,30 @@ class ReconAgent(Agent):
             if fresh:
                 await emit({"type": "log", "level": "warn", "agent": self.id, "msg": f"web engines rate-limited — Wikipedia search fallback: {fresh} article matches"})
 
-        # Infer the company's website domain from search results (company mode)
+        # Infer the company's website domain from search results (company mode);
+        # url mode already holds the founder-given domain — no guessing.
         company_domain = ""
-        if mode == "company":
-            for r in ev.search:
-                d = domain_of(r["url"])
-                # Strict domain format + SSRF gate: this value is fetched from
-                # later, and search results are attacker-rankable — a netloc
-                # like "user@10.0.0.5:8080" must never pass.
-                if (d and safe_public_http_url(f"https://{d}")
-                        and re.fullmatch(r"[a-z0-9-]+(\.[a-z0-9-]+)+", d)
-                        and d not in ("en.wikipedia.org", "linkedin.com", "crunchbase.com", "youtube.com", "facebook.com", "x.com", "twitter.com")):
-                    head = (q.lower().split() or [""])[0]
-                    if head in d or d.split(".")[0] == head.replace(" ", ""):
-                        company_domain = d
-                        break
+        if company_like:
+            if mode == "url":
+                company_domain = domain_of(ev.req.query)
+            else:
+                for r in ev.search:
+                    d = domain_of(r["url"])
+                    # Strict domain format + SSRF gate: this value is fetched from
+                    # later, and search results are attacker-rankable — a netloc
+                    # like "user@10.0.0.5:8080" must never pass.
+                    if (d and safe_public_http_url(f"https://{d}")
+                            and re.fullmatch(r"[a-z0-9-]+(\.[a-z0-9-]+)+", d)
+                            and d not in ("en.wikipedia.org", "linkedin.com", "crunchbase.com", "youtube.com", "facebook.com", "x.com", "twitter.com")):
+                        head = (q.lower().split() or [""])[0]
+                        if head in d or d.split(".")[0] == head.replace(" ", ""):
+                            company_domain = d
+                            break
         ev.wiki_domain_hint = company_domain  # type: ignore[attr-defined]
         await emit({"type": "log", "level": "success", "agent": self.id, "msg": f"surface web: {len(ev.search)} unique results"})
 
         # 2. Wikipedia genesis data
-        if mode == "company":
+        if company_like:
             await emit({"type": "log", "level": "info", "agent": self.id, "msg": "decoding genesis via Wikipedia…"})
             ev.wiki = await wikipedia.company_brief(f, q)
             if ev.wiki:
@@ -107,8 +114,8 @@ class ReconAgent(Agent):
         # 2b. The company's own declared site (Wikipedia external links) is the
         # most reliable domain hint — it outranks whatever a search result happened
         # to carry. Downstream agents read wiki_domain_hint at build time, so
-        # updating it here is enough.
-        if mode == "company":
+        # updating it here is enough. In url mode the founder's own URL wins.
+        if company_like and mode != "url":
             wsite = ((ev.wiki or {}).get("website") or "").strip()
             if wsite:
                 wd = domain_of(wsite)
@@ -143,7 +150,7 @@ class ReconAgent(Agent):
         await emit({"type": "log", "level": "success", "agent": self.id, "msg": f"sentiment pool: {len(ev.hn_stories)} stories, {len(ev.hn_comments)} threads, {len(ev.reddit)} reddit posts"})
 
         # 4. Changelogs / feature history
-        if mode == "company":
+        if company_like:
             await emit({"type": "log", "level": "info", "agent": self.id, "msg": "decompiling feature history (GitHub releases + changelog pages)…"})
             repo = await github.find_repo(f, q)
             if repo:
@@ -159,7 +166,7 @@ class ReconAgent(Agent):
                         break
 
         # 4b. Open financial filings (SEC EDGAR, free + keyless) for US-listed subjects
-        if mode == "company" and geo in ("us", "global"):
+        if company_like and geo in ("us", "global"):
             await emit({"type": "log", "level": "info", "agent": self.id, "msg": "cross-referencing SEC EDGAR filings (open financial layer)…"})
             from ..scrapers import filings
 
@@ -172,6 +179,7 @@ class ReconAgent(Agent):
             if profile and (profile.get("revenues") or profile.get("filings")):
                 ev.financials = profile.get("revenues", [])
                 ev.identity["edgar"] = {"cik": profile["cik"], "name": profile["name"], "ticker": profile.get("ticker")}
+                ev.identity["edgar_registration"] = profile.get("registration") or {}
                 rev = profile["revenues"][-1]["revenue_usd"] if profile.get("revenues") else None
                 await emit({"type": "log", "level": "success", "agent": self.id, "msg": (
                     f"EDGAR: {profile['name']} (CIK {profile['cik']}, {profile.get('ticker')}) — "
@@ -187,7 +195,7 @@ class ReconAgent(Agent):
         await emit({"type": "log", "level": "success", "agent": self.id, "msg": f"review intel: {len(ev.reviews)} public snippets (Trustpilot/G2/Capterra layer)"})
 
         # 6. Wayback pricing history
-        if mode == "company" and company_domain:
+        if company_like and company_domain:
             await emit({"type": "log", "level": "info", "agent": self.id, "msg": f"reconstructing pricing history via Wayback Machine ({company_domain}/pricing)…"})
             ev.pricing_history = await wayback.pricing_history(f, company_domain)
             # "pricing" URLs come verbatim from search results — SSRF gate

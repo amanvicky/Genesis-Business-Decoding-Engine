@@ -114,7 +114,7 @@ def advise(question: str, report: dict) -> dict:
 def _advise_hello(q: str, report: dict) -> dict:
     return {
         "answer": (
-            f"I'm Genesis — I already decoded {_subject(report)} into an 18-tab brief. "
+            f"I'm Genesis — I already decoded {_subject(report)} into a 19-tab brief. "
             "Ask me anything in it: numbers, decisions, next steps. I answer from YOUR report, not generic advice."
         ),
         "bullets": [
@@ -309,7 +309,7 @@ def _advise_risk(q: str, report: dict) -> dict:
         for a in analogs[:2]
     ]
     if fatal is not None:
-        bullets.append(f"Your own red-team panel raised {fatal} FATAL challenges — they're in Tab 18, answer or cut each one.")
+        bullets.append(f"Your own red-team panel raised {fatal} FATAL challenges — they're in Tab 19, answer or cut each one.")
     if not bullets:
         bullets = ["Re-run the decode to build the failure and red-team analysis."]
     return {

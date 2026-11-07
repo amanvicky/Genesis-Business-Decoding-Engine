@@ -224,6 +224,66 @@ async def _wikidata_inception(fetcher: Fetcher, title: str) -> int | None:
     return None
 
 
+# structured legal facts for the public-record layer
+_WD_LEGAL_PROPS = {
+    "P1448": "official_name",
+    "P571": "inception",
+    "P1454": "legal_form",
+    "P159": "headquarters",
+    "P127": "owned_by",
+    "P112": "founder",
+}
+
+
+async def wikidata_company(fetcher: Fetcher, title: str) -> dict:
+    """Structured legal facts (legal form, HQ, ownership, founders) from
+    Wikidata when the subject has an encyclopedia entry. Two keyless calls:
+    the claims, then one label batch for the entity-valued ones."""
+    if not title:
+        return {}
+    data = await fetcher.try_json(
+        "https://www.wikidata.org/w/api.php?action=wbgetentities&sites=enwiki"
+        f"&titles={quote(title)}&props=claims&format=json&origin=*"
+    )
+    entities = (data or {}).get("entities", {}) or {}
+    ent = next(iter(entities.values()), {}) if isinstance(entities, dict) else {}
+    claims = (ent.get("claims", {}) or {}) if isinstance(ent, dict) else {}
+
+    out: dict = {}
+    entity_refs: dict[str, list[str]] = {}
+    for pid, field_name in _WD_LEGAL_PROPS.items():
+        for snak in (claims.get(pid) or [])[:2]:
+            dv = ((snak.get("mainsnak") or {}).get("datavalue")) or {}
+            val = dv.get("value")
+            if dv.get("type") == "time" and isinstance(val, dict):
+                m = re.search(r"([12]\d{3})", str(val.get("time", "")))
+                if m and field_name not in out:
+                    out[field_name] = m.group(1)
+            elif dv.get("type") == "wikibase-entityid" and isinstance(val, dict):
+                qid = str(val.get("id") or "")
+                if qid:
+                    entity_refs.setdefault(field_name, []).append(qid)
+            elif isinstance(val, str) and field_name not in out:
+                out[field_name] = val[:120]
+
+    flat = [q for qs in entity_refs.values() for q in qs]
+    if flat:
+        labels = await fetcher.try_json(
+            "https://www.wikidata.org/w/api.php?action=wbgetentities&props=labels"
+            f"&ids={'|'.join(flat[:12])}&format=json&origin=*"
+        )
+        ents = (labels or {}).get("entities", {}) or {}
+        for field_name, qids in entity_refs.items():
+            names = []
+            for q in qids:
+                name = (((ents.get(q) or {}).get("labels") or {}).get("en") or {}).get("value")
+                if name:
+                    names.append(name)
+            if names and field_name not in out:
+                out[field_name] = ", ".join(names[:2])
+    return out
+
+
 async def wiki_search(fetcher: Fetcher, query: str, limit: int = 8) -> list[dict]:
     """MediaWiki fulltext search — the bot-tolerant last rung of the surface-web
     cascade. When every web engine rate-limits a datacenter IP at once, the

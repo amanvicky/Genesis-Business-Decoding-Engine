@@ -62,6 +62,25 @@ class TestAnalyzeRequestValidation:
         assert not hasattr(r, "junk_field")
 
 
+class TestUrlMode:
+    def test_bare_domain_normalized_to_https(self):
+        r = _req(mode="url", query="stripe.com")
+        assert r.query == "https://stripe.com"
+
+    def test_explicit_url_preserved(self):
+        r = _req(mode="url", query="https://www.zoho.com/about")
+        assert r.query == "https://www.zoho.com/about"
+
+    @pytest.mark.parametrize("bad", ["http://localhost:3000", "https://192.168.1.5/", "justonechunk"])
+    def test_url_mode_rejects_non_public_targets(self, bad):
+        with pytest.raises(ValidationError):
+            _req(mode="url", query=bad)
+
+    def test_url_mode_still_enforces_min_length(self):
+        with pytest.raises(ValidationError):
+            _req(mode="url", query="a")
+
+
 class TestEvidenceSources:
     def test_add_source_dedupes_and_skips_empty(self):
         e = Evidence(req=_req(), subject="x")

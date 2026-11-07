@@ -80,6 +80,28 @@ async def _annual_revenues(cik: int) -> list[dict]:
     return out
 
 
+def registration_from_submissions(submissions: dict) -> dict:
+    """Public registration fields of an EDGAR filer, from the submissions
+    payload (pure — testable offline)."""
+    j = submissions or {}
+    reg: dict = {
+        "entity_type": j.get("entityType"),
+        "state_of_incorporation": j.get("stateOfIncorporation"),
+        "sic": j.get("sic"),
+        "sic_description": j.get("sicDescription"),
+        "exchanges": [str(x) for x in (j.get("exchanges") or [])],
+        "fiscal_year_end": j.get("fiscalYearEnd"),
+        "former_names": [str(f.get("name")) for f in (j.get("formerNames") or []) if f.get("name")][:3],
+        "addresses": [],
+    }
+    for a in (j.get("addresses") or {}).values():
+        if isinstance(a, dict) and a.get("street1"):
+            reg["addresses"].append(", ".join(
+                str(a.get(p)) for p in ("street1", "street2", "city", "stateOrCountry", "zip")
+                if a.get(p)))
+    return {k: v for k, v in reg.items() if v not in (None, "", [])}
+
+
 async def edgar_profile(fetcher, subject: str, wiki_name: str | None = None, expansion: str | None = None) -> dict:
     """Resolve the subject on EDGAR. Tries the wiki canonical name, the raw
     subject, and the triangulated acronym expansion ("automatic data processing")
@@ -99,7 +121,9 @@ async def edgar_profile(fetcher, subject: str, wiki_name: str | None = None, exp
         async with httpx.AsyncClient(timeout=25, headers=UA, follow_redirects=True) as client:
             r = await client.get(f"https://data.sec.gov/submissions/CIK{cik:010d}.json")
         if r.status_code == 200:
-            recent = (r.json().get("filings") or {}).get("recent") or {}
+            j = r.json()
+            profile["registration"] = registration_from_submissions(j)
+            recent = (j.get("filings") or {}).get("recent") or {}
             forms, dates, accessions, docs = (
                 recent.get("form") or [],
                 recent.get("filingDate") or [],

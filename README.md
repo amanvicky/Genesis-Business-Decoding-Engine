@@ -5,12 +5,14 @@
 ![Node](https://img.shields.io/badge/Node-18%2B-green.svg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
 
-Feed it a company (ADP, Stripe, Razorpay, your competitor) or just a rough idea.
-It comes back with an 18-tab brief: does the model hold up, what features to copy
+Feed it a company name, its website URL, or just a rough idea.
+It comes back with a 19-tab brief: does the model hold up, what features to copy
 and what to skip, the compliance traps (per country/state), why companies like this
-died, real revenue from SEC filings, pricing math you can edit live, what users
-complain about, your burn and breakeven, free distribution channels, starter code,
-and a red-team panel that argues with your plan. Every claim links its source.
+died, real revenue from SEC filings, the registration layer (CIN/GSTIN/VAT from the
+company's own legal pages, RDAP domain records, EDGAR registration fields), pricing
+math you can edit live, what users complain about, your burn and breakeven, free
+distribution channels, starter code, and a red-team panel that argues with your plan.
+Every claim links its source.
 
 And when you're done reading, there's a chat panel that answers questions using
 your own numbers ("should I raise?", "who already does this?") and a verdict
@@ -24,7 +26,7 @@ No API keys. No accounts. Nothing leaves your machine.
 
 ## Run it
 
-**Windows, like an app (recommended):** grab `Genesis-1.7.0-Setup.exe` from
+**Windows, like an app (recommended):** grab `Genesis-1.8.0-Setup.exe` from
 [Releases](https://github.com/amanvicky/Genesis-Business-Decoding-Engine/releases)
 and double-click it. Standard wizard, installs into your user folder — no admin,
 no PATH changes, nothing outside its own directory. The first launch does the
@@ -103,7 +105,7 @@ Ask Genesis (answers from your brief) and the Verdict Protocol (go / no-go):
 The full set (compliance matrix, pricing sandbox, burn calculator, red-team and
 more) lives in [proofs/](proofs/).
 
-## The 18 tabs, quickly
+## The 19 tabs, quickly
 
 1. **Structural** - pain points, demand triggers, moats, a signal score
 2. **Features** - feature history decompiled from GitHub releases, build-now vs do-not-build roadmap
@@ -122,7 +124,8 @@ more) lives in [proofs/](proofs/).
 15. **Founder school** - the zero-to-one knowledge transfer: what a startup is, money mechanics with your own numbers, user psychology, distribution, runway discipline, fundraising - every term defined
 16. **Stock performance** - 1-year chart, 52-week range, biggest weekly rises and falls, max drawdown (private companies get the market index as context)
 17. **Company deep-dive** - what the company actually does (problem in users' own words → solution → founding trigger), every feature mined from the company's own site + release trail with the issue people had before it, the reality check of what you'll come across, and the concrete marketing mechanics they use (no "they do digital marketing" filler)
-18. **Red team** - an enterprise buyer, a skeptical VC and a regulator attack your plan
+18. **Public record** - the legal layer: CIN/GSTIN/VAT/company numbers scraped from the company's own legal pages, the domain's RDAP registration record, SEC EDGAR registration fields, Wikidata legal facts — with honest coverage notes for registries that have no open API
+19. **Red team** - an enterprise buyer, a skeptical VC and a regulator attack your plan
 
 Every section links its sources. If a source is blocked, that one section degrades,
 the rest of the run continues.
@@ -130,9 +133,11 @@ the rest of the run continues.
 ## Why it's free
 
 Everything runs on keyless public endpoints: DuckDuckGo/SearXNG/Mojeek for search,
-Wikipedia, HN Algolia, Reddit JSON, GitHub API, Wayback Machine, SEC EDGAR,
-Have I Been Pwned, review snippets from search results. Honest User-Agent, bounded
-retries, backoff, and a blocked engine gets skipped instead of hammered.
+Wikipedia, HN Algolia, Reddit JSON, GitHub API, Wayback Machine, SEC EDGAR, RDAP
+(domain registration records), Have I Been Pwned, review snippets from search
+results — plus the company's own website whenever you give Genesis the URL.
+Honest User-Agent, bounded retries, backoff, and a blocked engine gets skipped
+instead of hammered.
 
 Optional local extras (never required): [Ollama](https://ollama.com) sharpens the
 writing of each section, Tor routes Tab 11 through SOCKS5.

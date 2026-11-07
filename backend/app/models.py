@@ -1,16 +1,19 @@
 from __future__ import annotations
 
+import ipaddress
 import re
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Optional
+from urllib.parse import urlparse
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class Mode(str, Enum):
     company = "company"
     idea = "idea"
+    url = "url"
 
 
 class Geography(str, Enum):
@@ -32,6 +35,28 @@ class AnalyzeRequest(BaseModel):
         if len(v) < 2:
             raise ValueError("query must be at least 2 characters after trimming")
         return v
+
+    @model_validator(mode="after")
+    def _normalize_url_query(self) -> "AnalyzeRequest":
+        # url mode: accept bare domains ("stripe.com") and hand every downstream
+        # fetcher one canonical https:// form to work with — and refuse
+        # loopback/private targets at the door, same as every other fetch
+        if self.mode is Mode.url:
+            raw = self.query.strip()
+            if "://" not in raw:
+                raw = "https://" + raw.lstrip("/")
+            host = urlparse(raw).hostname or ""
+            if "." not in host:
+                raise ValueError("url mode needs a real website address, e.g. stripe.com")
+            try:
+                ip = ipaddress.ip_address(host)
+            except ValueError:
+                ip = None
+            if ip is not None and not ip.is_global:
+                raise ValueError("url mode only decodes public websites")
+            self.query = raw
+        return self
+
     geography: Geography = Geography.global_
     context: Optional[str] = Field(default=None, max_length=2000)
     team_size: int = Field(default=3, ge=1, le=200)
@@ -82,6 +107,7 @@ class Evidence:
     wiki_domain_hint: str = ""
     identity: dict = field(default_factory=dict)      # triangulated subject identity
     financials: list[dict] = field(default_factory=list)  # EDGAR annual revenue history
+    site: dict = field(default_factory=dict)          # primary-source profile when the founder gave a URL
     sources: list[SourceOut] = field(default_factory=list)
 
     def add_source(self, url: str, kind: str = "web", title: str = "") -> None:
