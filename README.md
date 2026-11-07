@@ -24,7 +24,20 @@ No API keys. No accounts. Nothing leaves your machine.
 
 ## Run it
 
-Python 3.10+ and Node 18+, then:
+**Windows, like an app (recommended):** grab `Genesis-1.7.0-Setup.exe` from
+[Releases](https://github.com/amanvicky/Genesis-Business-Decoding-Engine/releases)
+and double-click it. Standard wizard, installs into your user folder — no admin,
+no PATH changes, nothing outside its own directory. The first launch does the
+heavy lifting (checks Python 3.10+ and Node 18+, privately installs anything
+missing into the app folder, builds the dashboard) and then opens the dashboard
+in its own window. After that: Start menu → **Genesis**. Uninstall from
+Apps & Features like any other app, or just delete the folder.
+
+**From a plain folder** (zip or `git clone`): double-click **`Genesis Setup.bat`** —
+same deal, everything private to the folder. Day-to-day launcher: **`Genesis.bat`**
+(no terminal after setup; the console only shows up for first-run installs).
+
+**Already have Python 3.10+ and Node 18+:**
 
 ```bash
 python genesis.py
@@ -42,8 +55,13 @@ python genesis.py doctor     # pre-flight check
 python genesis.py uninstall  # stop + clean up (--deep removes venv/node_modules too)
 ```
 
-Windows: `start.bat` does the same thing. Flags if you want them: `--dev`, `--no-tor`,
-`--no-watchdog`, `--no-browser`, `--rebuild`.
+Flags if you want them: `--dev`, `--no-tor`, `--no-watchdog`, `--no-browser`, `--rebuild`.
+
+Optional extras: the installer's **Privacy layer (Tor)** checkbox downloads the
+official Tor client into the app folder (client-only, Tab 11 stays clearnet-degraded
+without it). **Ollama** is detected if you already run it locally — it's never
+auto-installed (multi-GB, runs its own service); without it the engine is fully
+deterministic and every tab still works.
 
 
 ## Proof it's real
@@ -178,7 +196,8 @@ Copy `backend/.env.example` to `backend/.env`:
 - `surface web: 0 results`: search engines rate-limiting your IP, the cascade
   falls back to Wikipedia/HN/EDGAR and the report degrades but works
 - Reddit gives `0 posts`: reddit rate-limits unauthenticated JSON, it is what it is
-- Tab 11 says `clearnet-degraded`: no Tor installed, ignore it or install Tor
+- Tab 11 says `clearnet-degraded`: no Tor installed — tick the installer's
+  Privacy layer checkbox, or drop a tor.exe into `runtime\tor\` yourself
 - Port already in use: `python genesis.py stop` only clears this project's
   processes, it never touches foreign apps
 

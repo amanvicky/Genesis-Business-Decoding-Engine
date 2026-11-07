@@ -26,6 +26,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shutil
 import socket
 import subprocess
@@ -51,6 +52,30 @@ WATCHDOG_STATE = RUNTIME / "watchdog_state.json"
 
 if IS_WIN:
     os.system("")  # enable ANSI escape processing in legacy consoles
+
+PORTABLE_PYTHON = RUNTIME / "python" / ("python.exe" if IS_WIN else "bin/python3")
+PORTABLE_NODE_DIR = RUNTIME / "node"
+
+
+def _augment_path() -> None:
+    """Portable runtimes must be reachable by child processes (npm.cmd shells
+    out to node.exe) without ever touching the machine's PATH."""
+    for d in (PORTABLE_NODE_DIR, RUNTIME / "python", RUNTIME / "python" / "Scripts"):
+        if d.exists():
+            os.environ["PATH"] = f"{d}{os.pathsep}{os.environ.get('PATH', '')}"
+
+
+_augment_path()
+
+# Captured before main() redirects pythonw's null streams: a windowless launch
+# must keep its children (npm, pip) windowless too, or each one opens a console.
+_WINDOWLESS = sys.stdout is None
+
+
+def _child_flags() -> dict:
+    if IS_WIN and _WINDOWLESS:
+        return {"creationflags": subprocess.CREATE_NO_WINDOW}
+    return {}
 
 C = {"g": "\033[92m", "y": "\033[93m", "r": "\033[91m", "b": "\033[96m", "d": "\033[90m", "0": "\033[0m", "B": "\033[1m"}
 
@@ -283,6 +308,8 @@ def write_marker(marker: str, *sources: Path) -> None:
 
 
 def find_python() -> str:
+    if PORTABLE_PYTHON.exists():
+        return str(PORTABLE_PYTHON)
     for cand in (shutil.which("python3"), shutil.which("python"), shutil.which("py")):
         if cand:
             return cand
@@ -293,10 +320,32 @@ def venv_python() -> Path:
     return BACKEND / ".venv" / ("Scripts/python.exe" if IS_WIN else "bin/python")
 
 
+def backend_python() -> str:
+    """The interpreter that runs the API: the project venv when it exists, else
+    the private runtime python (embeddable dists can't create venvs — the
+    folder itself is the private environment)."""
+    vp = venv_python()
+    if vp.exists():
+        return str(vp)
+    if PORTABLE_PYTHON.exists():
+        return str(PORTABLE_PYTHON)
+    return find_python()
+
+
+def find_node() -> str | None:
+    portable = PORTABLE_NODE_DIR / ("node.exe" if IS_WIN else "bin/node")
+    if portable.exists():
+        return str(portable)
+    return shutil.which("node")
+
+
 def npm() -> str:
+    portable = PORTABLE_NODE_DIR / ("npm.cmd" if IS_WIN else "bin/npm")
+    if portable.exists():
+        return str(portable)
     n = shutil.which("npm")
     if not n:
-        die("npm not found — install Node.js 18+ from https://nodejs.org then re-run")
+        die("npm not found — double-click 'Genesis Setup.bat' (installs a private Node.js into runtime\\node), then re-run")
     return n
 
 
@@ -333,20 +382,20 @@ def _save_setup_log(content: str) -> None:
 
 def ensure_backend_deps() -> None:
     reqs = BACKEND / "requirements.txt"
-    vp = venv_python()
-    if vp.exists() and stale_marker_ok("pip.stamp", reqs):
+    using_venv = not PORTABLE_PYTHON.exists()  # embeddable python cannot venv — it IS the private env
+    if stale_marker_ok("pip.stamp", reqs) and (venv_python().exists() if using_venv else PORTABLE_PYTHON.exists()):
         ok("backend environment ready (already installed)")
         return
     info("installing backend environment (first run or requirements changed)…")
-    if not vp.exists():
+    if using_venv and not venv_python().exists():
         info("creating backend venv…")
         r = subprocess.run([find_python(), "-m", "venv", str(BACKEND / ".venv")],
                            capture_output=True, text=True)
-        if r.returncode != 0 or not vp.exists():
+        if r.returncode != 0 or not venv_python().exists():
             _save_setup_log(r.stdout + r.stderr)
             die("backend venv creation failed — see logs/setup.log")
-    r = subprocess.run([str(vp), "-m", "pip", "install", "--disable-pip-version-check", "-q", "-r", str(reqs)],
-                       capture_output=True, text=True)
+    r = subprocess.run([backend_python(), "-m", "pip", "install", "--disable-pip-version-check", "-q", "-r", str(reqs)],
+                       capture_output=True, text=True, **_child_flags())
     if r.returncode != 0:
         _save_setup_log(r.stdout + r.stderr)
         die("backend pip install failed — see logs/setup.log")
@@ -354,17 +403,30 @@ def ensure_backend_deps() -> None:
     ok("backend environment installed")
 
 
+def _frontend_tree_ok() -> bool:
+    """A node_modules that exists but is missing the build's entry binary is a
+    tree corrupted by an interrupted first run — npm install alone will call it
+    fine, and the build then dies on "'next' is not recognized"."""
+    sentinel = FRONTEND / "node_modules" / ".bin" / ("next.cmd" if IS_WIN else "next")
+    return sentinel.exists()
+
+
 def ensure_frontend_deps() -> None:
     pkg, lock = FRONTEND / "package.json", FRONTEND / "package-lock.json"
-    if (FRONTEND / "node_modules").exists() and stale_marker_ok("npm.stamp", pkg, lock):
+    if (FRONTEND / "node_modules").exists() and stale_marker_ok("npm.stamp", pkg, lock) and _frontend_tree_ok():
         ok("frontend packages ready (already installed)")
         return
     info("installing frontend packages (1–3 min on first run)…")
     r = subprocess.run([npm(), "install", "--no-audit", "--no-fund"], cwd=str(FRONTEND),
-                       capture_output=True, text=True)
-    if r.returncode != 0:
-        _save_setup_log(r.stdout + r.stderr)
-        die("npm install failed — see logs/setup.log")
+                       capture_output=True, text=True, **_child_flags())
+    if r.returncode != 0 or not _frontend_tree_ok():
+        # partial tree (interrupted first run) can fool npm — clean reinstall
+        info("repairing the frontend package tree (npm ci)…")
+        r2 = subprocess.run([npm(), "ci", "--no-audit", "--no-fund"], cwd=str(FRONTEND),
+                            capture_output=True, text=True, **_child_flags())
+        if r2.returncode != 0 or not _frontend_tree_ok():
+            _save_setup_log((r.stdout + r.stderr)[-4000:] + "\n---npm ci---\n" + (r2.stdout + r2.stderr)[-4000:])
+            die("frontend package install failed — see logs/setup.log")
     write_marker("npm.stamp", pkg, lock)
     ok("frontend packages installed")
 
@@ -393,7 +455,7 @@ def ensure_frontend_build(dev: bool, rebuild: bool) -> None:
         ok("frontend production build ready (up to date)")
         return
     info("building frontend production bundle (1–2 min)…")
-    r = subprocess.run([npm(), "run", "build"], cwd=str(FRONTEND), capture_output=True, text=True)
+    r = subprocess.run([npm(), "run", "build"], cwd=str(FRONTEND), capture_output=True, text=True, **_child_flags())
     if r.returncode != 0:
         _save_setup_log(r.stdout[-8000:] + r.stderr[-8000:])
         die("frontend build failed — see logs/setup.log (or run: python genesis.py up --dev)")
@@ -406,6 +468,7 @@ def ensure_frontend_build(dev: bool, rebuild: bool) -> None:
 def find_tor_binary() -> str | None:
     exe = "tor.exe" if IS_WIN else "tor"
     candidates = [
+        str(RUNTIME / "tor" / exe),  # the private copy installed by the setup
         shutil.which("tor"),
         r"C:\Program Files\Tor\tor.exe" if IS_WIN else None,
         str(Path.home() / "Desktop" / "Tor Browser" / "Browser" / "Tor" / "tor.exe") if IS_WIN else None,
@@ -442,6 +505,33 @@ def ensure_tor(enabled: bool) -> None:
 
 # ------------------------------------------------------------------ health
 
+def open_app_window(url: str) -> None:
+    """Open the dashboard as its own desktop-style window: Edge/Chrome --app
+    mode with a private profile dir inside runtime/ — it never merges into the
+    user's open browser session, and it closes like any Windows app window.
+    Falls back to the default browser when no Chromium-based browser exists."""
+    candidates = []
+    if IS_WIN:
+        candidates = [
+            r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+            r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
+            r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+            str(Path(os.environ.get("LOCALAPPDATA", "")) / r"Google\Chrome\Application\chrome.exe"),
+        ]
+    for exe in candidates:
+        if exe and Path(exe).exists():
+            RUNTIME.mkdir(exist_ok=True)
+            subprocess.Popen(
+                [exe, f"--app={url}", f"--user-data-dir={RUNTIME / 'appwindow'}",
+                 "--no-first-run", "--no-default-browser-check", "--window-size=1440,900"],
+                creationflags=subprocess.CREATE_NO_WINDOW,
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            ok(f"dashboard window opened ({Path(exe).name} app window)")
+            return
+    info("opening the dashboard in the default browser…")
+    webbrowser.open(url)
+
+
 def wait_healthy(url: str, name: str, timeout: float = 90.0) -> bool:
     info(f"waiting for {name} at {url} …")
     deadline = time.time() + timeout
@@ -467,7 +557,7 @@ def ollama_status() -> tuple[bool, str]:
 
 def _service_specs(dev: bool) -> dict:
     return {
-        "api": {"cmd": [str(venv_python()), "-m", "uvicorn", "app.main:app", "--port", str(API_PORT)],
+        "api": {"cmd": [backend_python(), "-m", "uvicorn", "app.main:app", "--port", str(API_PORT)],
                 "cwd": str(BACKEND), "log": "api.log", "url": f"{API_URL}/api/health"},
         "web": {"cmd": [npm(), "run", "dev" if dev else "start"],
                 "cwd": str(FRONTEND), "log": "web.log", "url": WEB_URL},
@@ -484,8 +574,41 @@ def _respawn_watchdog() -> None:
     ok(f"watchdog had died — respawned (pid {wd})")
 
 
+def app_version() -> str:
+    try:
+        text = (BACKEND / "app" / "__init__.py").read_text(encoding="utf-8")
+        return re.search(r'__version__\s*=\s*"([^"]+)"', text).group(1)
+    except Exception:
+        return "?"
+
+
+def _acquire_setup_lock() -> bool:
+    """One first-run/repair at a time. Two concurrent setups wipe each other's
+    node_modules mid-build (npm ci deletes the tree) and both then fail."""
+    RUNTIME.mkdir(exist_ok=True)
+    lock = RUNTIME / "setup.lock"
+    if lock.exists():
+        try:
+            pid = int(lock.read_text().strip())
+        except Exception:
+            pid = 0
+        if pid and pid != os.getpid() and pid_alive(pid):
+            cmdline, _ = proc_identity(pid)
+            if str(ROOT).lower() in (cmdline or "").lower():
+                return False
+    lock.write_text(str(os.getpid()))
+    return True
+
+
+def _release_setup_lock() -> None:
+    (RUNTIME / "setup.lock").unlink(missing_ok=True)
+
+
 def cmd_up(args: argparse.Namespace) -> None:
-    banner()
+    first_run = not (venv_python().exists() or PORTABLE_PYTHON.exists())
+    print(f"""
+{C['B']}  ◈ GENESIS {app_version()} — business decoding engine{C['0']}
+  {C['d']}{'first run: everything installs into this folder — no system changes' if first_run else 'starting the supervised services'}{C['0']}""")
     if not BACKEND.exists() or not FRONTEND.exists():
         die("run this from the Genesis project root (backend/ and frontend/ must exist)")
 
@@ -500,8 +623,30 @@ def cmd_up(args: argparse.Namespace) -> None:
             _respawn_watchdog()
         warn(f"  dashboard: {WEB_URL}   |   stop: python genesis.py stop")
         cmd_status()
+        if args.browser:
+            open_app_window(WEB_URL)
         return
 
+    if not _acquire_setup_lock():
+        warn("another Genesis setup/launch is already working in this folder — waiting for it…")
+        deadline = time.time() + 360
+        while time.time() < deadline and (RUNTIME / "setup.lock").exists():
+            time.sleep(5)
+        if http_ok(WEB_URL) and http_ok(f"{API_URL}/api/health"):
+            if args.browser:
+                open_app_window(WEB_URL)
+            ok("the other setup finished — dashboard is up")
+        else:
+            warn("the other setup did not finish in time — run again in a minute")
+        return
+
+    try:
+        _up_locked(args)
+    finally:
+        _release_setup_lock()
+
+
+def _up_locked(args: argparse.Namespace) -> None:
     # 1. prerequisites
     info("[1/6] checking prerequisites…")
     ensure_backend_deps()
@@ -560,8 +705,7 @@ def cmd_up(args: argparse.Namespace) -> None:
 
     cmd_status()
     if args.browser and api_ok and web_ok:
-        info("opening dashboard in your browser…")
-        webbrowser.open(WEB_URL)
+        open_app_window(WEB_URL)
     print(f"""
 {C['B']}  [GENESIS IS RUNNING IN THE BACKGROUND]{C['0']}
    dashboard   {WEB_URL}
@@ -727,10 +871,13 @@ def cmd_doctor(args: argparse.Namespace) -> None:
 
     py = f"{sys.version_info.major}.{sys.version_info.minor}"
     add(f"python {py}", sys.version_info >= (3, 10), "3.10+ required")
-    node = shutil.which("node")
+    node = find_node()
     node_ver = subprocess.run([node, "-v"], capture_output=True, text=True).stdout.strip() if node else ""
-    add("node", bool(node), node_ver or "18+ required from nodejs.org")
-    add(f"backend venv", venv_python().exists(), "auto-created on first 'up'")
+    node_detail = node_ver or "18+ required — double-click 'Genesis Setup.bat'"
+    if node and "runtime" in str(node):
+        node_detail += " (private copy)"
+    add("node", bool(node), node_detail)
+    add("backend environment", venv_python().exists() or PORTABLE_PYTHON.exists(), "auto-created on first 'up'")
     add("frontend packages", (FRONTEND / "node_modules").exists(), "auto-installed on first 'up'")
     add("frontend production build", (FRONTEND / ".next" / "BUILD_ID").exists(), "auto-built on first 'up'")
     for port, svc in ((API_PORT, "api"), (WEB_PORT, "web")):
@@ -785,7 +932,16 @@ def cmd_uninstall(args: argparse.Namespace) -> None:
         else:
             removed.append(label)
 
-    rm(RUNTIME, "runtime/")
+    if args.deep:
+        rm(RUNTIME, "runtime/")
+    else:
+        # keep the private runtimes and the app-window profile — wiping them
+        # would force a re-download on the next 'up'
+        if RUNTIME.exists():
+            for child in sorted(RUNTIME.iterdir()):
+                if child.name in ("python", "node", "tor", "appwindow"):
+                    continue
+                rm(child, f"runtime/{child.name}")
     rm(LOGS, "logs/")
     caches = [ROOT / "__pycache__", BACKEND / "__pycache__", *(BACKEND / "app").rglob("__pycache__"),
               *(BACKEND / "scripts").rglob("__pycache__"), *(BACKEND / "tests").rglob("__pycache__")]
@@ -878,6 +1034,14 @@ def cmd_watchdog(args: argparse.Namespace) -> None:
 
 
 def main() -> None:
+    # pythonw launches have no console: stdout/stderr are None and any print
+    # would crash the manager before it does its work. Everything lands in a
+    # log instead — the dashboard window is the user-facing feedback.
+    if sys.stdout is None or sys.stderr is None:
+        LOGS.mkdir(exist_ok=True)
+        sys.stdout = open(LOGS / "genesis-ui.log", "a", encoding="utf-8", buffering=1)
+        sys.stderr = sys.stdout
+
     parser = argparse.ArgumentParser(prog="genesis", description="Genesis service manager")
     sub = parser.add_subparsers(dest="command")
     up = sub.add_parser("up", help="install what's missing + start everything (default)")

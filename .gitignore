@@ -17,3 +17,6 @@ out/
 *.log
 logs/
 runtime/
+build/
+dist/
+assets/
