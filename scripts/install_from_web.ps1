@@ -24,7 +24,7 @@ Invoke-WebRequest -Uri $zipUrl -OutFile (Join-Path $tmp "genesis.zip") -UseBasic
 
 Write-Host "  [*] extracting into $app (nothing outside this folder is touched)..."
 Expand-Archive -Path (Join-Path $tmp "genesis.zip") -DestinationPath (Join-Path $tmp "x") -Force
-$src = Get-ChildItem (Join-Path $tmp "x") -Directory | Select-Object -First 1
+$src = (Get-ChildItem (Join-Path $tmp "x") -Directory | Select-Object -First 1).FullName
 New-Item -ItemType Directory -Force -Path $app | Out-Null
 # update-in-place: runtime\ (private python/node) and logs\ survive the copy
 Copy-Item (Join-Path $src "*") $app -Recurse -Force
