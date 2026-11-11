@@ -1,0 +1,14 @@
+node_modules
+.next
+out
+backend/.venv
+backend/__pycache__
+backend/**/__pycache__
+runtime
+logs
+dist
+build
+.git
+.hallmark
+.eslintcache
+*.pyc

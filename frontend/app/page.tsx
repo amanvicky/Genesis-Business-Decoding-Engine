@@ -291,17 +291,22 @@ export default function Page() {
           {/* Run it */}
           <section className="border-t border-edge py-16">
             <h2 className="font-display text-[clamp(2rem,2.5vw+1rem,3.5rem)] font-bold leading-[1.05] tracking-[-0.02em] text-zinc-100">
-              One command.
+              One paste.
             </h2>
             <p className="mt-2 max-w-[52ch] text-sm text-zinc-400">
-              Python 3.10+, Node 18+.
+              Windows: paste this into PowerShell once — Genesis installs itself
+              hidden and opens the dashboard. Nothing else touches your PC.
             </p>
             <div className="mt-6 max-w-2xl">
               <CodeBlock
-                path="terminal"
-                content={`git clone ${REPO}.git\ncd Genesis-Business-Decoding-Engine\npython genesis.py up`}
+                path="powershell"
+                content={`irm https://raw.githubusercontent.com/amanvicky/Genesis-Business-Decoding-Engine/main/scripts/install_from_web.ps1 | iex`}
               />
             </div>
+            <p className="mt-4 max-w-[52ch] text-xs text-zinc-600">
+              or from source: git clone the repo, then python genesis.py up · or a
+              classic Setup.exe from the Releases page · or the free cloud demo in deploy/
+            </p>
             <div className="mt-8 grid grid-cols-1 gap-px bg-edge sm:grid-cols-3">
               <div className="bg-paper px-4 py-3">
                 <p className="font-mono text-sm text-amber-400">port 3000</p>

@@ -26,7 +26,15 @@ No API keys. No accounts. Nothing leaves your machine.
 
 ## Run it
 
-**Windows, like an app (recommended):** grab `Genesis-1.9.0-Setup.exe` from
+**One paste (no download step):** copy this line and paste it into PowerShell —
+Genesis downloads itself from the repo link, installs everything hidden into
+your user folder, and opens the dashboard by itself:
+
+```powershell
+irm https://raw.githubusercontent.com/amanvicky/Genesis-Business-Decoding-Engine/main/scripts/install_from_web.ps1 | iex
+```
+
+**Windows installer (same result, classic wizard):** grab `Genesis-1.10.0-Setup.exe` from
 [Releases](https://github.com/amanvicky/Genesis-Business-Decoding-Engine/releases)
 and double-click it. Standard wizard, installs into your user folder — no admin,
 no PATH changes, nothing outside its own directory. After the wizard, Genesis
@@ -35,6 +43,10 @@ downloaded into the app folder if missing, dependencies install, first build) �
 no console, nothing to click — and the dashboard window opens by itself when
 everything is ready. A few minutes, once. After that: Start menu → **Genesis**.
 Uninstall from Apps & Features like any other app, or just delete the folder.
+
+**Free cloud demo (nothing to install):** a hosted, evidence-thin instance of
+the dashboard — see [deploy/HF_STEPS.md](deploy/HF_STEPS.md) to spin one up on
+a free Hugging Face Space in ~10 minutes.
 
 **From a plain folder** (zip or `git clone`): double-click **`Genesis Setup.bat`** —
 same deal, everything private to the folder. Day-to-day launcher: **`Genesis.bat`**

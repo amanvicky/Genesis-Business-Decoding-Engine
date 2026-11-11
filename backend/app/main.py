@@ -247,3 +247,15 @@ async def export_zip(request: Request):
 @app.exception_handler(Exception)
 async def unhandled(request: Request, exc: Exception):
     return JSONResponse(status_code=500, content={"detail": f"{type(exc).__name__}: {exc}"})
+
+
+# single-port hosting (cloud demo): when GENESIS_STATIC_DIR points at the
+# static frontend export, FastAPI serves the dashboard itself — one origin for
+# /api and the page, no proxy, no CORS. Declared last so /api routes win.
+import os as _os  # noqa: E402
+
+from fastapi.staticfiles import StaticFiles  # noqa: E402
+
+_static_dir = _os.environ.get("GENESIS_STATIC_DIR")
+if _static_dir and _os.path.isdir(_static_dir):
+    app.mount("/", StaticFiles(directory=_static_dir, html=True), name="dashboard")
