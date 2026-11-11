@@ -64,12 +64,13 @@ async def health() -> dict:
             tor = await tor_mod.tor_status(settings.tor_proxy)
         except Exception:
             tor = {"available": False, "reason": "probe failed"}
+    llm_model = await llm.resolve_model()
     return {
         "status": "ok",
         "version": __version__,
         "offline_mode": settings.genesis_offline,
         "tor": tor,
-        "llm": {"available": await llm.available(), "model": settings.genesis_llm_model if await llm.available() else None},
+        "llm": {"available": llm_model is not None, "model": llm_model},
     }
 
 

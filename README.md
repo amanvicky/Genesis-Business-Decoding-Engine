@@ -26,7 +26,7 @@ No API keys. No accounts. Nothing leaves your machine.
 
 ## Run it
 
-**Windows, like an app (recommended):** grab `Genesis-1.8.1-Setup.exe` from
+**Windows, like an app (recommended):** grab `Genesis-1.9.0-Setup.exe` from
 [Releases](https://github.com/amanvicky/Genesis-Business-Decoding-Engine/releases)
 and double-click it. Standard wizard, installs into your user folder — no admin,
 no PATH changes, nothing outside its own directory. After the wizard, Genesis
@@ -135,8 +135,10 @@ the rest of the run continues.
 
 Everything runs on keyless public endpoints: DuckDuckGo/SearXNG/Mojeek for search,
 Wikipedia, HN Algolia, Reddit JSON, GitHub API, Wayback Machine, SEC EDGAR, RDAP
-(domain registration records), Have I Been Pwned, review snippets from search
-results — plus the company's own website whenever you give Genesis the URL.
+(domain registration records), GDELT (global magazine/press coverage), LinkedIn
+posts and Medium/Substack essays as the open web indexes them, Have I Been Pwned,
+review snippets from search results — plus the company's own website whenever you
+give Genesis the URL.
 Honest User-Agent, bounded retries, backoff, and a blocked engine gets skipped
 instead of hammered.
 

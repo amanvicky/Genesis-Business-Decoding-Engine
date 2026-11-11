@@ -5,7 +5,7 @@
 ; happens on first launch via Genesis Setup.bat -> scripts\setup_env.py.
 
 #define MyAppName "Genesis"
-#define MyAppVersion "1.8.1"
+#define MyAppVersion "1.9.0"
 #define MyAppPublisher "Aman Vicky"
 #define MyAppURL "https://github.com/amanvicky/Genesis-Business-Decoding-Engine"
 

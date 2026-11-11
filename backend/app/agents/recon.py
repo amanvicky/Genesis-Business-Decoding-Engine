@@ -79,6 +79,39 @@ class ReconAgent(Agent):
             if fresh:
                 await emit({"type": "log", "level": "warn", "agent": self.id, "msg": f"web engines rate-limited — Wikipedia search fallback: {fresh} article matches"})
 
+        # 1d. Wider platform lanes: public LinkedIn posts, long-form essays
+        #     (Medium/Substack), and global magazine/press coverage (GDELT).
+        #     Snippet-level and keyless — walled gardens are only mined through
+        #     what the open web indexes of them, never scraped directly.
+        await emit({"type": "log", "level": "info", "agent": self.id, "msg": "scanning wider platforms (LinkedIn posts, essays, global press)…"})
+        from ..scrapers import platforms
+
+        lanes = await asyncio.gather(
+            platforms.linkedin_posts(f, q, 10),
+            platforms.essays(f, q, 8),
+            platforms.press(f, q, 15),
+            return_exceptions=True,
+        )
+        for rows, label in (
+            (lanes[0], "LinkedIn posts"),
+            (lanes[1], "essays (Medium/Substack)"),
+            (lanes[2], "global press (GDELT)"),
+        ):
+            if isinstance(rows, Exception):
+                await emit({"type": "log", "level": "warn", "agent": self.id, "msg": f"{label} lane blocked — continuing without it"})
+                continue
+            fresh = 0
+            for r in rows:
+                if r["url"] not in seen:
+                    seen.add(r["url"])
+                    ev.search.append(r)
+                    ev.add_source(r["url"], kind=r.get("platform", "web"), title=r.get("title", ""))
+                    fresh += 1
+            if fresh:
+                await emit({"type": "log", "level": "success", "agent": self.id, "msg": f"{label}: {fresh} evidence rows"})
+            else:
+                await emit({"type": "log", "level": "info", "agent": self.id, "msg": f"{label}: engines quiet this run — lane skipped, the cascade still covers the surface"})
+
         # Infer the company's website domain from search results (company mode);
         # url mode already holds the founder-given domain — no guessing.
         company_domain = ""

@@ -116,7 +116,8 @@ async def run_pipeline(req: AnalyzeRequest, emit: Emit) -> Report:
     ev.sector = detect_sector(subject + " " + (req.context or "") + " " + (ev.site or {}).get("text", "")[:1500])
 
     await emit({"type": "log", "level": "agent", "agent": "genesis", "msg": f"GENESIS pipeline engaged — decoding '{subject}'"})
-    await emit({"type": "log", "level": "info", "agent": "genesis", "msg": f"LLM enrichment: {'available (Ollama)' if await llm.available() else 'offline — deterministic analysis engine only'}"})
+    llm_model = await llm.resolve_model()
+    await emit({"type": "log", "level": "info", "agent": "genesis", "msg": f"LLM enrichment: {f'available ({llm_model})' if llm_model else 'offline — deterministic analysis engine only'}"})
 
     recon = ReconAgent()
     await emit({"type": "status", "step": 0, "agent": recon.id, "state": "running", "title": recon.title})

@@ -34,6 +34,8 @@ const SOURCES: readonly { name: string; gives: string }[] = [
   { name: "Wayback Machine", gives: "pricing history" },
   { name: "SEC EDGAR", gives: "revenue history, registration fields" },
   { name: "Domain registries (RDAP)", gives: "the domain's own registration record" },
+  { name: "LinkedIn & Medium", gives: "professional posts, essays" },
+  { name: "GDELT global press", gives: "magazine coverage worldwide" },
   { name: "Have I Been Pwned", gives: "breach exposure" },
   { name: "Ahmia (Tor)", gives: "lawful OSINT" },
 ];
@@ -274,7 +276,7 @@ export default function Page() {
           {/* What it reads */}
           <section className="border-t border-edge pt-24 pb-24 mb-16">
             <h2 className="font-display text-[clamp(2rem,2.5vw+1rem,3.5rem)] font-bold leading-[1.05] tracking-[-0.02em] text-zinc-100">
-              Eleven keyless sources.
+              Thirteen keyless sources.
             </h2>
             <dl className="mt-6 grid grid-cols-1 gap-x-10 gap-y-3 bg-paper-2 p-6 md:grid-cols-2 lg:p-8">
               {SOURCES.map((s) => (
