@@ -1,7 +1,7 @@
 """Free web search via keyless public endpoints (no API key, no paid tier).
 
 Cascade: DuckDuckGo lite → DuckDuckGo html → public SearXNG (JSON) → Mojeek
-→ Google News RSS → Bing News RSS.
+→ Bing web → Google News RSS → Bing News RSS.
 Any engine can block datacenter traffic; the cascade keeps recon alive.
 Blocked engines cool down for 10 minutes and get another chance afterwards —
 a rate limit lifts, so the cascade must heal.
@@ -39,6 +39,7 @@ async def ddg_search(fetcher: Fetcher, query: str, limit: int = 12) -> list[dict
         ("ddg-html", _html),
         ("searx", _searx),
         ("mojeek", _mojeek),
+        ("bing", _bing),
         ("gnews", _gnews_rss),
         ("bnews", _bnews_rss),
     ):
@@ -168,6 +169,28 @@ async def _mojeek(fetcher: Fetcher, query: str, limit: int) -> list[dict]:
             p = parent.select_one("p.s, p")
             snippet = clean(p.get_text()) if p else ""
         if title and href.startswith("http"):
+            out.append({"title": title, "url": href, "snippet": snippet})
+        if len(out) >= limit:
+            break
+    return out
+
+
+# Bing's HTML results are the most bot-tolerant of the big engines — when
+# DuckDuckGo challenges a flagged IP, Bing often still serves real results.
+async def _bing(fetcher: Fetcher, query: str, limit: int) -> list[dict]:
+    html = await fetcher.text(
+        f"https://www.bing.com/search?q={quote_plus(query)}&count=25&setlang=en", kind="search")
+    s = soup(html)
+    out: list[dict] = []
+    for li in s.select("li.b_algo"):
+        a = li.select_one("h2 a")
+        if not a:
+            continue
+        href = a.get("href", "")
+        title = clean(a.get_text())
+        snippet_el = li.select_one(".b_caption p") or li.select_one("p")
+        snippet = clean(snippet_el.get_text()) if snippet_el else ""
+        if title and href.startswith("http") and "bing.com/ck/" not in href:
             out.append({"title": title, "url": href, "snippet": snippet})
         if len(out) >= limit:
             break

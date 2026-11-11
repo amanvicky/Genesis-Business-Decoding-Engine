@@ -42,8 +42,9 @@ PRICING = "<html><head><title>Pricing</title></head><body>" + ("Free, Pro $29, B
 
 
 class StubFetcher:
-    def __init__(self, pages: dict[str, str]):
+    def __init__(self, pages: dict[str, str], json_payloads: dict | None = None):
         self.pages = pages
+        self.json_payloads = json_payloads or {}
         self.fetched: list[str] = []
 
     async def text(self, url: str, *, kind: str = "web", headers=None) -> str:
@@ -55,6 +56,9 @@ class StubFetcher:
     async def try_text(self, url: str, *, kind: str = "web", headers=None):
         self.fetched.append(url)
         return self.pages.get(url)
+
+    async def try_json(self, url: str, *, kind: str = "api", headers=None):
+        return self.json_payloads.get(url)
 
 
 def _profile() -> dict:
@@ -163,3 +167,79 @@ class TestReadSite:
         kinds = [p["kind"] for p in profile["pages"]]
         assert kinds == ["about", "legal", "pricing"]  # contact page missing → skipped
         assert all(len(p["text"]) <= site._TEXT_CAP for p in profile["pages"])
+
+
+class TestUnarchive:
+    def test_rewrites_recover_original_same_site_links(self):
+        assert site._unarchive(
+            "http://web.archive.org/web/20250407054911/https://acme.io/about", "acme.io"
+        ) == "https://acme.io/about"
+        assert site._unarchive(
+            "https://web.archive.org/web/20240101id_/https://www.acme.io/x", "acme.io"
+        ) == "https://www.acme.io/x"
+
+    def test_foreign_and_plain_links_die(self):
+        assert site._unarchive("http://web.archive.org/web/1/https://google.com/", "acme.io") is None
+        assert site._unarchive("https://acme.io/plain-live-link", "acme.io") is None
+
+
+ARCHIVED_HOME = """
+<!doctype html><html lang="en"><head>
+<title>Home &#8211; Acme</title>
+<meta property="og:site_name" content="Acme">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"Organization","legalName":"Acme Systems Private Limited"}
+</script>
+<script src="https://web-static.archive.org/_static/js/bundle-playback.js"></script>
+</head><body>
+<h1>Widgets, finally serious</h1>
+<nav>
+  <a href="http://web.archive.org/web/20250407054911/https://acme.io/about">About us</a>
+  <a href="http://web.archive.org/web/20250407054911/https://acme.io/terms">Terms</a>
+  <a href="https://www.google.com/search?q=not-ours">search junk</a>
+</nav>
+<footer>© 2025 Acme Systems Private Limited.</footer>
+</body></html>
+"""
+
+ARCHIVED_ABOUT = "<html><body>" + ("Acme was incorporated in Singapore in 2014. " * 5) + "</body></html>"
+
+_WAYBACK_META = {
+    "https://archive.org/wayback/available?url=acme.io": {
+        "archived_snapshots": {"closest": {
+            "url": "http://web.archive.org/web/20250407054911/https://acme.io/",
+            "timestamp": "20250407054911",
+            "status": "200",
+        }}
+    }
+}
+
+
+class TestWaybackFallback:
+
+    def test_archived_site_reads_fully(self):
+        f = StubFetcher({
+            "http://web.archive.org/web/20250407054911/https://acme.io/": ARCHIVED_HOME,
+            "https://web.archive.org/web/2/https://acme.io/about": ARCHIVED_ABOUT,
+        }, _WAYBACK_META)
+        profile = asyncio.run(site.read_site_from_wayback(f, "https://acme.io/", "acme.io"))
+        assert profile["via_wayback"] is True
+        assert profile["url"] == "https://acme.io/"           # display stays the live address
+        assert profile["snapshot"]["timestamp"] == "20250407054911"
+        assert profile["jsonld_legal_name"] == "Acme Systems Private Limited"  # legal facts survive the outage
+        assert site.brand_of(profile) == "Acme"
+        assert [p["kind"] for p in profile["pages"]] == ["about"]
+        assert "incorporated in Singapore" in profile["pages"][0]["text"]
+        assert "_html" not in profile                          # raw html never leaks
+
+    def test_no_snapshot_is_none(self):
+        f = StubFetcher({}, {"https://archive.org/wayback/available?url=dead.io": {}})
+        assert asyncio.run(site.read_site_from_wayback(f, "https://dead.io/", "dead.io")) is None
+
+    def test_broken_snapshot_is_none_not_a_crash(self):
+        f = StubFetcher(
+            {"http://web.archive.org/web/1/https://dead.io/": "junk-no-html"},
+            {"https://archive.org/wayback/available?url=dead.io": {
+                "archived_snapshots": {"closest": {"url": "http://web.archive.org/web/1/https://dead.io/", "timestamp": "1"}}}},
+        )
+        assert asyncio.run(site.read_site_from_wayback(f, "https://dead.io/", "dead.io")) is None

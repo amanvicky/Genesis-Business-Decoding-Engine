@@ -14,7 +14,7 @@ from __future__ import annotations
 import json
 import re
 from typing import Any, Optional
-from urllib.parse import urljoin, urlparse
+from urllib.parse import quote, urljoin, urlparse
 
 from ..text import domain_of
 from .client import Fetcher, safe_public_http_url, soup
@@ -265,6 +265,9 @@ async def read_site(fetcher: Fetcher, url: str, domain: str) -> dict:
 
     text = text_of(html)
     profile["text"] = text
+    # raw html is reused by the wayback fallback to recover rewritten links;
+    # it never reaches the report (agents pick explicit keys only)
+    profile["_html"] = html
     emails: list[str] = []
     for m in _EMAIL_RE.finditer(text):
         e = m.group(0).lower()
@@ -306,6 +309,82 @@ async def read_pages(fetcher: Fetcher, links: dict[str, list[str]]) -> list[dict
             if len(text) < 80:
                 continue
             out.append({"url": u, "kind": kind, "text": text})
+    return out
+
+
+def _unarchive(href: str, domain: str) -> Optional[str]:
+    """web.archive.org rewrites every link inside a captured page into
+    /web/<timestamp>/<original> — recover the original target, but only when
+    it belongs to the captured site (archive banner links die here)."""
+    m = re.match(r"https?://web\.archive\.org/web/[^/]+/(https?://.+)", href)
+    if not m:
+        return None
+    orig = m.group(1).rstrip("/")
+    host = urlparse(orig).hostname or ""
+    d = domain.lower()
+    if not (host == d or host.endswith("." + d) or d.endswith("." + host)):
+        return None
+    return orig
+
+
+_WAYBACK_AVAILABLE = "https://archive.org/wayback/available?url={domain}"
+
+
+async def read_site_from_wayback(fetcher: Fetcher, url: str, domain: str) -> Optional[dict]:
+    """The live site is unreachable (down or blocking us) — read its latest
+    archived copy instead. archive.org's availability API is keyless, and the
+    snapshot HTML parses with exactly the same rules as a live page, so the
+    brand, meta layer, JSON-LD legal facts and tech fingerprints all survive
+    an outage. Returns None when the archive has nothing usable."""
+    info = await fetcher.try_json(_WAYBACK_AVAILABLE.format(domain=quote(domain)), kind="archive")
+    snap = ((info or {}).get("archived_snapshots") or {}).get("closest") or {}
+    snap_url = str(snap.get("url") or "")
+    if not snap_url:
+        return None
+    profile = await read_site(fetcher, snap_url, domain)
+    # a junk/error capture parses into a near-empty profile — that is not a
+    # usable source; require a real page body before trusting the snapshot
+    if profile.get("error") or len(profile.get("text") or "") < 80:
+        return None
+    profile["via_wayback"] = True
+    profile["url"] = url  # display the live address; the snapshot is provenance
+    profile["snapshot"] = {"url": snap_url, "timestamp": str(snap.get("timestamp") or "")}
+    profile["pages"] = await _archived_pages(fetcher, domain, profile.get("_html", ""))
+    profile.pop("_html", None)
+    return profile
+
+
+async def _archived_pages(fetcher: Fetcher, domain: str, archived_html: str) -> list[dict]:
+    """Fetch about/legal/contact pages of an archived site via /web/2/<url>
+    (which always redirects to the nearest capture of that exact URL)."""
+    links: dict[str, list[str]] = {}
+    seen: set[str] = set()
+    for m in re.finditer(r'href="(https?://web\.archive\.org/web/[^"]+)"', archived_html, re.I):
+        orig = _unarchive(m.group(1), domain)
+        if not orig or orig in seen:
+            continue
+        seen.add(orig)
+        kind = _classify(urlparse(orig).path or "", "")
+        if kind:
+            links.setdefault(kind, []).append(orig)
+    out: list[dict] = []
+    fetched: set[str] = set()
+    for kind in ("about", "legal", "contact", "pricing"):
+        if len(out) >= 3:
+            break
+        for orig in (links.get(kind) or [])[:2]:
+            if len(out) >= 3:
+                break
+            if orig in fetched:
+                continue
+            fetched.add(orig)
+            html = await fetcher.try_text(f"https://web.archive.org/web/2/{orig}", kind="archive")
+            if not html or "<html" not in html.lower():
+                continue
+            text = text_of(html)
+            if len(text) < 80:
+                continue
+            out.append({"url": orig, "kind": kind, "text": text})
     return out
 
 

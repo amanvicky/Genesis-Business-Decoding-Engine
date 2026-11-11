@@ -89,12 +89,21 @@ async def run_pipeline(req: AnalyzeRequest, emit: Emit) -> Report:
             profile = await site_mod.read_site(f0, url, domain)
         except Exception as exc:
             profile = {"url": url, "domain": domain, "error": f"{type(exc).__name__}: {exc}"[:200]}
+        if profile.get("error") and not f0.offline:
+            # the live site is down (or refusing us) — the Wayback Machine may
+            # still hold the company's own pages; complete details beat dead air
+            await emit({"type": "log", "level": "info", "agent": "recon", "msg": "live site unreachable — checking the Wayback Machine's latest archived copy…"})
+            wb = await site_mod.read_site_from_wayback(f0, url, domain)
+            if wb:
+                profile = wb
+                await emit({"type": "log", "level": "success", "agent": "recon", "msg": f"archived copy read: {domain} — snapshot {str((profile.get('snapshot') or {}).get('timestamp', ''))[:8]}"})
         if profile.get("error"):
             await emit({"type": "log", "level": "warn", "agent": "recon", "msg": f"site read failed ({profile['error'][:80]}) — researching the domain name instead"})
             subject = domain
         else:
-            profile["pages"] = await site_mod.read_pages(f0, profile.get("links") or {})
-            profile["brand"] = site_mod.brand_of(profile) or domain.split(".")[0].title()
+            if "pages" not in profile:
+                profile["pages"] = await site_mod.read_pages(f0, profile.get("links") or {})
+            profile["brand"] = profile.get("brand") or site_mod.brand_of(profile) or domain.split(".")[0].title()
             subject = profile["brand"]
             ev.add_source(url, kind="site", title=profile.get("title") or domain)
             from urllib.parse import urlparse as _up
@@ -106,8 +115,9 @@ async def run_pipeline(req: AnalyzeRequest, emit: Emit) -> Report:
                 })
             await emit({"type": "log", "level": "success", "agent": "recon", "msg": (
                 f"primary source read: {subject}"
+                + (" (from the Wayback Machine — the live site is unreachable)" if profile.get("via_wayback") else "")
                 + (f" — “{profile.get('title') or ''}”" if profile.get("title") else "")
-                + f" · {len(profile['pages'])} own pages, {len(profile.get('tech') or [])} technologies, {len(profile.get('socials') or {})} socials"
+                + f" · {len(profile.get('pages') or [])} own pages, {len(profile.get('tech') or [])} technologies, {len(profile.get('socials') or {})} socials"
             )})
         # the registry layer must know a failed fetch happened — a site that
         # timed out is not the same as "no URL given", and the coverage notes

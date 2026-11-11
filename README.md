@@ -34,7 +34,7 @@ your user folder, and opens the dashboard by itself:
 irm https://raw.githubusercontent.com/amanvicky/Genesis-Business-Decoding-Engine/main/scripts/install_from_web.ps1 | iex
 ```
 
-**Windows installer (same result, classic wizard):** grab `Genesis-1.10.0-Setup.exe` from
+**Windows installer (same result, classic wizard):** grab `Genesis-1.11.0-Setup.exe` from
 [Releases](https://github.com/amanvicky/Genesis-Business-Decoding-Engine/releases)
 and double-click it. Standard wizard, installs into your user folder — no admin,
 no PATH changes, nothing outside its own directory. After the wizard, Genesis
@@ -145,7 +145,7 @@ the rest of the run continues.
 
 ## Why it's free
 
-Everything runs on keyless public endpoints: DuckDuckGo/SearXNG/Mojeek for search,
+Everything runs on keyless public endpoints: DuckDuckGo/Bing/SearXNG/Mojeek for search,
 Wikipedia, HN Algolia, Reddit JSON, GitHub API, Wayback Machine, SEC EDGAR, RDAP
 (domain registration records), GDELT (global magazine/press coverage), LinkedIn
 posts and Medium/Substack essays as the open web indexes them, Have I Been Pwned,

@@ -6,7 +6,7 @@ import pytest
 
 from app.scrapers import search
 
-ENGINES = ("_lite", "_html", "_searx", "_mojeek", "_gnews_rss", "_bnews_rss")
+ENGINES = ("_lite", "_html", "_searx", "_mojeek", "_bing", "_gnews_rss", "_bnews_rss")
 
 
 def _reset():
@@ -98,3 +98,27 @@ class TestCascadeCooldown:
         assert out == _rows()
         assert search._paused("gnews")
         assert not search._paused("bnews")
+
+
+class _HtmlFetcher:
+    def __init__(self, html):
+        self.html = html
+
+    async def text(self, url, *, kind="web", headers=None):
+        return self.html
+
+
+class TestBing:
+    def test_bing_results_parsed_with_wrapped_links_dropped(self):
+        html = """
+        <li class="b_algo"><h2><a href="https://rapidskill.in/">RapidSkill</a></h2>
+            <div class="b_caption"><p>Learn, build and grow platform</p></div></li>
+        <li class="b_algo"><h2><a href="https://www.bing.com/ck/a?!unwrapped">click-wrapped junk</a></h2></li>
+        <li class="b_algo"><h2><a href="https://example.com/two">Second result</a></h2><p>another snippet</p></li>
+        """
+        out = asyncio.run(search._bing(_HtmlFetcher(html), "rapidskill.in", 10))
+        assert [r["url"] for r in out] == ["https://rapidskill.in/", "https://example.com/two"]
+        assert out[0]["snippet"] == "Learn, build and grow platform"
+
+    def test_bing_challenge_page_is_empty_not_fatal(self):
+        assert asyncio.run(search._bing(_HtmlFetcher("<html>challenge</html>"), "x", 10)) == []

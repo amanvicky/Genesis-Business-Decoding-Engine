@@ -73,14 +73,19 @@ class RegistryAgent(Agent):
                 for r in batch[:4]:
                     mentions.append({"title": r.get("title", ""), "snippet": r.get("snippet", ""), "url": r.get("url", "")})
 
-        # the most identity-defining row set, kept with its sources
+        # the most identity-defining row set, kept with its sources — when the
+        # profile came from the Wayback Machine, source links point at the
+        # archived page (the live site is unreachable, that's the point)
+        source_url = site.get("url") or domain
+        if site.get("via_wayback") and (site.get("snapshot") or {}).get("url"):
+            source_url = site["snapshot"]["url"]
         legal_identity: dict = {}
         if site.get("jsonld_legal_name"):
             legal_identity["legal_name"] = site["jsonld_legal_name"]
-            legal_identity["legal_name_source"] = site.get("url") or domain
+            legal_identity["legal_name_source"] = source_url
         if site.get("address"):
             legal_identity["address_jsonld"] = site["address"]
-            legal_identity["address_source"] = site.get("url") or domain
+            legal_identity["address_source"] = source_url
         if site.get("founding_date"):
             legal_identity["founding_date_selfdeclared"] = site["founding_date"]
         for row in registrations:
@@ -105,6 +110,9 @@ class RegistryAgent(Agent):
         if site:
             if site.get("error"):
                 coverage.append(f"own site fetch failed ({site['error']}) — the legal-page layer is degraded")
+            elif site.get("via_wayback"):
+                coverage.append(f"live site unreachable — own site read from a Wayback Machine snapshot "
+                                f"({(site.get('snapshot') or {}).get('timestamp', '')[:8]})")
             else:
                 n_pages = len(site.get("pages") or [])
                 coverage.append(f"own site parsed: {domain} ({'+' if n_pages else 'no extra '}{'legal/about/contact pages' if n_pages else ''})")
