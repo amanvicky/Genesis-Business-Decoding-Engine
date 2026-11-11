@@ -22,6 +22,35 @@ class Geography(str, Enum):
     global_ = "global"
 
 
+class BattleRequest(BaseModel):
+    """2–3 raw ideas, decoded SEQUENTIALLY (one IP, no parallel engine bans)
+    and compared on a deterministic matrix."""
+
+    ideas: list[str] = Field(min_length=2, max_length=3)
+
+    @field_validator("ideas")
+    @classmethod
+    def _clean_ideas(cls, v: list[str]) -> list[str]:
+        cleaned = []
+        for raw in v:
+            s = raw.strip()
+            if len(s) < 2:
+                raise ValueError("every idea needs at least 2 characters")
+            if len(s) > 300:
+                raise ValueError("an idea is at most 300 characters — sharpen it, don't paste the whole plan")
+            cleaned.append(s)
+        lowered = [s.lower() for s in cleaned]
+        if len(set(lowered)) != len(lowered):
+            raise ValueError("two ideas are identical — battle needs distinct options to compare")
+        return cleaned
+
+    geography: Geography = Geography.global_
+    context: Optional[str] = Field(default=None, max_length=2000)
+    team_size: int = Field(default=3, ge=1, le=200)
+    runway_target_months: int = Field(default=12, ge=1, le=60)
+    include_darkweb: bool = True
+
+
 class AnalyzeRequest(BaseModel):
     mode: Mode = Mode.idea
     query: str = Field(min_length=2, max_length=300)

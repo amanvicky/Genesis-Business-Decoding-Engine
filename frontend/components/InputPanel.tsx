@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { AnalyzeRequest, Geography, Mode } from "@/lib/types";
+import type { AnalyzeRequest, BattleRequest, Geography, Mode } from "@/lib/types";
 
 const GEOS: readonly { value: Geography; label: string }[] = [
   { value: "us", label: "United States" },
@@ -9,15 +9,20 @@ const GEOS: readonly { value: Geography; label: string }[] = [
   { value: "global", label: "Global" },
 ];
 
+type InputMode = Mode | "battle";
+
 export default function InputPanel({
   running,
   onRun,
+  onBattle,
 }: {
   running: boolean;
   onRun: (req: AnalyzeRequest) => void;
+  onBattle: (req: BattleRequest) => void;
 }) {
-  const [mode, setMode] = useState<Mode>("company");
+  const [mode, setMode] = useState<InputMode>("company");
   const [query, setQuery] = useState("");
+  const [ideas, setIdeas] = useState<string[]>(["", "", ""]);
   const [geography, setGeography] = useState<Geography>("global");
   const [context, setContext] = useState("");
   const [teamSize, setTeamSize] = useState(3);
@@ -25,16 +30,33 @@ export default function InputPanel({
   const [darkweb, setDarkweb] = useState(true);
   const [advanced, setAdvanced] = useState(false);
 
-  const valid =
-    mode === "url"
+  const battle = mode === "battle";
+  const cleanIdeas = ideas.map((s) => s.trim());
+  const filled = cleanIdeas.filter((s) => s.length >= 2);
+  const ideaDupes = new Set(filled.map((s) => s.toLowerCase())).size !== filled.length;
+
+  const valid = battle
+    ? filled.length >= 2 && !ideaDupes // two ideas minimum, three max, no duplicates
+    : mode === "url"
       ? /^[^\s]+\.[^\s]{2,}$/.test(query.trim()) // a URL needs at least a dot and no spaces
       : query.trim().length >= 2;
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!valid || running) return;
+    if (battle) {
+      onBattle({
+        ideas: filled.slice(0, 3),
+        geography,
+        context: context.trim() || undefined,
+        team_size: teamSize,
+        runway_target_months: runway,
+        include_darkweb: darkweb,
+      });
+      return;
+    }
     onRun({
-      mode,
+      mode: mode as Mode,
       query: query.trim(),
       geography,
       context: context.trim() || undefined,
@@ -58,12 +80,13 @@ export default function InputPanel({
       className="w-full"
     >
       {/* Mode toggle */}
-      <div className="mb-4 grid grid-cols-3 gap-2">
+      <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
         {(
           [
-            { m: "company" as Mode, t: "Company name", d: "type the name" },
-            { m: "url" as Mode, t: "Website URL", d: "paste the address" },
-            { m: "idea" as Mode, t: "Raw idea", d: "describe the concept" },
+            { m: "company" as InputMode, t: "Company name", d: "type the name" },
+            { m: "url" as InputMode, t: "Website URL", d: "paste the address" },
+            { m: "idea" as InputMode, t: "Raw idea", d: "describe the concept" },
+            { m: "battle" as InputMode, t: "Battle ideas", d: "compare 2–3 ideas" },
           ]
         ).map(({ m, t, d }) => (
           <button
@@ -80,20 +103,44 @@ export default function InputPanel({
         ))}
       </div>
 
-      {/* Query */}
-      <textarea
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        rows={2}
-        placeholder={
-          mode === "company"
-            ? "e.g. Rippling, Zoho, Razorpay, ADP…"
-            : mode === "url"
-              ? "https://stripe.com — the site itself gets read, plus the public registries"
-              : "e.g. Payroll compliance automation for Indian SMBs…"
-        }
-        className={`${inputCls} resize-none leading-relaxed`}
-      />
+      {/* Query — or the battle's idea slots */}
+      {battle ? (
+        <div className="flex flex-col gap-2">
+          {[0, 1, 2].map((slot) => (
+            <div key={slot} className="flex items-center gap-2">
+              <span className="w-6 shrink-0 text-center font-mono text-xs text-zinc-600">{String.fromCharCode(65 + slot)}</span>
+              <textarea
+                value={ideas[slot] ?? ""}
+                onChange={(e) => setIdeas((prev) => prev.map((v, i) => (i === slot ? e.target.value : v)))}
+                rows={2}
+                placeholder={
+                  slot === 2
+                    ? "idea C — optional"
+                    : slot === 0
+                      ? "idea A — e.g. Payroll compliance automation for Indian SMBs…"
+                      : "idea B — the rival you're honestly weighing"
+                }
+                className={`${inputCls} resize-none leading-relaxed`}
+              />
+            </div>
+          ))}
+          {ideaDupes && <p className="text-xs text-red-400">two ideas are identical — the battle needs distinct options</p>}
+        </div>
+      ) : (
+        <textarea
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          rows={2}
+          placeholder={
+            mode === "company"
+              ? "e.g. Rippling, Zoho, Razorpay, ADP…"
+              : mode === "url"
+                ? "https://stripe.com — the site itself gets read, plus the public registries"
+                : "e.g. Payroll compliance automation for Indian SMBs…"
+          }
+          className={`${inputCls} resize-none leading-relaxed`}
+        />
+      )}
 
       {/* Geography segmented control */}
       <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -148,10 +195,12 @@ export default function InputPanel({
         disabled={!valid || running}
         className="mt-5 min-h-[46px] w-full bg-amber-400 px-4 py-2.5 text-sm font-medium text-[color:var(--color-accent-ink)] transition-colors duration-150 enabled:hover:bg-amber-500 disabled:cursor-not-allowed disabled:opacity-55"
       >
-        {running ? "Decoding…" : "Run the decode"}
+        {running ? (battle ? "Battling…" : "Decoding…") : battle ? "Run the battle" : "Run the decode"}
       </button>
       <p className="mt-2 text-xs text-zinc-500">
-        Runs entirely on free public sources. ⌘/Ctrl+Enter to launch.
+        {battle
+          ? "Ideas decode one after another (2–4 min each, no parallel engine bans). Ties resolve to PENDING, never fake confidence."
+          : "Runs entirely on free public sources. ⌘/Ctrl+Enter to launch."}
       </p>
     </form>
   );

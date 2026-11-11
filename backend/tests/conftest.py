@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 import sys
+import tempfile
 from pathlib import Path
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
@@ -15,6 +16,10 @@ sys.path.insert(0, str(BACKEND_ROOT))
 
 os.environ["GENESIS_OFFLINE"] = "1"
 os.environ["TOR_ENABLED"] = "0"
+# the vault must never write into the real briefs/ during tests — every vault
+# module that matters (vault/watch tests) points at tmp_path anyway, but the
+# API tests run the full stream, which auto-saves
+os.environ["GENESIS_BRIEFS_DIR"] = tempfile.mkdtemp(prefix="genesis-test-briefs-")
 
 import pytest  # noqa: E402
 

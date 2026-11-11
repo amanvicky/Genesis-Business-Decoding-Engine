@@ -17,6 +17,9 @@ Every claim links its source.
 And when you're done reading, there's a chat panel that answers questions using
 your own numbers ("should I raise?", "who already does this?") and a verdict
 protocol that forces a GO / NO-GO call so the brief actually ends in a decision.
+Every decode is stored in a local `briefs/` vault, so you can also battle 2-3 raw
+ideas against each other on a deterministic matrix and then watch the winner for
+real-world drift.
 
 No API keys. No accounts. Nothing leaves your machine.
 
@@ -34,7 +37,7 @@ your user folder, and opens the dashboard by itself:
 irm https://raw.githubusercontent.com/amanvicky/Genesis-Business-Decoding-Engine/main/scripts/install_from_web.ps1 | iex
 ```
 
-**Windows installer (same result, classic wizard):** grab `Genesis-1.11.0-Setup.exe` from
+**Windows installer (same result, classic wizard):** grab `Genesis-1.12.0-Setup.exe` from
 [Releases](https://github.com/amanvicky/Genesis-Business-Decoding-Engine/releases)
 and double-click it. Standard wizard, installs into your user folder — no admin,
 no PATH changes, nothing outside its own directory. After the wizard, Genesis
@@ -67,6 +70,7 @@ python genesis.py status     # what's running
 python genesis.py logs api   # tail logs
 python genesis.py stop       # shut it down
 python genesis.py doctor     # pre-flight check
+python genesis.py watch      # re-check watched briefs now (drift memos in briefs/)
 python genesis.py uninstall  # stop + clean up (--deep removes venv/node_modules too)
 ```
 
@@ -143,6 +147,38 @@ more) lives in [proofs/](proofs/).
 Every section links its sources. If a source is blocked, that one section degrades,
 the rest of the run continues.
 
+## Battle your ideas, then watch the winner
+
+The input panel has a fourth mode: **Battle ideas**. Give it 2-3 raw ideas — they
+decode one after another (never parallel, search engines ban that from one IP) —
+and you get a matrix per idea: signal score, verdict call, red-team fatals,
+breakeven customers, compliance blockers. The winner is a rule (gate tier → signal
+score → fatals → breakeven → blockers), never an LLM opinion; a full tie resolves
+to PENDING instead of a coin flip. The local model, when present, writes one
+paragraph of verdict prose — the call itself stays mechanical.
+
+Every decode — battle or not — lands in the `briefs/` vault (JSON + a markdown
+twin, 3 kept per subject). Hit **watch this subject** after a decode and the brief
+re-decodes itself every 7 days: when the dashboard opens past the interval the
+backend re-runs the pipeline headless, diffs ~12 stable fields (legal name,
+registration no, registered office, registrar, tech stack, emails, socials,
+signal score, fatals, breakeven, compliance blockers, market tone) against the
+stored memo, and alerts on three tiers — a silent `logs/watch.log` line always, a
+`drift_*.md` memo next to the brief on a real change, and a drift chip on the
+dashboard with a per-tab panel. Ideas can't be watched (they have no stable
+identity to re-check); checks also run manually:
+
+```bash
+python genesis.py watch          # re-check what's due now
+python genesis.py watch --force  # check every watched brief, ignore intervals
+```
+
+Thresholds are deliberately strict so evidence noise (a search engine serving a
+different result count) never triggers a memo: the signal score must move by 5+
+points, breakeven by 20%+, and a value merely appearing or vanishing (better
+scraping, or a fetch hiccup) stays silent. Delete the `briefs/` folder to reset
+the whole history — nothing else stores it.
+
 ## Why it's free
 
 Everything runs on keyless public endpoints: DuckDuckGo/Bing/SearXNG/Mojeek for search,
@@ -171,15 +207,19 @@ writing of each section, Tor routes Tab 11 through SOCKS5.
 ```
 genesis.py               service manager (install / run / supervise / stop), stdlib only
 backend/app/
-  main.py                FastAPI app (stream, health, advisor, verdict, exports)
-  pipeline.py            recon -> 17 agents
+  main.py                FastAPI app (stream, battle, vault, watch, health, advisor, verdict, exports)
+  pipeline.py            recon -> 19 agents
+  battle.py              idea battle: sequential decodes, matrix, rule-based winner
+  fields.py              the stable-field extractor battle/vault/watch stand on
+  vault.py               the briefs/ vault (JSON + markdown twin, cap 3 per subject)
+  watch.py               lazy re-decode + drift alerts (log / memo / chip)
   models.py              request/report/evidence models
   text.py                keyphrases, money/tier extraction, feature classification
   advise.py              real-time advisor (answers from your own brief)
   verdict.py             the GO / NO-GO decision protocol
   engines/               subject identity (kills acronym collisions)
   scrapers/              search cascade, wikipedia, hn, reddit, github, wayback, filings, tor
-  agents/                recon + 17 analysis agents
+  agents/                recon + 18 analysis agents
   data/                  compliance KB (US + India), failure records, channels, scaffolds
 frontend/                Next.js 14, strict TS, one typed renderer per tab
 .github/workflows/       offline tests + strict build on every push
@@ -190,7 +230,7 @@ frontend/                Next.js 14, strict TS, one typed renderer per tab
 I got tired of breaking things by hand, so:
 
 ```bash
-cd backend && .venv/Scripts/python -m pytest tests -q     # ~275 offline tests
+cd backend && .venv/Scripts/python -m pytest tests -q     # ~480 offline tests
 python scripts/smoke_test.py                              # 14/14 sections, no network
 python tests_e2e/lifecycle_test.py                        # the service manager, all lifecycle stages
 python tests_e2e/live_functional_test.py                  # live HTTP journey (stack must be running)
@@ -220,6 +260,8 @@ Copy `backend/.env.example` to `backend/.env`:
   Privacy layer checkbox, or drop a tor.exe into `runtime\tor\` yourself
 - Port already in use: `python genesis.py stop` only clears this project's
   processes, it never touches foreign apps
+- Watch checks run when the dashboard opens past an interval (or via
+  `python genesis.py watch`) — nothing pings anything while Genesis is closed
 
 ## License
 

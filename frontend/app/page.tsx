@@ -1,19 +1,32 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { fetchHealth, streamAnalysis, type HealthInfo } from "@/lib/api";
+import {
+  ackWatchDrifts,
+  fetchHealth,
+  fetchWatchStatus,
+  markWatched,
+  streamAnalysis,
+  streamBattle,
+  triggerWatchCheck,
+  type HealthInfo,
+} from "@/lib/api";
 import {
   TABS,
   TAB_IDS,
   type AnalyzeRequest,
+  type BattleResult,
   type ConsoleEvent,
   type LogLevel,
   type Report,
   type TabId,
+  type WatchStatus,
 } from "@/lib/types";
 import AgentConsole, { StatusRail } from "@/components/AgentConsole";
+import BattleMatrix from "@/components/BattleMatrix";
 import InputPanel from "@/components/InputPanel";
 import ReportViewer from "@/components/ReportViewer";
+import WatchDrifts from "@/components/WatchDrifts";
 import { CodeBlock } from "@/components/ui";
 
 type RunPhase =
@@ -94,12 +107,32 @@ export default function Page() {
   const [report, setReport] = useState<Report | null>(null);
   const [arrived, setArrived] = useState<readonly TabId[]>([]);
   const [status, setStatus] = useState<Readonly<Record<string, "running" | "done" | "failed">>>({});
+  const [battle, setBattle] = useState<BattleResult | null>(null);
+  const [battlePlan, setBattlePlan] = useState<string[]>([]);
+  const [battleIdx, setBattleIdx] = useState(0);
+  const [briefId, setBriefId] = useState<string | null>(null);
+  const [watched, setWatched] = useState(false);
+  const [watchStatus, setWatchStatus] = useState<WatchStatus | null>(null);
+  const [watchOpen, setWatchOpen] = useState(false);
   const [shot, setShot] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     fetchHealth().then(setHealth);
   }, []);
+
+  // Reality Watch: this open IS the lazy trigger — anything due re-decodes in
+  // the background while the dashboard is open; the chip shows the outcome.
+  const refreshWatch = useCallback(async () => {
+    const s = await fetchWatchStatus();
+    if (s) setWatchStatus(s);
+  }, []);
+  useEffect(() => {
+    triggerWatchCheck();
+    refreshWatch();
+    const t = setInterval(refreshWatch, 45_000);
+    return () => clearInterval(t);
+  }, [refreshWatch]);
 
   const reset = useCallback(() => {
     abortRef.current?.abort(); // a re-run/reset must sever any in-flight stream
@@ -109,6 +142,11 @@ export default function Page() {
     setReport(null);
     setArrived([]);
     setStatus({});
+    setBattle(null);
+    setBattlePlan([]);
+    setBattleIdx(0);
+    setBriefId(null);
+    setWatched(false);
   }, []);
 
   const run = useCallback((req: AnalyzeRequest) => {
@@ -120,6 +158,9 @@ export default function Page() {
     setReport(null);
     setArrived([]);
     setStatus({});
+    setBattle(null);
+    setBriefId(null);
+    setWatched(false);
     setPhase({ phase: "running" });
 
     const stale = () => abortRef.current !== ac;
@@ -137,6 +178,9 @@ export default function Page() {
           setReport(ev.report);
           setPhase({ phase: "done" });
           break;
+        case "saved":
+          setBriefId(ev.brief_id);
+          break;
         case "error":
           setPhase({ phase: "error", msg: ev.msg });
           break;
@@ -153,9 +197,70 @@ export default function Page() {
     });
   }, []);
 
+  const runBattle = useCallback((req: { ideas: string[]; geography: "india" | "us" | "global"; context?: string; team_size: number; runway_target_months: number; include_darkweb: boolean }) => {
+    abortRef.current?.abort();
+    const ac = new AbortController();
+    abortRef.current = ac;
+
+    setEvents([]);
+    setReport(null);
+    setArrived([]);
+    setStatus({});
+    setBattle(null);
+    setBriefId(null);
+    setWatched(false);
+    setBattlePlan(req.ideas);
+    setBattleIdx(0);
+    setPhase({ phase: "running" });
+
+    const stale = () => abortRef.current !== ac;
+    streamBattle(req, (ev) => {
+      if (stale()) return;
+      if (ev.type === "battle_start") return;
+      if (ev.type === "idea_start") {
+        setBattleIdx(ev.i);
+        return;
+      }
+      if (ev.type === "idea_done") {
+        setBattleIdx(ev.i + 1); // the placeholder then points at the NEXT idea
+        return;
+      }
+      if (ev.type === "battle_done") {
+        setBattle({ rows: ev.rows, winner: ev.winner, prose: ev.prose, llm_wrote_prose: ev.llm_wrote_prose });
+        setPhase({ phase: "done" });
+        refreshWatch();
+        return;
+      }
+      if (ev.type === "error") {
+        setPhase({ phase: "error", msg: ev.msg });
+        return;
+      }
+      // logs and agent status feed the same console as a normal decode
+      setEvents((prev) => [...prev, ev]);
+      if (ev.type === "status") setStatus((prev) => ({ ...prev, [ev.agent]: ev.state }));
+    }, ac.signal).catch((err: unknown) => {
+      if (stale() || (err instanceof DOMException && err.name === "AbortError")) return;
+      setPhase({ phase: "error", msg: err instanceof Error ? err.message : String(err) });
+    });
+  }, [refreshWatch]);
+
+  const watchThis = useCallback(async () => {
+    if (!briefId) return;
+    if (await markWatched(briefId, 7)) {
+      setWatched(true);
+      refreshWatch();
+    }
+  }, [briefId, refreshWatch]);
+
+  const ackDrifts = useCallback(async () => {
+    if (await ackWatchDrifts()) refreshWatch();
+  }, [refreshWatch]);
+
   const running = phase.phase === "running";
   const hasReport = report !== null && arrived.length > 0;
   const capture = CAPTURED[shot] ?? CAPTURED[0]!;
+  const unseenDriftCount = watchStatus?.drifts?.filter((d) => !d.seen).length ?? 0;
+  const canWatch = phase.phase === "done" && briefId !== null && !battle && report?.request.mode !== "idea";
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-[1440px] flex-col px-4 pb-8 md:px-8">
@@ -170,6 +275,29 @@ export default function Page() {
         </a>
       </header>
 
+      {/* Reality Watch strip — the drift chip lives here, visible on every screen */}
+      {watchStatus && (watchStatus.running || (watchStatus.drifts?.length ?? 0) > 0) && (
+        <div className="border-b border-edge bg-paper-2 px-4 py-2">
+          <button
+            onClick={() => setWatchOpen((v) => !v)}
+            className="flex w-full items-center gap-2 text-left text-xs"
+          >
+            <span className={`inline-flex items-center gap-1.5 border px-2 py-1 ${watchStatus.running ? "border-cyan-900/60 text-cyan-400" : unseenDriftCount > 0 ? "border-amber-700 text-amber-400" : "border-edge text-zinc-500"}`}>
+              <span className={`h-1.5 w-1.5 ${watchStatus.running ? "animate-pulse bg-cyan-400" : unseenDriftCount > 0 ? "bg-amber-400" : "bg-zinc-600"}`} aria-hidden="true" />
+              {watchStatus.running
+                ? `watch: re-checking ${watchStatus.done}/${watchStatus.total}${watchStatus.current ? ` — ${watchStatus.current}` : ""}`
+                : `watch: ${unseenDriftCount > 0 ? `${unseenDriftCount} drift${unseenDriftCount === 1 ? "" : "s"}` : `${watchStatus.drifts.length} drift alert(s), read`} · ${watchStatus.watched_count} watched`}
+            </span>
+            <span className="text-zinc-600">{watchOpen ? "▾" : "▸"}</span>
+          </button>
+          {watchOpen && (
+            <div className="mt-2 max-w-2xl">
+              <WatchDrifts status={watchStatus} onAck={ackDrifts} />
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Idle: the instrument */}
       {phase.phase === "idle" && (
         <main>
@@ -180,10 +308,10 @@ export default function Page() {
               </h1>
               <p className="mt-4 max-w-[34ch] text-lg text-zinc-400">
                 Nineteen free agents decode a business — by name, by website URL, or from a raw idea — into a
-                nineteen-tab intelligence brief.
+                nineteen-tab intelligence brief. Battle two ideas, then watch the winner for drift.
               </p>
               <div className="mt-8 max-w-2xl">
-                <InputPanel running={running} onRun={run} />
+                <InputPanel running={running} onRun={run} onBattle={runBattle} />
               </div>
             </div>
             <div className="lg:col-span-5">
@@ -333,6 +461,19 @@ export default function Page() {
               <AgentConsole events={events} running={running} />
             </div>
             <StatusRail status={status} />
+            {canWatch && (
+              <button
+                onClick={watchThis}
+                disabled={watched}
+                className={`border py-2 text-xs transition-colors duration-150 ${
+                  watched
+                    ? "border-emerald-900/60 text-emerald-500/90"
+                    : "border-edge text-zinc-400 hover:border-amber-700 hover:text-amber-400"
+                }`}
+              >
+                {watched ? "✓ watched — re-checks when the dashboard opens (every 7d)" : "watch this subject — re-decode it every 7 days and alert on drift"}
+              </button>
+            )}
             <button
               onClick={reset}
               className="border border-edge py-2 text-xs text-zinc-500 transition-colors duration-150 hover:border-zinc-600 hover:text-zinc-300"
@@ -351,11 +492,17 @@ export default function Page() {
                   the backend directory.
                 </p>
               </div>
+            ) : battle ? (
+              <BattleMatrix result={battle} />
             ) : hasReport ? (
               <ReportViewer report={report} streaming={running} arrivedIds={arrived} />
             ) : (
               <div className="flex h-full min-h-64 items-center justify-center border border-dashed border-edge">
-                <p className="text-sm text-zinc-500">gathering intelligence: sections stream in as each agent finishes</p>
+                <p className="text-sm text-zinc-500">
+                  {battlePlan.length > 0
+                    ? `battle: decoding idea ${String.fromCharCode(65 + Math.min(battleIdx, battlePlan.length - 1))} of ${battlePlan.length} — each idea runs the full 19-agent pipeline, one at a time`
+                    : "gathering intelligence: sections stream in as each agent finishes"}
+                </p>
               </div>
             )}
           </div>
@@ -369,6 +516,7 @@ export default function Page() {
           {health?.offline_mode && <Chip ok={false} label="offline mode" />}
           <Chip ok={!!health?.llm.available} label={health?.llm.available ? `LLM: ${health.llm.model}` : "no local LLM"} />
           <Chip ok={!!health?.tor.available} label={health?.tor.available ? "Tor live" : "Tor off"} />
+          <Chip ok={false} label={`vault: ${watchStatus?.watched_count ?? 0} watched brief(s)`} />
         </div>
         <div className="flex flex-wrap items-baseline justify-between gap-3">
           <span className="font-display text-sm font-bold tracking-tight text-zinc-200">◈ Genesis</span>

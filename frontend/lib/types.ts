@@ -654,6 +654,7 @@ export type ConsoleEvent =
   | { type: "status"; step: number; agent: string; state: AgentState; title: string; ms?: number }
   | { type: "section"; section: Section }
   | { type: "done"; report: Report }
+  | { type: "saved"; brief_id: string; subject: string } // the vault stored this decode (powers the watch button)
   | { type: "error"; msg: string };
 
 export function assertNever(value: never): never {
@@ -664,6 +665,94 @@ export function assertNever(value: never): never {
 export function sectionData<K extends TabId>(section: Section | undefined, id: K): SectionData<K> | null {
   if (!section || section.id !== id) return null;
   return section.data as unknown as SectionData<K>;
+}
+
+/* ---------------------------------------------------- battle · vault · watch */
+
+export interface BattleRequest {
+  ideas: string[];
+  geography: Geography;
+  context?: string;
+  team_size: number;
+  runway_target_months: number;
+  include_darkweb: boolean;
+}
+
+export interface BattleGates {
+  readonly pass: number;
+  readonly caution: number;
+  readonly fail: number;
+  readonly pending: number;
+}
+
+export interface BattleRow {
+  readonly i: number;
+  readonly label: string;
+  readonly subject: string;
+  readonly score: number | null;
+  readonly decision: string;
+  readonly fatals: number | null;
+  readonly breakeven: number | null;
+  readonly criticals: number | null;
+  readonly gates: BattleGates;
+  readonly brief_id?: string;
+}
+
+export interface BattleResult {
+  readonly rows: readonly BattleRow[];
+  readonly winner: number | null; // null = the matrix tied → PENDING, never a coin flip
+  readonly prose: string;
+  readonly llm_wrote_prose: boolean;
+}
+
+export type BattleEvent =
+  | { type: "battle_start"; ideas: string[] }
+  | { type: "idea_start"; i: number; subject: string }
+  | { type: "idea_done"; i: number; subject: string; brief_id?: string; decision?: string; score?: number | null }
+  | { type: "battle_done"; rows: BattleRow[]; winner: number | null; prose: string; llm_wrote_prose: boolean }
+  | { type: "log"; level: LogLevel; agent: string; msg: string }
+  | { type: "status"; step: number; agent: string; state: AgentState; title: string; ms?: number }
+  | { type: "error"; msg: string };
+
+export interface BriefMeta {
+  readonly id: string;
+  readonly subject: string;
+  readonly mode: Mode;
+  readonly created_at: string;
+  readonly watched: boolean;
+  readonly watch_days: number;
+  readonly last_checked: string | null;
+  readonly checks: number;
+  readonly battle: boolean;
+}
+
+export interface DriftRow {
+  readonly field: string;
+  readonly label: string;
+  readonly tab: string;
+  readonly kind: string;
+  readonly action: string;
+  readonly old: string;
+  readonly new: string;
+}
+
+export interface DriftAlert {
+  readonly id: string;
+  readonly brief_id: string;
+  readonly subject: string;
+  readonly at: string;
+  readonly seen: boolean;
+  readonly rows: readonly DriftRow[];
+}
+
+export interface WatchStatus {
+  readonly running: boolean;
+  readonly done: number;
+  readonly total: number;
+  readonly current: string;
+  readonly watched_count: number;
+  readonly last_run: string | null;
+  readonly drifts: readonly DriftAlert[];
 }
 
 /* ------------------------------------------------------------- advisor */

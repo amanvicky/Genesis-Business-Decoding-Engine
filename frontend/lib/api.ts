@@ -1,17 +1,23 @@
 import {
   type AdviceEvent,
   type AnalyzeRequest,
+  type BattleEvent,
+  type BattleRequest,
+  type BriefMeta,
   type ConsoleEvent,
   type LogLevel,
   type Report,
   type VerdictMemo,
+  type WatchStatus,
   assertNever,
 } from "./types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
 
 /** Compile-time-checked route literals for the backend surface. */
-export type ApiRoute = `/api/${"health" | "analyze/stream" | "advise/stream" | `export/${"markdown" | "zip" | "json"}`}`;
+export type ApiRoute =
+  | `/api/${"health" | "analyze/stream" | "battle/stream" | "advise/stream" | "briefs" | "briefs/watch" | "watch/status" | "watch/check" | "watch/ack"}`
+  | `/api/export/${"markdown" | "zip" | "json"}`;
 
 const url = (route: ApiRoute) => `${API_URL}${route}`;
 
@@ -100,11 +106,13 @@ function parseEvent(line: string): ConsoleEvent {
       return { type: "section", section };
     }
     case "done":
-      return { type: "done", report: raw["report"] as Report };
+        return { type: "done", report: raw["report"] as Report };
+    case "saved":
+        return { type: "saved", brief_id: String(raw["brief_id"] ?? ""), subject: String(raw["subject"] ?? "") };
     case "error":
-      return { type: "error", msg: String(raw["msg"] ?? "unknown backend error") };
+        return { type: "error", msg: String(raw["msg"] ?? "unknown backend error") };
     default:
-      return assertNever(raw as never);
+        return assertNever(raw as never);
   }
 }
 
@@ -165,13 +173,152 @@ export async function streamAdvice(
 
 /** The Verdict Protocol: brief + FMF answers → deterministic decision memo. */
 export async function requestVerdict(report: Report, fmfAnswers: boolean[]): Promise<VerdictMemo> {
-  const res = await fetch(url("/api/verdict" as ApiRoute), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ report, fmf_answers: fmfAnswers }),
-  });
-  if (!res.ok) {
-    throw new Error(`verdict failed: ${res.status}`);
-  }
-  return (await res.json()) as VerdictMemo;
+    const res = await fetch(url("/api/verdict" as ApiRoute), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ report, fmf_answers: fmfAnswers }),
+    });
+    if (!res.ok) {
+        throw new Error(`verdict failed: ${res.status}`);
+    }
+    return (await res.json()) as VerdictMemo;
+}
+
+/* ---------------------------------------------------- battle · vault · watch */
+
+/** Stream an Idea Battle: logs per idea, then the matrix + rule-based winner. */
+export async function streamBattle(
+    req: BattleRequest,
+    onEvent: (ev: BattleEvent) => void,
+    signal?: AbortSignal,
+): Promise<void> {
+    const res = await fetch(url("/api/battle/stream"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(req),
+        signal,
+    });
+    if (!res.ok || !res.body) {
+        throw new Error(`backend returned ${res.status}`);
+    }
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let nl: number;
+        while ((nl = buffer.indexOf("\n")) !== -1) {
+            const line = buffer.slice(0, nl).trim();
+            buffer = buffer.slice(nl + 1);
+            if (!line) continue;
+            try {
+                onEvent(parseBattleEvent(line));
+            } catch (err) {
+                console.error("bad battle event", err, line.slice(0, 200));
+            }
+        }
+    }
+}
+
+const BATTLE_LEVELS = LEVELS;
+
+function parseBattleEvent(line: string): BattleEvent {
+    const raw: Record<string, unknown> = JSON.parse(line);
+    switch (raw["type"]) {
+        case "battle_start":
+            return { type: "battle_start", ideas: (raw["ideas"] as string[]) ?? [] };
+        case "idea_start":
+            return { type: "idea_start", i: Number(raw["i"] ?? 0), subject: String(raw["subject"] ?? "") };
+        case "idea_done":
+            return {
+                type: "idea_done",
+                i: Number(raw["i"] ?? 0),
+                subject: String(raw["subject"] ?? ""),
+                brief_id: raw["brief_id"] === undefined ? undefined : String(raw["brief_id"]),
+                decision: raw["decision"] === undefined ? undefined : String(raw["decision"]),
+                score: raw["score"] === undefined ? undefined : Number(raw["score"]),
+            };
+        case "battle_done":
+            return {
+                type: "battle_done",
+                rows: (raw["rows"] as BattleEvent extends { type: "battle_done"; rows: infer R } ? R : never) ?? [],
+                winner: raw["winner"] === null || raw["winner"] === undefined ? null : Number(raw["winner"]),
+                prose: String(raw["prose"] ?? ""),
+                llm_wrote_prose: Boolean(raw["llm_wrote_prose"]),
+            };
+        case "log":
+            return {
+                type: "log",
+                level: BATTLE_LEVELS.includes(raw["level"] as LogLevel) ? (raw["level"] as LogLevel) : "info",
+                agent: String(raw["agent"] ?? "?"),
+                msg: String(raw["msg"] ?? ""),
+            };
+        case "status":
+            return {
+                type: "status",
+                step: Number(raw["step"] ?? 0),
+                agent: String(raw["agent"] ?? "?"),
+                state: raw["state"] === "done" || raw["state"] === "failed" ? raw["state"] : "running",
+                title: String(raw["title"] ?? ""),
+                ms: raw["ms"] === undefined ? undefined : Number(raw["ms"]),
+            };
+        case "error":
+            return { type: "error", msg: String(raw["msg"] ?? "unknown backend error") };
+        default:
+            return assertNever(raw as never);
+    }
+}
+
+/** The vault: every stored decode, newest first (metadata only). */
+export async function fetchBriefs(): Promise<BriefMeta[]> {
+    try {
+        const res = await fetch(url("/api/briefs"), { cache: "no-store" });
+        if (!res.ok) return [];
+        const body = (await res.json()) as { briefs: BriefMeta[] };
+        return body.briefs ?? [];
+    } catch {
+        return [];
+    }
+}
+
+/** Mark a stored brief watched — the dashboard re-decodes it every `days`. */
+export async function markWatched(briefId: string, days = 7): Promise<boolean> {
+    const res = await fetch(url("/api/briefs/watch"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ brief_id: briefId, days }),
+    });
+    return res.ok;
+}
+
+/** Drift chip data + live checker progress. Null when the API is unreachable. */
+export async function fetchWatchStatus(): Promise<WatchStatus | null> {
+    try {
+        const res = await fetch(url("/api/watch/status"), { cache: "no-store" });
+        if (!res.ok) return null;
+        return (await res.json()) as WatchStatus;
+    } catch {
+        return null;
+    }
+}
+
+/** Lazy trigger (dashboard-open): re-decode what's due, in the background. */
+export async function triggerWatchCheck(): Promise<void> {
+    try {
+        await fetch(url("/api/watch/check"), { cache: "no-store" });
+    } catch {
+        // the dashboard works fine without the watch layer
+    }
+}
+
+/** Mark every stored drift alert as seen. */
+export async function ackWatchDrifts(): Promise<boolean> {
+    try {
+        const res = await fetch(url("/api/watch/ack"), { method: "POST" });
+        return res.ok;
+    } catch {
+        return false;
+    }
 }

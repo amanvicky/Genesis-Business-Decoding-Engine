@@ -10,6 +10,7 @@ watchdog that restarts crashed services automatically:
     python genesis.py up --rebuild    # force a fresh frontend production build
     python genesis.py status          # what is running, healthy, on which port
     python genesis.py logs api        # tail api|web|tor|watchdog logs
+    python genesis.py watch           # re-check watched briefs now (drift memos in briefs/)
     python genesis.py stop            # stop everything this manager started
     python genesis.py restart         # stop + up
     python genesis.py doctor          # pre-flight diagnostic report
@@ -959,6 +960,21 @@ def cmd_uninstall(args: argparse.Namespace) -> None:
     ok("uninstall complete — run  python genesis.py  to reinstall and start")
 
 
+def cmd_watch(args: argparse.Namespace) -> None:
+    """Reality Watch on demand: re-decode every watched brief that is due,
+    write drift memos, print the verdicts. Runs in THIS console (one decode
+    per brief — a few minutes each, nothing parallel)."""
+    banner()
+    bp = backend_python()
+    if not (venv_python().exists() or PORTABLE_PYTHON.exists()):
+        die("backend environment not built yet — run  python genesis.py  once, then watch again")
+    info("re-decoding every watched brief that is due (sequential — a few minutes per brief)…")
+    cmd = [bp, "-m", "app.watch"]
+    if args.force:
+        cmd.append("--force")
+    raise SystemExit(subprocess.run(cmd, cwd=str(BACKEND)).returncode)
+
+
 def cmd_watchdog(args: argparse.Namespace) -> None:
     """Resident supervisor: restarts our services if their ports go dead.
     Bounded restarts (10 per service per hour) so a broken build can't loop."""
@@ -1063,6 +1079,9 @@ def main() -> None:
     un.add_argument("--deep", action="store_true", help="also remove backend/.venv, frontend/node_modules and the production build")
     un.add_argument("--yes", action="store_true", help="skip the confirmation prompt")
     un.set_defaults(func=cmd_uninstall)
+    wt = sub.add_parser("watch", help="re-check watched briefs now (drift memos in briefs/)")
+    wt.add_argument("--force", action="store_true", help="check every watched brief, ignoring its interval")
+    wt.set_defaults(func=cmd_watch)
     wd = sub.add_parser("_watchdog", help=argparse.SUPPRESS)
     wd.set_defaults(func=cmd_watchdog)
 
@@ -1071,7 +1090,7 @@ def main() -> None:
     if argv and argv[0] in ("-h", "--help"):
         parser.print_help()
         return
-    subcommands = {"up", "stop", "status", "logs", "doctor", "uninstall", "_watchdog"}
+    subcommands = {"up", "stop", "status", "logs", "doctor", "uninstall", "watch", "_watchdog"}
     if not argv or argv[0] not in subcommands:
         argv = ["up", *argv]  # bare flags belong to the default 'up'
     args = parser.parse_args(argv)

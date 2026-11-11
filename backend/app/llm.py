@@ -105,3 +105,34 @@ async def enrich(instruction: str, evidence: str, max_chars: int = 1200) -> str 
             return (r.json().get("response") or "").strip() or None
     except Exception:
         return None
+
+
+async def prose(instruction: str, evidence: str, max_chars: int = 900) -> str | None:
+    """One short paragraph from the local LLM — battle's verdict line only.
+    A different output contract than enrich(): plain prose, no bullets.
+    Same fail-soft rule — offline or slow means None and the caller falls
+    back to the rule-written sentence (the matrix itself is deterministic,
+    so the prose is commentary, never the call)."""
+    model = await resolve_model()
+    if not model:
+        return None
+    system = (
+        "You are Genesis, a brutally honest startup analyst. "
+        "Write ONE short paragraph of plain prose (max 60 words). "
+        "No bullet points, no questions, no preamble, never refuse. "
+        "State which option is stronger and the one concrete reason why."
+    )
+    payload = {
+        "model": model,
+        "system": system,
+        "prompt": f"{instruction}\n\nEVIDENCE (the battle matrix):\n{evidence[:max_chars]}",
+        "stream": False,
+        "options": {"temperature": 0.4, "num_predict": 160, "stop": ["\n\n"]},
+    }
+    try:
+        async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
+            r = await client.post(f"{get_settings().ollama_url}/api/generate", json=payload)
+            r.raise_for_status()
+            return (r.json().get("response") or "").strip() or None
+    except Exception:
+        return None

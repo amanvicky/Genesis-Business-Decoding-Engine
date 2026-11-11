@@ -3,6 +3,12 @@
 Endpoints:
   GET  /api/health            — liveness + Tor/Ollama capability probes
   POST /api/analyze/stream    — NDJSON event stream (logs → sections → report)
+  POST /api/battle/stream     — 2–3 ideas decoded sequentially, then the matrix
+  GET  /api/briefs            — the vault (every decode, newest first)
+  POST /api/briefs/watch      — mark a stored brief watched (re-decode interval)
+  GET  /api/watch/status      — drift chip data + live checker progress
+  GET  /api/watch/check       — lazy trigger: re-decode what's due, in background
+  POST /api/watch/ack         — mark drift alerts seen
   POST /api/export/markdown   — full report → .md download
   POST /api/export/zip        — full report + scaffold → .zip download
 """
@@ -16,9 +22,9 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 
-from . import __version__, advise, export, llm, verdict
+from . import __version__, advise, battle, export, llm, vault, verdict, watch
 from .config import get_settings
-from .models import AnalyzeRequest
+from .models import AnalyzeRequest, BattleRequest
 from .pipeline import run_pipeline
 from .scrapers import tor as tor_mod
 
@@ -86,7 +92,16 @@ async def analyze_stream(req: AnalyzeRequest):
 
         async def runner() -> None:
             try:
-                await run_pipeline(req, push)
+                report = await run_pipeline(req, push)
+                # every decode lands in the vault — battle, watch and the
+                # dashboard's watch-button all stand on this one save.
+                # A vault hiccup must never turn a finished decode into an error.
+                try:
+                    entry = vault.save(report.model_dump())
+                    await push({"type": "saved", "brief_id": entry["id"], "subject": entry["subject"]})
+                except Exception as exc:
+                    await push({"type": "log", "level": "warn", "agent": "genesis",
+                                "msg": f"vault save failed ({type(exc).__name__}) — the brief still rendered above, it just isn't stored"})
             except Exception as exc:
                 await push({"type": "error", "msg": f"{type(exc).__name__}: {exc}"})
             finally:
@@ -107,6 +122,102 @@ async def analyze_stream(req: AnalyzeRequest):
         media_type="application/x-ndjson",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+@app.post("/api/battle/stream")
+async def battle_stream(req: BattleRequest):
+    """Idea Battle: decode 2–3 ideas one after another, then the matrix +
+    rule-based winner. Events: battle_start → idea_start → (pipeline logs)
+    → idea_done ×N → battle_done."""
+
+    async def generate():
+        import asyncio
+
+        queue: asyncio.Queue = asyncio.Queue(maxsize=256)
+
+        async def push(event: dict) -> None:
+            await queue.put(event)
+
+        async def runner() -> None:
+            try:
+                await battle.run_battle(req, push)
+            except Exception as exc:
+                await push({"type": "error", "msg": f"{type(exc).__name__}: {exc}"})
+            finally:
+                await queue.put(None)
+
+        task = asyncio.create_task(runner())
+        try:
+            while True:
+                event = await queue.get()
+                if event is None:
+                    break
+                yield json.dumps(event, ensure_ascii=False, default=str) + "\n"
+        finally:
+            task.cancel()
+
+    return StreamingResponse(
+        generate(),
+        media_type="application/x-ndjson",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+@app.get("/api/briefs")
+async def briefs_list() -> dict:
+    return {"briefs": [_brief_meta(e) for e in vault.list_all()]}
+
+
+def _brief_meta(e: dict) -> dict:
+    """The list view: metadata only — full fields live in the stored entry."""
+    return {
+        "id": e.get("id"),
+        "subject": e.get("subject"),
+        "mode": e.get("mode"),
+        "created_at": e.get("created_at"),
+        "watched": bool(e.get("watched")),
+        "watch_days": e.get("watch_days"),
+        "last_checked": e.get("last_checked"),
+        "checks": e.get("checks"),
+        "battle": bool(e.get("battle")),
+    }
+
+
+@app.post("/api/briefs/watch")
+async def briefs_watch(request: Request):
+    body = await _report_body(request)
+    brief_id = str(body.get("brief_id") or "")
+    days = body.get("days", vault.DEFAULT_WATCH_DAYS)
+    if not isinstance(days, int) or not (1 <= days <= 90):
+        raise HTTPException(status_code=422, detail="days must be an integer between 1 and 90")
+    entry = vault.get(brief_id)
+    if entry is None:
+        raise HTTPException(status_code=404, detail="no such brief in the vault")
+    if entry.get("mode") not in ("company", "url"):
+        raise HTTPException(status_code=422, detail="only company/url decodes can be watched — an idea has no stable identity to re-check")
+    updated = vault.mark(brief_id, watched=True, days=days)
+    return {"ok": True, "brief": _brief_meta(updated or {})}
+
+
+@app.get("/api/watch/status")
+async def watch_status() -> dict:
+    s = watch.load_status()
+    watched = sum(1 for e in vault.list_all() if e.get("watched"))
+    return {**s, "watched_count": watched}
+
+
+@app.get("/api/watch/check")
+async def watch_check() -> dict:
+    """The lazy trigger the dashboard calls on open: re-decode whatever is due,
+    in the background. Never blocks and never double-runs."""
+    started = watch.launch_background()
+    return {"started": started, "running": bool(watch.STATUS.get("running"))}
+
+
+@app.post("/api/watch/ack")
+async def watch_ack() -> dict:
+    watch.ack()
+    return {"ok": True}
 
 
 @app.post("/api/advise/stream")
