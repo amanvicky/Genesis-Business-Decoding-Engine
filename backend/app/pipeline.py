@@ -96,7 +96,6 @@ async def run_pipeline(req: AnalyzeRequest, emit: Emit) -> Report:
             profile["pages"] = await site_mod.read_pages(f0, profile.get("links") or {})
             profile["brand"] = site_mod.brand_of(profile) or domain.split(".")[0].title()
             subject = profile["brand"]
-            ev.site = profile
             ev.add_source(url, kind="site", title=profile.get("title") or domain)
             from urllib.parse import urlparse as _up
             for p in profile["pages"]:
@@ -110,6 +109,10 @@ async def run_pipeline(req: AnalyzeRequest, emit: Emit) -> Report:
                 + (f" — “{profile.get('title') or ''}”" if profile.get("title") else "")
                 + f" · {len(profile['pages'])} own pages, {len(profile.get('tech') or [])} technologies, {len(profile.get('socials') or {})} socials"
             )})
+        # the registry layer must know a failed fetch happened — a site that
+        # timed out is not the same as "no URL given", and the coverage notes
+        # say so instead of misleading
+        ev.site = profile
         ev.subject = subject
         ev.wiki_domain_hint = domain  # type: ignore[attr-defined]
 
