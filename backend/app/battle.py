@@ -86,8 +86,13 @@ async def run_battle(req: BattleRequest, emit: Emit) -> dict:
 
     winner = pick_winner(rows)
     evidence = _matrix_text(rows)
+    # the prose justifies the rule's call — the LLM never picks the winner
+    # itself (its own read once contradicted the matrix it was commenting on)
+    call = ("no winner — the matrix tied" if winner is None
+            else f"idea {chr(ord('A') + winner)} ({rows[winner]['subject']})")
     llm_prose = await llm.prose(
-        "Name the stronger idea and the one concrete reason it wins. If they tie, say what measurement would break the tie.",
+        f"The rule-based call picked {call}. Write ONE paragraph justifying that call from the matrix. "
+        "If the call is a tie, say what measurement would break it. Never pick a different option.",
         evidence,
     )
     prose = llm_prose or _fallback_prose(rows, winner)
