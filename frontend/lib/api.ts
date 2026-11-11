@@ -228,14 +228,15 @@ function parseBattleEvent(line: string): BattleEvent {
     const raw: Record<string, unknown> = JSON.parse(line);
     switch (raw["type"]) {
         case "battle_start":
-            return { type: "battle_start", ideas: (raw["ideas"] as string[]) ?? [] };
+            return { type: "battle_start", ideas: (raw["ideas"] as string[]) ?? [], kinds: (raw["kinds"] as string[]) ?? [] };
         case "idea_start":
-            return { type: "idea_start", i: Number(raw["i"] ?? 0), subject: String(raw["subject"] ?? "") };
+            return { type: "idea_start", i: Number(raw["i"] ?? 0), subject: String(raw["subject"] ?? ""), kind: String(raw["kind"] ?? "idea") };
         case "idea_done":
             return {
                 type: "idea_done",
                 i: Number(raw["i"] ?? 0),
                 subject: String(raw["subject"] ?? ""),
+                kind: raw["kind"] === undefined ? undefined : String(raw["kind"]),
                 brief_id: raw["brief_id"] === undefined ? undefined : String(raw["brief_id"]),
                 decision: raw["decision"] === undefined ? undefined : String(raw["decision"]),
                 score: raw["score"] === undefined ? undefined : Number(raw["score"]),

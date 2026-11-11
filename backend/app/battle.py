@@ -23,6 +23,9 @@ from .verdict import build_memo
 Emit = Callable[[dict], Awaitable[None]]
 
 
+_MODES = {"idea": Mode.idea, "company": Mode.company, "url": Mode.url}
+
+
 async def run_battle(req: BattleRequest, emit: Emit) -> dict:
     # emitters may be sync (tests, CLI) or async (the API queue) — normalize once
     async def say(event: dict) -> None:
@@ -30,16 +33,19 @@ async def run_battle(req: BattleRequest, emit: Emit) -> dict:
         if asyncio.iscoroutine(r):
             await r
 
-    ideas = list(req.ideas)
-    await say({"type": "battle_start", "ideas": ideas})
+    items = list(req.items or [])
+    mixed = len({i.kind for i in items}) > 1
+    await say({"type": "battle_start", "ideas": [i.text for i in items],
+               "kinds": [i.kind for i in items]})
 
     rows: list[dict] = []
-    for i, idea in enumerate(ideas):
+    for i, item in enumerate(items):
         label = chr(ord("A") + i)
-        await say({"type": "idea_start", "i": i, "subject": idea})
+        noun = "option" if item.kind != "idea" else "idea"
+        await say({"type": "idea_start", "i": i, "subject": item.text, "kind": item.kind})
         areq = AnalyzeRequest(
-            mode=Mode.idea,
-            query=idea,
+            mode=_MODES.get(item.kind, Mode.idea),
+            query=item.text,
             geography=req.geography,
             context=req.context,
             team_size=req.team_size,
@@ -49,7 +55,7 @@ async def run_battle(req: BattleRequest, emit: Emit) -> dict:
 
         async def forward(event: dict) -> None:
             # the 19 sections would make the dashboard tabs flicker between
-            # ideas — battle streams logs and agent progress only
+            # options — battle streams logs and agent progress only
             if event.get("type") == "section":
                 return
             await say(event)
@@ -59,8 +65,8 @@ async def run_battle(req: BattleRequest, emit: Emit) -> dict:
             blob = report.model_dump()
         except Exception as exc:
             await say({"type": "log", "level": "warn", "agent": "battle",
-                       "msg": f"idea {label} decode failed ({type(exc).__name__}: {exc}) — scored as unmeasured"})
-            rows.append(_row(i, idea, {}, {"pass": 0, "caution": 0, "fail": 0, "pending": 3}))
+                       "msg": f"{noun} {label} decode failed ({type(exc).__name__}: {exc}) — scored as unmeasured"})
+            rows.append(_row(i, item, {}, {"pass": 0, "caution": 0, "fail": 0, "pending": 3}))
             continue
 
         memo = build_memo(blob)
@@ -70,7 +76,7 @@ async def run_battle(req: BattleRequest, emit: Emit) -> dict:
             gates[s] = gates.get(s, 0) + 1
         row = _row(
             i,
-            idea,
+            item,
             extract_fields(blob),
             gates,
             decision=str(memo.get("decision") or "PENDING"),
@@ -81,31 +87,34 @@ async def run_battle(req: BattleRequest, emit: Emit) -> dict:
         except Exception:
             pass  # the battle still reports; the vault hiccup gets a log only
         rows.append(row)
-        await say({"type": "idea_done", "i": i, "subject": idea, "brief_id": row.get("brief_id"),
-                   "decision": row["decision"], "score": row["score"]})
+        await say({"type": "idea_done", "i": i, "subject": item.text, "kind": item.kind,
+                   "brief_id": row.get("brief_id"), "decision": row["decision"], "score": row["score"]})
 
     winner = pick_winner(rows)
     evidence = _matrix_text(rows)
     # the prose justifies the rule's call — the LLM never picks the winner
     # itself (its own read once contradicted the matrix it was commenting on)
     call = ("no winner — the matrix tied" if winner is None
-            else f"idea {chr(ord('A') + winner)} ({rows[winner]['subject']})")
-    llm_prose = await llm.prose(
-        f"The rule-based call picked {call}. Write ONE paragraph justifying that call from the matrix. "
-        "If the call is a tie, say what measurement would break it. Never pick a different option.",
-        evidence,
-    )
-    prose = llm_prose or _fallback_prose(rows, winner)
+            else f"option {chr(ord('A') + winner)} ({rows[winner]['subject']})")
+    instruction = (f"The rule-based call picked {call}. Write ONE paragraph justifying that call from the matrix. "
+                   "If the call is a tie, say what measurement would break it. Never pick a different option.")
+    if mixed:
+        instruction += (" One or more rows are real companies (incumbents): a company winning means the "
+                        "incumbent already out-positions the idea — name what the founder should differentiate, "
+                        "not that the idea is dead.")
+    llm_prose = await llm.prose(instruction, evidence)
+    prose = llm_prose or _fallback_prose(rows, winner, mixed)
     result = {"rows": rows, "winner": winner, "prose": prose, "llm_wrote_prose": llm_prose is not None}
     await say({"type": "battle_done", **result})
     return result
 
 
-def _row(i: int, idea: str, fields: dict, gates: dict, decision: str = "PENDING") -> dict:
+def _row(i: int, item: Any, fields: dict, gates: dict, decision: str = "PENDING") -> dict:
     return {
         "i": i,
         "label": chr(ord("A") + i),
-        "subject": idea,
+        "kind": getattr(item, "kind", "idea"),
+        "subject": getattr(item, "text", str(item)),
         "score": fields.get("signal_score"),
         "decision": decision,
         "fatals": fields.get("fatal_count"),
@@ -160,15 +169,16 @@ def _matrix_text(rows: list[dict]) -> str:
     lines = []
     for r in rows:
         g = r.get("gates") or {}
+        tag = "" if r.get("kind", "idea") == "idea" else " [incumbent]"
         lines.append(
-            f"{r.get('label')}: \"{r.get('subject')}\" — signal score {r.get('score')}, verdict {r.get('decision')}, "
+            f"{r.get('label')}{tag}: \"{r.get('subject')}\" — signal score {r.get('score')}, verdict {r.get('decision')}, "
             f"{r.get('fatals')} fatal red-team challenges, breakeven {r.get('breakeven')} customers, "
             f"{r.get('criticals')} compliance blockers, gates {g.get('pass', 0)} pass / {g.get('caution', 0)} caution / {g.get('fail', 0)} fail / {g.get('pending', 0)} pending"
         )
     return "\n".join(lines)
 
 
-def _fallback_prose(rows: list[dict], winner: int | None) -> str:
+def _fallback_prose(rows: list[dict], winner: int | None, mixed: bool = False) -> str:
     if winner is None:
         return ("No honest winner: the matrix ties on every rule — same gate tier, same signal band, "
                 "same fatals. Break the tie with a differentiator the decode can actually measure, or "
@@ -177,9 +187,13 @@ def _fallback_prose(rows: list[dict], winner: int | None) -> str:
     others = [r for r in rows if r["i"] != winner]
     beat = others[0] if others else None
     why = _why(w, beat)
-    return (f"Rule-based call: idea {w.get('label')} ({w.get('subject')}) — {why}. "
+    text = (f"Rule-based call: option {w.get('label')} ({w.get('subject')}) — {why}. "
             f"The matrix is the evidence; this call is mechanical, not a judgment, and the red-team "
             f"fatals still need written answers before any code.")
+    if mixed and w.get("kind", "idea") != "idea":
+        text += (" The winner here is an incumbent: that row is what you're up against — read its "
+                 "weaknesses as your differentiation brief, not as a death sentence.")
+    return text
 
 
 def _why(w: dict, other: dict | None) -> str:

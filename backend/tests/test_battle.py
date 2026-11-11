@@ -74,7 +74,7 @@ class TestWinnerRules:
 
 class TestBattleRequest:
     def test_two_to_three_ideas_only(self):
-        assert BattleRequest(ideas=["a payroll idea", "a rival idea"]).ideas == ["a payroll idea", "a rival idea"]
+        assert [i.text for i in BattleRequest(ideas=["a payroll idea", "a rival idea"]).items] == ["a payroll idea", "a rival idea"]
         with pytest.raises(ValidationError):
             BattleRequest(ideas=["only one idea here"])
         with pytest.raises(ValidationError):
@@ -87,7 +87,38 @@ class TestBattleRequest:
             BattleRequest(ideas=["ok idea here", "x"])
 
     def test_ideas_are_stripped(self):
-        assert BattleRequest(ideas=["  idea one  ", "idea two"]).ideas == ["idea one", "idea two"]
+        assert [i.text for i in BattleRequest(ideas=["  idea one  ", "idea two"]).items] == ["idea one", "idea two"]
+
+
+class TestBattleItems:
+    def test_mixed_kinds_and_url_normalization(self):
+        r = BattleRequest(items=[
+            {"kind": "idea", "text": "payroll automation for SMBs"},
+            {"kind": "url", "text": "stripe.com"},
+        ])
+        assert [i.kind for i in r.items] == ["idea", "url"]
+        assert r.items[1].text == "https://stripe.com"  # bare domain gets the same https gate
+
+    def test_url_slots_pass_the_ssrf_gate(self):
+        with pytest.raises(ValidationError):
+            BattleRequest(items=[{"kind": "url", "text": "localhost:3000"}, {"kind": "idea", "text": "some other idea"}])
+        with pytest.raises(ValidationError):
+            BattleRequest(items=[{"kind": "url", "text": "https://192.168.1.5/"}, {"kind": "idea", "text": "some other idea"}])
+        with pytest.raises(ValidationError):
+            BattleRequest(items=[{"kind": "url", "text": "not a url at all"}, {"kind": "idea", "text": "some other idea"}])
+
+    def test_legacy_ideas_maps_to_idea_items(self):
+        r = BattleRequest(ideas=["idea one here", "idea two here"])
+        assert [i.kind for i in r.items] == ["idea", "idea"]
+        assert r.items[0].text == "idea one here"
+
+    def test_neither_shape_rejected(self):
+        with pytest.raises(ValidationError):
+            BattleRequest()
+
+    def test_company_kind_accepted(self):
+        r = BattleRequest(items=[{"kind": "company", "text": "Stripe"}, {"kind": "idea", "text": "my payments idea"}])
+        assert r.items[0].kind == "company"
 
 
 class TestRunBattle:
@@ -99,6 +130,29 @@ class TestRunBattle:
                 raise out
             return _report(req.query, out)
         return fake
+
+    def test_url_slot_decodes_in_url_mode(self, env, monkeypatch):
+        seen: list[tuple[str, str]] = []
+        async def fake(req: AnalyzeRequest, emit):
+            seen.append((req.mode.value, req.query))
+            return _report(req.query, 30)
+        monkeypatch.setattr(battle, "run_pipeline", fake)
+        result = asyncio.run(run_battle(
+            BattleRequest(items=[{"kind": "idea", "text": "my payroll idea"}, {"kind": "url", "text": "stripe.com"}]),
+            lambda e: None))
+        assert seen[0] == ("idea", "my payroll idea")
+        assert seen[1][0] == "url" and seen[1][1].endswith("stripe.com")
+        assert result["rows"][1]["kind"] == "url"
+
+    def test_incumbent_win_prose_names_the_differentiation(self, env, monkeypatch):
+        async def fake(req: AnalyzeRequest, emit):
+            return _report(req.query, 50 if req.mode.value == "url" else 10)
+        monkeypatch.setattr(battle, "run_pipeline", fake)
+        result = asyncio.run(run_battle(
+            BattleRequest(items=[{"kind": "idea", "text": "my payroll idea"}, {"kind": "url", "text": "stripe.com"}]),
+            lambda e: None))
+        assert result["winner"] == 1
+        assert "incumbent" in result["prose"].lower()
 
     def test_event_sequence_and_fallback_prose(self, env, monkeypatch):
         monkeypatch.setattr(battle, "run_pipeline", self._fake_pipeline({"A payroll idea": 40, "B rival idea": 22}))

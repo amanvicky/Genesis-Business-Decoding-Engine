@@ -669,8 +669,15 @@ export function sectionData<K extends TabId>(section: Section | undefined, id: K
 
 /* ---------------------------------------------------- battle · vault · watch */
 
+export type BattleKind = "idea" | "company" | "url";
+
+export interface BattleItem {
+  kind: BattleKind;
+  text: string;
+}
+
 export interface BattleRequest {
-  ideas: string[];
+  items: BattleItem[];
   geography: Geography;
   context?: string;
   team_size: number;
@@ -688,6 +695,7 @@ export interface BattleGates {
 export interface BattleRow {
   readonly i: number;
   readonly label: string;
+  readonly kind: BattleKind;
   readonly subject: string;
   readonly score: number | null;
   readonly decision: string;
@@ -706,9 +714,9 @@ export interface BattleResult {
 }
 
 export type BattleEvent =
-  | { type: "battle_start"; ideas: string[] }
-  | { type: "idea_start"; i: number; subject: string }
-  | { type: "idea_done"; i: number; subject: string; brief_id?: string; decision?: string; score?: number | null }
+  | { type: "battle_start"; ideas: string[]; kinds: string[] }
+  | { type: "idea_start"; i: number; subject: string; kind: string }
+  | { type: "idea_done"; i: number; subject: string; kind?: string; brief_id?: string; decision?: string; score?: number | null }
   | { type: "battle_done"; rows: BattleRow[]; winner: number | null; prose: string; llm_wrote_prose: boolean }
   | { type: "log"; level: LogLevel; agent: string; msg: string }
   | { type: "status"; step: number; agent: string; state: AgentState; title: string; ms?: number }

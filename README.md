@@ -37,7 +37,7 @@ your user folder, and opens the dashboard by itself:
 irm https://raw.githubusercontent.com/amanvicky/Genesis-Business-Decoding-Engine/main/scripts/install_from_web.ps1 | iex
 ```
 
-**Windows installer (same result, classic wizard):** grab `Genesis-1.12.0-Setup.exe` from
+**Windows installer (same result, classic wizard):** grab `Genesis-1.13.0-Setup.exe` from
 [Releases](https://github.com/amanvicky/Genesis-Business-Decoding-Engine/releases)
 and double-click it. Standard wizard, installs into your user folder — no admin,
 no PATH changes, nothing outside its own directory. After the wizard, Genesis
@@ -149,10 +149,12 @@ the rest of the run continues.
 
 ## Battle your ideas, then watch the winner
 
-The input panel has a fourth mode: **Battle ideas**. Give it 2-3 raw ideas — they
-decode one after another (never parallel, search engines ban that from one IP) —
-and you get a matrix per idea: signal score, verdict call, red-team fatals,
-breakeven customers, compliance blockers. The winner is a rule (gate tier → signal
+The input panel has a fourth mode: **Battle ideas**. Give it 2-3 slots — each can
+be a raw idea, an existing company by name, or a rival's website URL — they decode
+one after another (never parallel, search engines ban that from one IP) — and you
+get a matrix per option: signal score, verdict call, red-team fatals, breakeven
+customers, compliance blockers. Battling your idea against the incumbent's URL is
+the honest question: does the rival already out-position you, and where exactly? The winner is a rule (gate tier → signal
 score → fatals → breakeven → blockers), never an LLM opinion; a full tie resolves
 to PENDING instead of a coin flip. The local model, when present, writes one
 paragraph of verdict prose — the call itself stays mechanical.

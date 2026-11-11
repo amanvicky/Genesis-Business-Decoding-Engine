@@ -15,6 +15,7 @@ import {
   TABS,
   TAB_IDS,
   type AnalyzeRequest,
+  type BattleRequest,
   type BattleResult,
   type ConsoleEvent,
   type LogLevel,
@@ -197,7 +198,7 @@ export default function Page() {
     });
   }, []);
 
-  const runBattle = useCallback((req: { ideas: string[]; geography: "india" | "us" | "global"; context?: string; team_size: number; runway_target_months: number; include_darkweb: boolean }) => {
+  const runBattle = useCallback((req: BattleRequest) => {
     abortRef.current?.abort();
     const ac = new AbortController();
     abortRef.current = ac;
@@ -209,7 +210,7 @@ export default function Page() {
     setBattle(null);
     setBriefId(null);
     setWatched(false);
-    setBattlePlan(req.ideas);
+    setBattlePlan(req.items.map((s) => s.text));
     setBattleIdx(0);
     setPhase({ phase: "running" });
 
@@ -500,7 +501,7 @@ export default function Page() {
               <div className="flex h-full min-h-64 items-center justify-center border border-dashed border-edge">
                 <p className="text-sm text-zinc-500">
                   {battlePlan.length > 0
-                    ? `battle: decoding idea ${String.fromCharCode(65 + Math.min(battleIdx, battlePlan.length - 1))} of ${battlePlan.length} — each idea runs the full 19-agent pipeline, one at a time`
+                    ? `battle: decoding option ${String.fromCharCode(65 + Math.min(battleIdx, battlePlan.length - 1))} of ${battlePlan.length} — each option runs the full 19-agent pipeline, one at a time`
                     : "gathering intelligence: sections stream in as each agent finishes"}
                 </p>
               </div>

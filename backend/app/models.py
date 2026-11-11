@@ -4,7 +4,7 @@ import ipaddress
 import re
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 from urllib.parse import urlparse
 
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -22,33 +22,76 @@ class Geography(str, Enum):
     global_ = "global"
 
 
-class BattleRequest(BaseModel):
-    """2–3 raw ideas, decoded SEQUENTIALLY (one IP, no parallel engine bans)
-    and compared on a deterministic matrix."""
+class BattleItem(BaseModel):
+    """One battle slot: a raw idea, an existing company by name, or a rival by
+    URL — the incumbent your idea is honestly up against."""
 
-    ideas: list[str] = Field(min_length=2, max_length=3)
+    kind: Literal["idea", "company", "url"] = "idea"
+    text: str
 
-    @field_validator("ideas")
+    @field_validator("text")
     @classmethod
-    def _clean_ideas(cls, v: list[str]) -> list[str]:
-        cleaned = []
-        for raw in v:
-            s = raw.strip()
-            if len(s) < 2:
-                raise ValueError("every idea needs at least 2 characters")
-            if len(s) > 300:
-                raise ValueError("an idea is at most 300 characters — sharpen it, don't paste the whole plan")
-            cleaned.append(s)
-        lowered = [s.lower() for s in cleaned]
-        if len(set(lowered)) != len(lowered):
-            raise ValueError("two ideas are identical — battle needs distinct options to compare")
-        return cleaned
+    def _clean_text(cls, v: str) -> str:
+        s = v.strip()
+        if len(s) < 2:
+            raise ValueError("every battle option needs at least 2 characters")
+        if len(s) > 300:
+            raise ValueError("a battle option is at most 300 characters — sharpen it, don't paste the whole plan")
+        return s
+
+    @model_validator(mode="after")
+    def _url_shape(self) -> "BattleItem":
+        if self.kind == "url":
+            self.text = _require_public_url(self.text)
+        return self
+
+
+class BattleRequest(BaseModel):
+    """2–3 battle slots, decoded SEQUENTIALLY (one IP, no parallel engine bans)
+    and compared on a deterministic matrix. `ideas` is the legacy pure-idea
+    shape; the typed `items` form is what the dashboard sends."""
+
+    ideas: Optional[list[str]] = Field(default=None)
+    items: Optional[list[BattleItem]] = Field(default=None)
+
+    @model_validator(mode="after")
+    def _assemble_items(self) -> "BattleRequest":
+        if self.items is not None:
+            if not 2 <= len(self.items) <= 3:
+                raise ValueError("battle takes 2-3 options")
+        elif self.ideas is not None:
+            if not 2 <= len(self.ideas) <= 3:
+                raise ValueError("battle takes 2-3 ideas")
+            self.items = [BattleItem(kind="idea", text=s) for s in self.ideas]
+        else:
+            raise ValueError("battle needs 2-3 options (ideas, companies or URLs)")
+        keys = [(i.kind, i.text.lower()) for i in self.items]
+        if len(set(keys)) != len(keys):
+            raise ValueError("two options are identical — battle needs distinct options to compare")
+        return self
 
     geography: Geography = Geography.global_
     context: Optional[str] = Field(default=None, max_length=2000)
     team_size: int = Field(default=3, ge=1, le=200)
     runway_target_months: int = Field(default=12, ge=1, le=60)
     include_darkweb: bool = True
+
+
+def _require_public_url(raw: str) -> str:
+    """The one URL gate every mode shares: bare domains get https://, loopback
+    and private-range targets are refused at the door (SSRF)."""
+    if "://" not in raw:
+        raw = "https://" + raw.lstrip("/")
+    host = urlparse(raw).hostname or ""
+    if "." not in host:
+        raise ValueError("url mode needs a real website address, e.g. stripe.com")
+    try:
+        ip = ipaddress.ip_address(host)
+    except ValueError:
+        ip = None
+    if ip is not None and not ip.is_global:
+        raise ValueError("url mode only decodes public websites")
+    return raw
 
 
 class AnalyzeRequest(BaseModel):
@@ -67,23 +110,8 @@ class AnalyzeRequest(BaseModel):
 
     @model_validator(mode="after")
     def _normalize_url_query(self) -> "AnalyzeRequest":
-        # url mode: accept bare domains ("stripe.com") and hand every downstream
-        # fetcher one canonical https:// form to work with — and refuse
-        # loopback/private targets at the door, same as every other fetch
         if self.mode is Mode.url:
-            raw = self.query.strip()
-            if "://" not in raw:
-                raw = "https://" + raw.lstrip("/")
-            host = urlparse(raw).hostname or ""
-            if "." not in host:
-                raise ValueError("url mode needs a real website address, e.g. stripe.com")
-            try:
-                ip = ipaddress.ip_address(host)
-            except ValueError:
-                ip = None
-            if ip is not None and not ip.is_global:
-                raise ValueError("url mode only decodes public websites")
-            self.query = raw
+            self.query = _require_public_url(self.query.strip())
         return self
 
     geography: Geography = Geography.global_

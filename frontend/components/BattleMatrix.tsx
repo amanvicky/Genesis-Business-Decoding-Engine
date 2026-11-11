@@ -54,6 +54,7 @@ function BattleRowView({ row, won, tied }: { row: BattleRow; won: boolean; tied:
       <div className="sm:w-44 sm:shrink-0">
         <div className="flex items-center gap-2">
           <span className="font-mono text-xs text-zinc-600">{row.label}</span>
+          {row.kind !== "idea" && <span className="border border-cyan-900/60 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-cyan-400">incumbent</span>}
           {won && <span className="border border-amber-700 bg-amber-950/30 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-amber-400">rule call</span>}
           {tied && <span className="border border-edge px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-zinc-500">pending</span>}
         </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { AnalyzeRequest, BattleRequest, Geography, Mode } from "@/lib/types";
+import type { AnalyzeRequest, BattleItem, BattleKind, BattleRequest, Geography, Mode } from "@/lib/types";
 
 const GEOS: readonly { value: Geography; label: string }[] = [
   { value: "us", label: "United States" },
@@ -9,7 +9,15 @@ const GEOS: readonly { value: Geography; label: string }[] = [
   { value: "global", label: "Global" },
 ];
 
+const KINDS: readonly { value: BattleKind; label: string }[] = [
+  { value: "idea", label: "Idea" },
+  { value: "company", label: "Company" },
+  { value: "url", label: "URL" },
+];
+
 type InputMode = Mode | "battle";
+
+const emptySlot = (): BattleItem => ({ kind: "idea", text: "" });
 
 export default function InputPanel({
   running,
@@ -22,7 +30,7 @@ export default function InputPanel({
 }) {
   const [mode, setMode] = useState<InputMode>("company");
   const [query, setQuery] = useState("");
-  const [ideas, setIdeas] = useState<string[]>(["", "", ""]);
+  const [slots, setSlots] = useState<BattleItem[]>([emptySlot(), emptySlot(), emptySlot()]);
   const [geography, setGeography] = useState<Geography>("global");
   const [context, setContext] = useState("");
   const [teamSize, setTeamSize] = useState(3);
@@ -31,12 +39,13 @@ export default function InputPanel({
   const [advanced, setAdvanced] = useState(false);
 
   const battle = mode === "battle";
-  const cleanIdeas = ideas.map((s) => s.trim());
-  const filled = cleanIdeas.filter((s) => s.length >= 2);
-  const ideaDupes = new Set(filled.map((s) => s.toLowerCase())).size !== filled.length;
+  const cleanSlots = slots.map((s) => ({ kind: s.kind, text: s.text.trim() }));
+  const filled = cleanSlots.filter((s) => s.text.length >= 2);
+  const slotDupes = new Set(filled.map((s) => `${s.kind}:${s.text.toLowerCase()}`)).size !== filled.length;
+  const badUrl = filled.some((s) => s.kind === "url" && !/^[^\s]+\.[^\s]{2,}/.test(s.text));
 
   const valid = battle
-    ? filled.length >= 2 && !ideaDupes // two ideas minimum, three max, no duplicates
+    ? filled.length >= 2 && !slotDupes && !badUrl // two options minimum, distinct, URLs URL-shaped
     : mode === "url"
       ? /^[^\s]+\.[^\s]{2,}$/.test(query.trim()) // a URL needs at least a dot and no spaces
       : query.trim().length >= 2;
@@ -46,7 +55,7 @@ export default function InputPanel({
     if (!valid || running) return;
     if (battle) {
       onBattle({
-        ideas: filled.slice(0, 3),
+        items: filled.slice(0, 3),
         geography,
         context: context.trim() || undefined,
         team_size: teamSize,
@@ -103,28 +112,62 @@ export default function InputPanel({
         ))}
       </div>
 
-      {/* Query — or the battle's idea slots */}
+      {/* Query — or the battle's slots (each can be an idea, a company, or a rival's URL) */}
       {battle ? (
         <div className="flex flex-col gap-2">
-          {[0, 1, 2].map((slot) => (
-            <div key={slot} className="flex items-center gap-2">
-              <span className="w-6 shrink-0 text-center font-mono text-xs text-zinc-600">{String.fromCharCode(65 + slot)}</span>
-              <textarea
-                value={ideas[slot] ?? ""}
-                onChange={(e) => setIdeas((prev) => prev.map((v, i) => (i === slot ? e.target.value : v)))}
-                rows={2}
-                placeholder={
-                  slot === 2
-                    ? "idea C — optional"
-                    : slot === 0
-                      ? "idea A — e.g. Payroll compliance automation for Indian SMBs…"
-                      : "idea B — the rival you're honestly weighing"
-                }
-                className={`${inputCls} resize-none leading-relaxed`}
-              />
-            </div>
-          ))}
-          {ideaDupes && <p className="text-xs text-red-400">two ideas are identical — the battle needs distinct options</p>}
+          {[0, 1, 2].map((slot) => {
+            const s = slots[slot] ?? emptySlot();
+            const set = (patch: Partial<BattleItem>) =>
+              setSlots((prev) => prev.map((v, i) => (i === slot ? { ...v, ...patch } : v)));
+            return (
+              <div key={slot} className="flex gap-2">
+                <span className="w-5 shrink-0 pt-3 text-center font-mono text-xs text-zinc-600">{String.fromCharCode(65 + slot)}</span>
+                <div className="min-w-0 flex-1">
+                  <div className="mb-1 flex items-center gap-1">
+                    {KINDS.map((k) => (
+                      <button
+                        key={k.value}
+                        type="button"
+                        onClick={() => set({ kind: k.value })}
+                        className={`px-2 py-0.5 text-[11px] transition-colors duration-150 ${
+                          s.kind === k.value ? "bg-amber-950/40 text-amber-400" : "text-zinc-600 hover:text-zinc-400"
+                        }`}
+                      >
+                        {k.label}
+                      </button>
+                    ))}
+                  </div>
+                  <textarea
+                    value={s.text}
+                    onChange={(e) => set({ text: e.target.value })}
+                    rows={2}
+                    placeholder={
+                      s.kind === "url"
+                        ? slot === 2
+                          ? "rival C's website — optional, e.g. https://rippling.com"
+                          : slot === 0
+                            ? "the incumbent's website, e.g. https://stripe.com"
+                            : "another rival's website, e.g. https://razorpay.com"
+                        : s.kind === "company"
+                          ? slot === 2
+                            ? "company C — optional, e.g. Rippling"
+                            : slot === 0
+                              ? "the incumbent company, e.g. Stripe"
+                              : "another incumbent, e.g. Razorpay"
+                          : slot === 2
+                            ? "idea C — optional"
+                            : slot === 0
+                              ? "idea A — e.g. Payroll compliance automation for Indian SMBs…"
+                              : "idea B — the rival you're honestly weighing"
+                    }
+                    className={`${inputCls} resize-none leading-relaxed`}
+                  />
+                </div>
+              </div>
+            );
+          })}
+          {slotDupes && <p className="text-xs text-red-400">two options are identical — the battle needs distinct options</p>}
+          {badUrl && <p className="text-xs text-red-400">a URL option needs a real website address, e.g. stripe.com</p>}
         </div>
       ) : (
         <textarea
