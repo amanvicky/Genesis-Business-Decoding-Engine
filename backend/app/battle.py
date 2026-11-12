@@ -54,9 +54,13 @@ async def run_battle(req: BattleRequest, emit: Emit) -> dict:
         )
 
         async def forward(event: dict) -> None:
-            # the 19 sections would make the dashboard tabs flicker between
-            # options — battle streams logs and agent progress only
-            if event.get("type") == "section":
+            # section events would make the dashboard tabs flicker between
+            # options, and the per-decode "done" event carries the ENTIRE
+            # report (~87KB mid-stream) the battle UI has no use for — the
+            # browser's stream reader chokes on that dump every time and the
+            # matrix never renders. battle streams logs and agent progress
+            # only; the matrix rows are the battle's own summary.
+            if event.get("type") in ("section", "done"):
                 return
             await say(event)
 

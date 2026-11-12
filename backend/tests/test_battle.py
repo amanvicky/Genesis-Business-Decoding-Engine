@@ -171,6 +171,22 @@ class TestRunBattle:
         assert result["rows"][0]["score"] == 40
         assert result["rows"][1]["subject"] == "B rival idea"
 
+    def test_report_dump_never_reaches_the_stream(self, env, monkeypatch):
+        # the inner pipeline ends each decode with a full-report "done" event
+        # (~87KB live). battle must not forward it: the browser's stream
+        # reader chokes on a mid-stream megablob and the matrix never renders.
+        async def fake(req: AnalyzeRequest, emit):
+            await emit({"type": "log", "level": "agent", "agent": "recon", "msg": "decoding"})
+            await emit({"type": "section", "section": {"id": "structural"}})
+            await emit({"type": "done", "report": {"subject": req.query, "blob": "x" * 90000}})
+            return _report(req.query, 30)
+        monkeypatch.setattr(battle, "run_pipeline", fake)
+        events: list[dict] = []
+        asyncio.run(run_battle(BattleRequest(ideas=["idea one", "idea two"]), events.append))
+        kinds = [e["type"] for e in events]
+        assert "done" not in kinds and "section" not in kinds
+        assert kinds[-1] == "battle_done"
+
     def test_each_battled_idea_is_vaulted(self, env, monkeypatch):
         monkeypatch.setattr(battle, "run_pipeline", self._fake_pipeline({"idea one x": 30, "idea two y": 31}))
         asyncio.run(run_battle(BattleRequest(ideas=["idea one x", "idea two y"]), lambda e: None))
