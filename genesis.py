@@ -810,13 +810,19 @@ def find_our_watchdogs() -> set[int]:
     return out
 
 
-def service_owns_port(tracked: int, port: int) -> bool:
+def service_owns_port(tracked: int, port: int, also: int = 0) -> bool:
     """True when the tracked service (or a direct descendant — Windows venv
-    launchers and npm re-exec into children) actually serves the port."""
+    launchers and npm re-exec into children) actually serves the port.
+
+    `also` is the resolved real-server pid recorded at spawn: if THAT exact
+    process is the listener, ownership is settled without any process-tree
+    walk — the PowerShell CIM parent map can stall or fail for minutes on a
+    busy machine, and a missed walk here once helped kill a healthy,
+    mid-decode server the health probe couldn't reach either."""
     listeners = listeners_on(port)
     if not listeners:
         return False
-    if tracked in listeners:
+    if tracked in listeners or (also and also in listeners):
         return True
     parents = _parent_map()
     for lid in listeners:
@@ -1018,7 +1024,7 @@ def cmd_watchdog(args: argparse.Namespace) -> None:
             # Ownership is a pid/parent fact — compute it from processes alone,
             # never gated on health: a decode mid-run stalls the health
             # endpoint, and that stall says nothing about WHO holds the port.
-            tracked_owns = service_owns_port(tracked, port)
+            tracked_owns = service_owns_port(tracked, port, also=read_pid(f"{name}.real"))
             if healthy and tracked_owns:
                 down_streak[name] = 0
                 continue
