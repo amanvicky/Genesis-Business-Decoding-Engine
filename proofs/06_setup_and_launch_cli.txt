@@ -1,32 +1,32 @@
-=== Genesis v1.6.0 - real setup & launch session (captured verbatim) ===
+=== Genesis v1.14.0 - real setup & launch session (captured verbatim) ===
 command: python genesis.py status  &&  python genesis.py doctor
-date: 2026-11-04 16:37 UTC
+date: 2026-11-12 16:18 UTC
 
 $ python genesis.py status
 
+
   [1mservice     state        health[0m
-  api         pid 15952    healthy
-  web         pid 5028     healthy
+  api         pid 11348    healthy
+  web         pid 11160    healthy
   tor         off          —
-  ollama      running      richardyoung/llama-3.1-8b-instruct-abliterated:latest
+  ollama      off          not running (optional)
   dashboard   http://127.0.0.1:3000   |   api docs   http://127.0.0.1:8000/docs
 
-
 $ python genesis.py doctor
+
 [1m
   ============================================================
    GENESIS service manager  —  install · run · supervise · stop
   ============================================================[0m
   [92m✓[0m python 3.14                  [90m3.10+ required[0m
   [92m✓[0m node                         [90mv24.22.1[0m
-  [92m✓[0m backend venv                 [90mauto-created on first 'up'[0m
+  [92m✓[0m backend environment          [90mauto-created on first 'up'[0m
   [92m✓[0m frontend packages            [90mauto-installed on first 'up'[0m
   [92m✓[0m frontend production build    [90mauto-built on first 'up'[0m
   [92m✓[0m port 8000 (api)              [90mheld by this project[0m
   [92m✓[0m port 3000 (web)              [90mheld by this project[0m
   [91m✗[0m tor binary                   [90moptional — Tab 11 degrades gracefully[0m
   [91m✗[0m tor proxy live               [90moptional[0m
-  [92m✓[0m ollama (local LLM)           [90mrichardyoung/llama-3.1-8b-instruct-abliterated:latest[0m
+  [91m✗[0m ollama (local LLM)           [90mnot running (optional)[0m
 
 [92m[OK][0m doctor: ready — run  python genesis.py  to launch everything in the background
-

@@ -1,1 +1,1 @@
-{"status":"ok","version":"1.6.0","offline_mode":false,"tor":{"available":false,"reason":"Tor not reachable on socks5://127.0.0.1:9050 (connection refused)"},"llm":{"available":true,"model":"llama3.2"}}
+{"status":"ok","version":"1.14.0","offline_mode":false,"tor":{"available":false,"reason":"Tor not reachable on socks5://127.0.0.1:9050 (connection refused)"},"llm":{"available":false,"model":null}}

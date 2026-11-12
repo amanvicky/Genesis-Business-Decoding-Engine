@@ -1,12 +1,19 @@
-=== Genesis v1.6.0 - LIVE decode of a real company (ADP) over free public sources ===
-[   info]    genesis: LLM enrichment: available (Ollama)
+=== Genesis v1.14.0 - live decode of a real company over free public sources (ADP) ===
+[  agent]    genesis: GENESIS pipeline engaged — decoding 'ADP'
+[   info]    genesis: LLM enrichment: offline — deterministic analysis engine only
 [  agent]      recon: target: 'ADP' (mode=company, geo=global, sector=generic)
 [   info]      recon: scanning surface web (search cascade)…
-[success]      recon: news coverage: 8 recent articles (Google/Bing News RSS)
-[success]      recon: surface web: 38 unique results
+[success]      recon: news coverage: 7 recent articles (Google/Bing News RSS)
+[   info]      recon: scanning wider platforms (LinkedIn posts, essays, global press)…
+[   info]      recon: LinkedIn posts: engines quiet this run — lane skipped, the cascade still covers the surface
+[   info]      recon: essays (Medium/Substack): engines quiet this run — lane skipped, the cascade still covers the surface
+[   info]      recon: global press (GDELT): engines quiet this run — lane skipped, the cascade still covers the surface
+[success]      recon: surface web: 37 unique results
 [   info]      recon: decoding genesis via Wikipedia…
 [success]      recon: Wikipedia: 'ADP (company)' — founded 1949
-[  agent]      recon: triangulation: identity='ADP (company)', expansion='automatic data processing' — 2/4 layers, 5/38 results corroborated
+[success]      recon: official site locked: sec.gov (from Wikipedia external links)
+[  agent]      recon: triangulation: identity='ADP (company)', expansion='automatic data processing' — 2/4 layers, 1/37 results corroborated
+[   warn]      recon: acronym collision risk: few results match the expansion — verify subject before acting on this decode
 [   info]      recon: mining developer & consumer sentiment (HN Algolia, Reddit)…
 [success]      recon: sentiment pool: 20 stories, 7 threads, 0 reddit posts
 [   info]      recon: decompiling feature history (GitHub releases + changelog pages)…
@@ -15,40 +22,31 @@
 [success]      recon: EDGAR: AUTOMATIC DATA PROCESSING INC (CIK 8670, ADP) — latest annual revenue $21,947,400,000 10 yrs revenue history, 3 recent 10-Ks
 [   info]      recon: aggregating review-platform intelligence (search-snippet layer)…
 [success]      recon: review intel: 20 public snippets (Trustpilot/G2/Capterra layer)
-[success]      recon: recon complete — 27 sources indexed
+[success]      recon: recon complete — 49 sources indexed
 [   info]    genesis: sector refined via evidence corpus → payroll
 [   info] structural: checking for local LLM (Ollama)…
-   + section  1/17  structural: Deep public record decoded (85 evidence items) — mechanics, moats, and friction below are historical
+   + section  1/13  structural: Deep public record decoded (84 evidence items) — mechanics, moats, and friction below are historical
 [   info]   features: checking for local LLM (Ollama)…
-   + section  2/17  features: 11 features decompiled — 1 Day-1 class, 10 growth-era, 0 enterprise-tier. True USP candidate: 'Octob
+   + section  2/13  features: 11 features decompiled — 1 Day-1 class, 10 growth-era, 0 enterprise-tier. True USP candidate: 'Adp P
 [   info] compliance: checking for local LLM (Ollama)…
-   + section  3/17  compliance: Payroll/HR sector decoded for US + India (global view): 36 statutory obligations, 15 are launch-bloc
+   + section  3/13  compliance: Payroll/HR sector decoded for US + India (global view): 36 statutory obligations, 15 are launch-bloc
 [   info]  premortem: checking for local LLM (Ollama)…
-   + section  4/17  premortem: 1 collapsed operators matched (Zenefits). Dominant death pattern in this domain: Unit economics neve
+   + section  4/13  premortem: 1 collapsed operators matched (Zenefits). Dominant death pattern in this domain: Unit economics neve
 [   info]   timeline: checking for local LLM (Ollama)…
-   + section  5/17  timeline: 26 decoded milestones from 1949 — 0 strategic pivot(s) identified, 0 funding events.
-[   info]    pricing: checking for local LLM (Ollama)…
-   + section  6/17  pricing: No public pricing decoded — the numbers below are geography defaults (ARPA $29): every value is edit
+   + section  5/13  timeline: 26 decoded milestones from 1949 — 0 strategic pivot(s) identified, 0 funding events.
+   + section  6/13  pricing: no public pricing decoded — quote-based sales or pricing hidden behind demo gates
 [   info]   friction: checking for local LLM (Ollama)…
-   + section  7/17  friction: 27 public voices mined. Dominant friction: Compliance/trust (42% of complaints) — top demand trigger
-[   info]  financial: checking for local LLM (Ollama)…
-   + section  8/17  financial: Team of 3 @ $28,237/mo burn → $338,840 capital for the 12-month target; breakeven at ~576 customers 
-[   info] distribution: checking for local LLM (Ollama)…
-   + section  9/17  distribution: 5 zero-cost loops ranked for payroll/global: Reddit value-first participation, Product Hunt + free-t
-   + section 10/17  techarch: 6-layer stack decoded (payroll/global); 7 starter files generated (backend/main.py, backend/payments
+   + section  7/13  friction: 27 public voices mined. Dominant friction: Compliance/trust (50% of complaints) — top demand trigger
 [   info]    darkweb: checking for local LLM (Ollama)…
-   + section 11/17  darkweb: clearnet-degraded (no local Tor): 8 raw findings, 0 breach-corpus matches. Passive lawful OSINT only
-[   info]   playbook: checking for local LLM (Ollama)…
-   + section 12/17  playbook: 6 phases, 23 sequenced steps, 6 KYC documents pre-listed (global).
-[   info] marketsize: checking for local LLM (Ollama)…
-   + section 13/17  marketsize: SAM $2.8B · 3-yr SOM $83.5M (bottom-up, formulas shown). Raise ~$635K for 18 months ≈ 32% dilution a
+   + section  8/13  darkweb: clearnet-degraded (no local Tor): 8 raw findings, 0 breach-corpus matches. Passive lawful OSINT only
 [   info]        dna: checking for local LLM (Ollama)…
-   + section 14/17  dna: 0 feature(s) broken down into philosophy + psychology + business mechanics + how it played out (domi
-   + section 15/17  school: 18-lesson knowledge transfer in 6 phases: what a startup is, the money mechanics with your own numbe
+   + section  9/13  dna: 0 feature(s) broken down into philosophy + psychology + business mechanics + how it played out (domi
 [   info]    markets: checking for local LLM (Ollama)…
-   + section 16/17  markets: ADP at $303.70 — +19.5% over 1y, +14.2% YTD. 52w range $188.79–$304.16. Max drawdown -29.1%.
+   + section 10/13  markets: ADP at $307.75 — +21.6% over 1y, +15.7% YTD. 52w range $188.79–$307.75. Max drawdown -29.1%.
+   + section 11/13  deepdive: Deep-dive: what ADP does, 1 real features inventoried (issue, trigger, impact, psychology each) + 6 
+   + section 12/13  publicrecord: domain registered 1997-10-02 · via get.gov
 [   info]  adversary: checking for local LLM (Ollama)…
-   + section 17/17  adversary: 4 fatal, 8 serious challenges across 3 adversarial personas. Playbook has 4 fatal gap(s) that would 
-[success]    genesis: decode complete — 17/17 sections, 36 sources cited
+   + section 13/13  adversary: 3 fatal, 7 serious challenges across 3 adversarial personas. The plan has 3 fatal gap(s) that would 
+[success]    genesis: decode complete — 13/13 sections, 64 sources cited
 
-OK: pipeline produced 17/17 sections offline.
+OK: pipeline produced 13/13 sections offline.

@@ -40,6 +40,59 @@ export async function fetchHealth(): Promise<HealthInfo | null> {
 }
 
 /**
+ * POST + consume an NDJSON event stream over XHR, invoking `onEvent` for
+ * every parsed line. XHR (onprogress) is the transport whose end-to-end
+ * delivery of the long battle streams is proven; every event of every run
+ * arrived in the same browser where the earlier reader-based loop's
+ * completion was unverifiable.
+ */
+function streamNdjson<TParsed>(
+    route: ApiRoute,
+    body: unknown,
+    parse: (line: string) => TParsed,
+    onEvent: (ev: TParsed) => void,
+    badEventLabel: string,
+    signal?: AbortSignal,
+): Promise<void> {
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", url(route), true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.timeout = 0; // a battle can run past ten minutes; liveness is the stream itself
+        let seen = 0;
+        let buffer = "";
+        const pump = () => {
+            const text = xhr.responseText;
+            if (text.length <= seen) return;
+            buffer += text.slice(seen);
+            seen = text.length;
+            let nl: number;
+            while ((nl = buffer.indexOf("\n")) !== -1) {
+                const line = buffer.slice(0, nl).trim();
+                buffer = buffer.slice(nl + 1);
+                if (!line) continue;
+                try {
+                    onEvent(parse(line));
+                } catch (err) {
+                    console.error(badEventLabel, err, line.slice(0, 200));
+                }
+            }
+        };
+        xhr.onprogress = pump;
+        xhr.onload = () => {
+            pump();
+            if (xhr.status >= 200 && xhr.status < 300) resolve();
+            else reject(new Error(`backend returned ${xhr.status}`));
+        };
+        xhr.onerror = () => reject(new Error("backend unreachable — is it up?"));
+        xhr.ontimeout = () => reject(new Error("backend stream timed out"));
+        xhr.onabort = () => resolve();
+        signal?.addEventListener("abort", () => xhr.abort(), { once: true });
+        xhr.send(JSON.stringify(body));
+    });
+}
+
+/**
  * POST the analysis request and consume the NDJSON event stream,
  * invoking `onEvent` for every parsed console event.
  */
@@ -48,36 +101,7 @@ export async function streamAnalysis(
   onEvent: (ev: ConsoleEvent) => void,
   signal?: AbortSignal,
 ): Promise<void> {
-  const res = await fetch(url("/api/analyze/stream"), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(req),
-    signal,
-  });
-  if (!res.ok || !res.body) {
-    throw new Error(`backend returned ${res.status}`);
-  }
-
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    let nl: number;
-    while ((nl = buffer.indexOf("\n")) !== -1) {
-      const line = buffer.slice(0, nl).trim();
-      buffer = buffer.slice(nl + 1);
-      if (!line) continue;
-      try {
-        onEvent(parseEvent(line));
-      } catch (err) {
-        console.error("bad event", err, line.slice(0, 200));
-      }
-    }
-  }
+  return streamNdjson("/api/analyze/stream", req, parseEvent, onEvent, "bad event", signal);
 }
 
 const LEVELS: readonly LogLevel[] = ["info", "warn", "error", "success", "agent"];
@@ -116,7 +140,7 @@ function parseEvent(line: string): ConsoleEvent {
   }
 }
 
-/** Download the report as Markdown, structured JSON, or the full playbook ZIP. */
+/** Download the report as Markdown, structured JSON, or the report ZIP. */
 export async function downloadReport(report: Report, fmt: "markdown" | "zip" | "json"): Promise<void> {
   const res = await fetch(url(`/api/export/${fmt}`), {
     method: "POST",
@@ -141,34 +165,14 @@ export async function streamAdvice(
   onEvent: (ev: AdviceEvent) => void,
   signal?: AbortSignal,
 ): Promise<void> {
-  const res = await fetch(url("/api/advise/stream"), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ question, report }),
+  return streamNdjson(
+    "/api/advise/stream",
+    { question, report },
+    (line) => JSON.parse(line) as AdviceEvent,
+    onEvent,
+    "bad advice event",
     signal,
-  });
-  if (!res.ok || !res.body) {
-    throw new Error(`backend returned ${res.status}`);
-  }
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    let nl: number;
-    while ((nl = buffer.indexOf("\n")) !== -1) {
-      const line = buffer.slice(0, nl).trim();
-      buffer = buffer.slice(nl + 1);
-      if (!line) continue;
-      try {
-        onEvent(JSON.parse(line) as AdviceEvent);
-      } catch (err) {
-        console.error("bad advice event", err);
-      }
-    }
-  }
+  );
 }
 
 /** The Verdict Protocol: brief + FMF answers → deterministic decision memo. */
@@ -192,34 +196,7 @@ export async function streamBattle(
     onEvent: (ev: BattleEvent) => void,
     signal?: AbortSignal,
 ): Promise<void> {
-    const res = await fetch(url("/api/battle/stream"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(req),
-        signal,
-    });
-    if (!res.ok || !res.body) {
-        throw new Error(`backend returned ${res.status}`);
-    }
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-    for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        let nl: number;
-        while ((nl = buffer.indexOf("\n")) !== -1) {
-            const line = buffer.slice(0, nl).trim();
-            buffer = buffer.slice(nl + 1);
-            if (!line) continue;
-            try {
-                onEvent(parseBattleEvent(line));
-            } catch (err) {
-                console.error("bad battle event", err, line.slice(0, 200));
-            }
-        }
-    }
+    return streamNdjson("/api/battle/stream", req, parseBattleEvent, onEvent, "bad battle event", signal);
 }
 
 const BATTLE_LEVELS = LEVELS;

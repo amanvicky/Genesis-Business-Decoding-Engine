@@ -1,17 +1,16 @@
-=== Genesis v1.6.0 - structured JSON export round-trip (schema genesis.report/v1) ===
-command: POST /api/analyze/stream -> POST /api/export/json -> validate
-date: 2026-11-04 16:37 UTC
+=== Genesis v1.14.0 - structured JSON export round-trip (schema genesis.report/v1) ===
+command: offline pipeline -> POST /api/export/json -> validate
+date: 2026-11-12 16:42 UTC
 
 schema       : genesis.report/v1
-generator    : Genesis 1.6.0
+generator    : Genesis 1.14.0
 subject      : payroll automation for Indian SMBs
-sections     : 17 / 16
-sources      : 11
+sections     : 13 / 13
 
 {
  "schema": "genesis.report/v1",
- "generator": "Genesis 1.6.0",
- "exported_at": "2026-11-04T16:37:42.302613+00:00",
+ "generator": "Genesis 1.14.0",
+ "exported_at": "2026-11-12T16:42:14.851492+00:00",
  "report": {
   "request": {
    "mode": "idea",
@@ -24,47 +23,25 @@ sources      : 11
   },
   "subject": "payroll automation for Indian SMBs",
   "sector": "payroll",
-  "generated_at": "2026-11-04T16:37:42.292797+00:00",
+  "generated_at": "2026-11-12T16:42:14.844878+00:00",
   "sections": {
    "structural": {
     "id": "structural",
     "title": "Structural Feasibility & Core Mechanics",
     "icon": "🧬",
-    "summary": "Weak public signal: either too early, too niche, or the pain is voiced offline. Interview before code. (signal score 0/100 from 16 evidence items).",
+    "summary": "No public evidence gathered this run (offline mode or search engines unreachable) — signal UNKNOWN, not weak. The knowledge-base sections below still apply; re-run online to mine real user voices. (signal score 0/100 from 0 evidence items).",
     "data": {
-     "verdict": "Weak public signal: either too early, too niche, or the pain is voiced offline. Interview before code.",
+     "verdict": "No public evidence gathered this run (offline mode or search engines unreachable) — signal UNKNOWN, not weak. The knowledge-base sections below still apply; re-run online to mine real user voices.",
      "verdict_score": 0,
      "mode": "idea",
      "pain_points": [],
      "demand_triggers": [],
      "core_mechanics": [],
-     "moats": [
-      {
-       "type": "Regulatory barrier",
-       "strength": "evidence found",
-       "evidence": "Kolkata-based startup Asanify is simplifying payroll compliances and HR operations for SMBs.."
-      }
-     ],
-     "timing_shifts": [
-      {
-       "shift": "ai",
-       "implication": "“AI in HR should empower people, not replace them”: ADP’s Srinivas Konidena.."
-      }
-     ],
-     "keyphrases": [
-      "asanify simplifying",
-      "simplifying payroll",
-      "best payroll",
-      "payroll software",
-      "asanify simplifying payroll",
-      "best payroll software",
-      "yourstory com",
-      "payroll management",
-      "startups smb",
-      "smb globally"
-     ],
+     "moats": [],
+     "timing_shifts": [],
+     "keyphrases": [],
      "evidence_volume": {
-      "search_results": 16,
+      "search_results": 0,
       "hn_stories": 0,
       "reddit_posts": 0,
       "review_snippets": 0
@@ -75,45 +52,18 @@ sources      : 11
     "id": "features",
     "title": "Granular Feature Breakdown & MVP Sequencing",
     "icon": "🧩",
-    "summary": "Idea mode — no product history to decompile yet, so you get the canonical zero-to-one build sequence (6 steps) and never-build bloat gates instead. 8 candidate alternative(s) surfaced from live evidence. Decode the closest named competitor in company mode for its full feature history.",
+    "summary": "Idea mode — no product history to decompile yet, so you get the canonical zero-to-one build sequence (6 steps) and never-build bloat gates instead. Decode the closest named competitor in company mode for its full feature history.",
     "data": {
      "founded_year": null,
-     "feature_count": 2,
+     "feature_count": 0,
      "class_counts": {
-      "day1": 2,
+      "day1": 0,
       "growth": 0,
       "enterprise": 0
      },
-     "features": [
-      {
-       "date": "",
-       "feature": "10 powerful features introduced on myBillBook to boost business activities for SMBs 10 powerful features introduced on myBillBook to boost business activities f",
-       "detail": "",
-       "source": "web-snippet",
-       "url": "https://news.google.com/rss/articles/CBMi2wFBVV95cUxPLXBZU1dkOWpydzVyNG5NMkVVWU9ZV09BUDhwWjZVdFJPeGtCNlBsa1M3YWNKdGJUZ181cTc0NGYxOTJxTjdOcTAwSGYzUmxHTXZHZnB6NDdyd1JyeERqTjJNVlFhQWdWQ2RTdkE3MGI2dzdUNzRUaGZoOVlGajhwUVNtdzVIR0s4U0xodnFWbzNBYlJxQ3BfdHJTdVRLbW1SaldoeG5TMVVCQlc4ZGlUcG9qZW1nSjZfSmJ0b2p2dE5sN3VTMnhLVFpVQVduZFpZbDNsZVlyd3g4d00?oc=5",
-       "class": "day1"
-      },
-      {
-       "date": "",
-       "feature": "Pocket HRMS launches Digital Bharat 2.0 Mission for SMEs Pocket HRMS launches Digital Bharat 2.0 Mission for SMEs Livemint",
-       "detail": "",
-       "source": "web-snippet",
-       "url": "https://news.google.com/rss/articles/CBMivgFBVV95cUxPLWtDcGd2M3lIZnE1WjllRGVEMkRWQmxtUlBRLVB3YUMwV2dNSUwwR19GSDV5OGZ6b0dDWmM5YjN6R2NuM1RJSENIUlpIbHhSczlRblNzS21ldUVvLTFXTHRZeUVaeE9uTDJtWW5LNGxEMkhLbnFuZEF1OHV5NWIyLTF1MmIzcDJmQlBJR3JYTHNEQ21McGRTVW5ZSnVLdjNzVTNwZ2dUSE9VQ3Yzekd0TUJPR1JPdXBnVnJYSVF30gHDAUFVX3lxTE1pa3d3VkVfamVva0g0TEVDUWw0NGI4X2pCWHF5bzdsY2g4cm1uU2R5d19XQnJXdXhJWFpPVmdlWGZDb3JHREQwSmw3elkwNW5oaEpNRFktaWZPUTJHb012aGhjMHVmNG9mVVBlSGc0dFlnQXRjcDYyQ0Jib2hRWUxrZGY5eHJjY2dFMk0zRnVjOXBvMm0yeFpGeDA1M040YVNscGpXOVVXOWFUZmthdzZCeWVza3dIaEtJd0hjRUtYdk95NA?oc=5",
-       "class": "day1"
-      }
-     ],
+     "features": [],
      "binary_roadmap": {
       "build_now": [
-       {
-        "feature": "10 powerful features introduced on myBillBook to boost business activities for SMBs 10 powerful features introduced on myBillBook to boost b",
-        "why": "Day-1-class signal observed in live evidence — validate it before building",
-        "source": "web-snippet"
-       },
-       {
-        "feature": "Pocket HRMS launches Digital Bharat 2.0 Mission for SMEs Pocket HRMS launches Digital Bharat 2.0 Mission for SMEs Livemint",
-        "why": "Day-1-class signal observed in live evidence — validate it before building",
-        "source": "web-snippet"
-       },
        {
         "feature": "Auth + minimal identity (email OTP — no password flows, no OAuth sprawl)",
         "why": "canonical MVP step",
@@ -125,5 +75,63 @@ sources      : 11
         "source": "genesis-canonical"
        },
        {
-     
-...
+        "feature": "Manual back-office behind the scenes (concierge MVP — humans do what you'll automate)",
+        "why": "canonical MVP step",
+        "source": "genesis-canonical"
+       },
+       {
+        "feature": "Notifications that create the habit loop (email/WhatsApp before in-app)",
+        "why": "canonical MVP step",
+        "source": "genesis-canonical"
+       },
+       {
+        "feature": "Billing wired to the compliance-approved gateway (Razorpay IN / Stripe US)",
+        "why": "canonical MVP step",
+        "source": "genesis-canonical"
+       },
+       {
+        "feature": "Analytics on the ONE activation metric (do users complete the core action twice?)",
+        "why": "canonical MVP step",
+        "source": "genesis-canonical"
+       }
+      ],
+      "build_later": [],
+      "never_for_mvp": [
+       {
+        "feature": "SSO / SAML / SCIM",
+        "why": "enterprise bloat: zero wedge value until paid demand exists",
+        "gate": "after 3 enterprise procurement requests in writing"
+       },
+       {
+        "feature": "Audit logs",
+        "why": "enterprise bloat: zero wedge value until paid demand exists",
+        "gate": "after your first regulated-industry pipeline exists"
+       },
+       {
+        "feature": "Admin console / RBAC",
+        "why": "enterprise bloat: zero wedge value until paid demand exists",
+        "gate": "after 10-seat accounts actually appear"
+       },
+       {
+        "feature": "Mobile apps",
+        "why": "enterprise bloat: zero wedge value until paid demand exists",
+        "gate": "after web week-4 retention > 40%"
+       },
+       {
+        "feature": "Integrations marketplace",
+        "why": "enterprise bloat: zero wedge value until paid demand exists",
+        "gate": "after 10 unprompted integration asks"
+       },
+       {
+        "feature": "White-label / multi-tenant theming",
+        "why": "enterprise bloat: zero wedge value until paid demand exists",
+        "gate": "after 2 signed reseller deals"
+       }
+      ]
+     },
+     "usp_candidates": [],
+     "true_usp": "Positioning language not ye
+
+... (truncated - the full document is returned by the endpoint)
+
+OK: schema genesis.report/v1, generator Genesis 1.14.0, 13/13 sections round-trip clean.

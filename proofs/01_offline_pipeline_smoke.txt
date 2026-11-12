@@ -1,47 +1,43 @@
-=== Genesis v1.6.0 - offline pipeline smoke (zero network, built-in KBs only) ===
+=== Genesis v1.14.0 - offline pipeline smoke (zero network, built-in KBs only) ===
+[  agent]    genesis: GENESIS pipeline engaged — decoding 'AI meeting notes for sales teams'
 [   info]    genesis: LLM enrichment: offline — deterministic analysis engine only
 [  agent]      recon: target: 'AI meeting notes for sales teams' (mode=idea, geo=global, sector=generic)
 [   warn]      recon: GENESIS_OFFLINE=1 — using built-in knowledge bases only (no network)
 [   info]      recon: scanning surface web (search cascade)…
+[   info]      recon: scanning wider platforms (LinkedIn posts, essays, global press)…
+[   info]      recon: LinkedIn posts: engines quiet this run — lane skipped, the cascade still covers the surface
+[   info]      recon: essays (Medium/Substack): engines quiet this run — lane skipped, the cascade still covers the surface
+[   info]      recon: global press (GDELT): engines quiet this run — lane skipped, the cascade still covers the surface
 [success]      recon: surface web: 0 unique results
 [  agent]      recon: triangulation: identity='AI meeting notes for sales teams' — 1/4 layers, 0/0 results corroborated
 [   info]      recon: mining developer & consumer sentiment (HN Algolia, Reddit)…
 [success]      recon: sentiment pool: 0 stories, 0 threads, 0 reddit posts
 [   info]      recon: aggregating review-platform intelligence (search-snippet layer)…
 [success]      recon: review intel: 0 public snippets (Trustpilot/G2/Capterra layer)
-[success]      recon: recon complete — 3 sources indexed
+[success]      recon: recon complete — 7 sources indexed
 [   info] structural: checking for local LLM (Ollama)…
-   + section  1/17  structural: No public evidence gathered this run (offline mode or search engines unreachable) — signal UNKNOWN, 
+   + section  1/13  structural: No public evidence gathered this run (offline mode or search engines unreachable) — signal UNKNOWN, 
 [   info]   features: checking for local LLM (Ollama)…
-   + section  2/17  features: Idea mode — no product history to decompile yet, so you get the canonical zero-to-one build sequence
+   + section  2/13  features: Idea mode — no product history to decompile yet, so you get the canonical zero-to-one build sequence
 [   info] compliance: checking for local LLM (Ollama)…
-   + section  3/17  compliance: Generic sector decoded for US + India (global view): 33 statutory obligations, 12 are launch-blockin
+   + section  3/13  compliance: Generic sector decoded for US + India (global view): 33 statutory obligations, 12 are launch-blockin
 [   info]  premortem: checking for local LLM (Ollama)…
-   + section  4/17  premortem: 6 collapsed operators matched (Fast (checkout, one-click), MoviePass, Homejoy). Dominant death patte
+   + section  4/13  premortem: 6 collapsed operators matched (Fast (checkout, one-click), MoviePass, Homejoy). Dominant death patte
 [   info]   timeline: checking for local LLM (Ollama)…
-   + section  5/17  timeline: 6 execution gates with kill criteria — gate-based sequencing, no fake dates.
-[   info]    pricing: checking for local LLM (Ollama)…
-   + section  6/17  pricing: No public pricing decoded — the numbers below are geography defaults (ARPA $29): every value is edit
+   + section  5/13  timeline: 6 execution gates with kill criteria — gate-based sequencing, no fake dates.
+   + section  6/13  pricing: no public pricing decoded — quote-based sales or pricing hidden behind demo gates
 [   info]   friction: checking for local LLM (Ollama)…
-   + section  7/17  friction: 0 public voices mined — no complaint clusters surfaced at this evidence depth. Widen with more sourc
-[   info]  financial: checking for local LLM (Ollama)…
-   + section  8/17  financial: Team of 3 @ $26,487/mo burn → $317,840 capital for the 12-month target; breakeven at ~1114 customers
-[   info] distribution: checking for local LLM (Ollama)…
-   + section  9/17  distribution: 7 zero-cost loops ranked for generic/global: Programmatic SEO on long-tail jobs-to-be-done, Hacker N
-   + section 10/17  techarch: 6-layer stack decoded (generic/global); 6 starter files generated (backend/main.py, backend/payments
+   + section  7/13  friction: 0 public voices mined — no complaint clusters surfaced at this evidence depth. Widen with more sourc
 [   info]    darkweb: checking for local LLM (Ollama)…
-   + section 11/17  darkweb: clearnet-degraded (no local Tor): 0 raw findings, 0 breach-corpus matches. Passive lawful OSINT only
-[   info]   playbook: checking for local LLM (Ollama)…
-   + section 12/17  playbook: 6 phases, 21 sequenced steps, 6 KYC documents pre-listed (global).
-[   info] marketsize: checking for local LLM (Ollama)…
-   + section 13/17  marketsize: SAM $7.0B · 3-yr SOM $208.8M (bottom-up, formulas shown). Raise ~$596K for 18 months ≈ 30% dilution 
+   + section  8/13  darkweb: clearnet-degraded (no local Tor): 0 raw findings, 0 breach-corpus matches. Passive lawful OSINT only
 [   info]        dna: checking for local LLM (Ollama)…
-   + section 14/17  dna: 4 psychological levers recommended for a generic idea, each with the philosophy, the named principle
-   + section 15/17  school: 18-lesson knowledge transfer in 6 phases: what a startup is, the money mechanics with your own numbe
+   + section  9/13  dna: 4 psychological levers recommended for a generic idea, each with the philosophy, the named principle
 [   info]    markets: checking for local LLM (Ollama)…
-   + section 16/17  markets: Offline run — market data needs the network. Re-run online.
+   + section 10/13  markets: Offline run — market data needs the network. Re-run online.
+   + section 11/13  deepdive: Deep-dive: what AI meeting notes for sales teams does, 0 real features inventoried (issue, trigger, 
+   + section 12/13  publicrecord: no public registration identifiers surfaced — run with the company's URL so the legal pages can be r
 [   info]  adversary: checking for local LLM (Ollama)…
-   + section 17/17  adversary: 5 fatal, 6 serious challenges across 3 adversarial personas. Playbook has 5 fatal gap(s) that would 
-[success]    genesis: decode complete — 17/17 sections, 3 sources cited
+   + section 13/13  adversary: 4 fatal, 5 serious challenges across 3 adversarial personas. The plan has 4 fatal gap(s) that would 
+[success]    genesis: decode complete — 13/13 sections, 7 sources cited
 
-OK: pipeline produced 17/17 sections offline.
+OK: pipeline produced 13/13 sections offline.

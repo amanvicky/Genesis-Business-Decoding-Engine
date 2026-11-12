@@ -1,49 +1,49 @@
-# Verification Proofs — Genesis v1.6.0
+# Verification Proofs — Genesis v1.14.0
 
-Every proof below was generated on this machine on 2026-11-04 and is **reproducible
+Every proof below was generated on this machine on 2026-11-12 and is **reproducible
 with the commands shown in each file**. Nothing here is hand-written — these are raw
 captured outputs and real screenshots from the running system.
 
-## Screenshot tour (real captures via Playwright from the live app)
+## Screenshot tour (real captures via headless Edge from the live app)
 
 | File | What it shows |
 |------|---------------|
-| `screenshots/01_landing_input_panel.png` | Landing state: company/idea toggle, India–US–Global market switch, advanced parameters |
-| `screenshots/02_agent_console_live.png` | A **live ADP decode mid-stream**: agent console streaming recon steps, pipeline status rail, tabs arriving |
-| `screenshots/03_report_structural.png` | Finished brief — structural verdict, pain points, moats with evidence, signal score |
-| `screenshots/04_feature_binary_roadmap.png` | Feature Decompiler v2: **build-now / later / do-not-build** binary roadmap with gates |
-| `screenshots/05_compliance_matrix.png` | Jurisdictional decoder: landmine register + **US payroll-engine matrix** (16 states) |
-| `screenshots/06_pricing_sandbox.png` | Pricing tab with the **interactive unit-economics sandbox** (live LTV/CAC/payback recomputation, per-tier margin bars) |
-| `screenshots/07_burn_calculator.png` | Financial reality: live-editable burn calculator, sensitivity table, blunt runway warnings |
-| `screenshots/08_adversary_redteam.png` | **Adversarial Red-Team Simulator**: buyer/VC/auditor personas with fatal & serious challenges |
-| `screenshots/09_market_sizing.png` | Market sizing: bottom-up TAM/SAM/SOM with formulas, raise vs bootstrap, founder-market-fit checklist |
-| `screenshots/10_product_dna.png` | **Product DNA**: the philosophy + psychology behind every feature, with named principles and a plain-words glossary |
-| `screenshots/11_stock_performance.png` | Stock performance: 1-year sparkline, 52-week range, biggest weekly rises and falls, max drawdown |
-| `screenshots/12_founder_school.png` | **Founder School**: the zero-to-one curriculum, money lessons taught with the brief's own numbers |
-| `screenshots/13_ask_genesis_advisor.png` | **Ask Genesis**: real-time advisor answering "what is churn?" with a link into the right lesson |
-| `screenshots/14_verdict_protocol.png` | **Verdict Protocol**: FMF answered, gates computed, GO/NO-GO decision badge + downloadable memo |
+| `screenshots/01_landing_input_panel.png` | Landing state: four modes — company name, website URL, raw idea, and the idea battle |
+| `screenshots/02_agent_console_live.png` | A live Notion decode mid-recon: agent console streaming, pipeline rail waiting on the thirteen agents |
+| `screenshots/03_report_structural.png` | Structural verdict, pain points as voiced publicly, moats with evidence, the signal score |
+| `screenshots/04_feature_binary_roadmap.png` | Feature breakdown: the **build-now / later / do-not-build** binary roadmap with gates |
+| `screenshots/05_compliance_matrix.png` | Jurisdictional decoder: landmine register + the costed launch checklist |
+| `screenshots/06_premortem_post_mortems.png` | Pre-mortem: matched collapsed operators, dominant death patterns, counter-moves |
+| `screenshots/07_pricing_observed.png` | Pricing as observed: the tiers the company actually charges, wayback history, packaging psychology — no LTV:CAC math |
+| `screenshots/08_product_dna.png` | **Product DNA**: the philosophy + psychology behind every feature, named principles, plain-words glossary |
+| `screenshots/09_stock_performance.png` | Stock tab for a private subject: honest index context ("Notion is not publicly traded") — the S&P 500 year, biggest rises/falls, drawdown |
+| `screenshots/10_public_record.png` | Public record: RDAP domain record, Wikidata legal facts, registry mentions marked *verify each* |
+| `screenshots/11_adversary_redteam.png` | **Adversarial Red-Team Simulator**: buyer/VC/auditor personas with fatal & serious challenges |
+| `screenshots/12_ask_genesis_advisor.png` | **Ask Genesis**: real-time advisor answering "what kills companies like this?" from the brief's own evidence |
+| `screenshots/13_verdict_protocol.png` | **Verdict Protocol v2**: two research-only gates computed from the evidence, decision badge, memo download — no quiz |
+| `screenshots/14_battle_matrix.png` | **The Idea Battle**: a raw idea vs the incumbent by URL, decoded one at a time, winner decided by the rule matrix |
 
 Reproduce: start the app (`python genesis.py`), open `http://localhost:3000`,
-decode any company, and click through the tabs.
+decode any company, and click through the thirteen tabs.
 
 ## Pipeline & engineering proofs
 
 | File | What it proves | Reproduce |
 |------|----------------|-----------|
-| `01_offline_pipeline_smoke.txt` | The full 18-section intelligence pipeline runs with **zero network access** (built-in knowledge bases only): `18/18 sections` | `cd backend && GENESIS_OFFLINE=1 .venv/Scripts/python scripts/smoke_test.py`  (expect `18/18 sections`) |
-| `02_live_adp_decode.txt` | A **live decode of a real company (ADP)** over free public sources only: multi-layer triangulation (`expansion='automatic data processing'`, corroborated results), **SEC EDGAR revenue decode (CIK 8670, $21,947,400,000 latest annual revenue, 10-yr history)**, Google/Bing News RSS coverage, and the adversarial red-team verdict | `cd backend && GENESIS_OFFLINE=0 .venv/Scripts/python scripts/smoke_test.py company "ADP"` |
+| `01_offline_pipeline_smoke.txt` | The full 13-agent research pipeline runs with **zero network access** (built-in knowledge bases only): `13/13 sections` | `cd backend && GENESIS_OFFLINE=1 .venv/Scripts/python scripts/smoke_test.py`  (expect `13/13 sections`) |
+| `02_live_adp_decode.txt` | A **live decode of a real company (ADP)** over free public sources only: multi-layer triangulation, **SEC EDGAR revenue decode**, news RSS coverage, and the adversarial red-team verdict | `cd backend && .venv/Scripts/python scripts/smoke_test.py company "ADP"` |
 | `03_frontend_production_build.txt` | The Next.js 14 frontend compiles under **TypeScript `strict` + `noUncheckedIndexedAccess`** with zero errors | `cd frontend && npm run build` |
 | `04_api_health.json` | The FastAPI backend reports liveness + capability probes (version, offline mode, Tor, local-LLM) | `curl http://127.0.0.1:8000/api/health` |
-| `05_json_export_roundtrip.txt` | The structured export produces a valid **schema-versioned (`genesis.report/v1`)** JSON document: 18 sections, adversary verdict, binary roadmap, market sizing, school, sandbox opex auto-fed from the burn calculator | endpoint `POST /api/export/json` |
-| `06_setup_and_launch_cli.txt` | A **verbatim service-manager session**: `stop` then `up` — auto-detection, background launch, health gates, watchdog, and the operations cheatsheet | `python genesis.py stop && python genesis.py` |
+| `05_json_export_roundtrip.txt` | The structured export produces a valid **schema-versioned (`genesis.report/v1`)** JSON document: 13 sections round-tripped through `POST /api/export/json` | endpoint `POST /api/export/json` |
+| `06_setup_and_launch_cli.txt` | A **verbatim service-manager session**: `status` then `doctor` — health gates, watchdog supervision, ports held by this project | `python genesis.py status && python genesis.py doctor` |
 
 ## Why offline mode matters
 
 `01_offline_pipeline_smoke.txt` is the key architectural claim:
-Genesis produces a complete 18-section venture brief **without a single network
+Genesis produces a complete 13-section research brief **without a single network
 call or paid API** — every module runs on built-in knowledge bases (compliance
-statutes for the US + India, 22 failure records, 12 distribution channels,
-scaffold generators). The live run in `02_` then shows the same pipeline enriched by
+statutes for the US + India, the failure-analog library, the DNA principle
+glossaries). The live run in `02_` then shows the same pipeline enriched by
 free public sources (Wikipedia, EDGAR, news RSS, HN, review snippets, Wayback).
 
 ## Repo hygiene
@@ -56,9 +56,11 @@ free public sources (Wikipedia, EDGAR, news RSS, HN, review snippets, Wayback).
 ## Screenshot capture tooling
 
 [capture.mjs](capture.mjs) drives headless Edge (puppeteer-core) through a full
-decode and captures all 14 shots above in one run:
+decode and captures all 14 shots above in one run — it also refreshes the
+landing page's static captures (`frontend/public/captures/`) from the same
+decode before re-shooting the landing:
 
 ```bash
 npm i puppeteer-core          # in any scratch dir with capture.mjs copied in
-node capture.mjs <outDir> "Apple"
+node capture.mjs <outDir> "Notion" <frontend/public/captures>
 ```

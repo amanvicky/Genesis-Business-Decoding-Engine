@@ -1,4 +1,5 @@
-=== Genesis v1.6.0 - frontend production build under strict TypeScript ===
+=== Genesis v1.14.0 - frontend production build under strict TypeScript ===
+
 > genesis-frontend@1.0.0 build
 > next build
 
@@ -8,20 +9,20 @@
  ✓ Compiled successfully
    Linting and checking validity of types ...
    Collecting page data ...
-   Generating static pages (0/4) ...
-   Generating static pages (1/4) 
-   Generating static pages (2/4) 
-   Generating static pages (3/4) 
- ✓ Generating static pages (4/4)
+   Generating static pages (0/5) ...
+   Generating static pages (1/5) 
+   Generating static pages (2/5) 
+   Generating static pages (3/5) 
+ ✓ Generating static pages (5/5)
    Finalizing page optimization ...
    Collecting build traces ...
 
 Route (app)                              Size     First Load JS
-┌ ○ /                                    22.5 kB         110 kB
+┌ ○ /                                    26.3 kB         114 kB
 └ ○ /_not-found                          873 B          88.2 kB
 + First Load JS shared by all            87.3 kB
-  ├ chunks/117-7b01968a2ed24920.js       31.7 kB
-  ├ chunks/fd9d1056-314442b610634306.js  53.6 kB
+  ├ chunks/117-9776bcfde68b9ed6.js       31.7 kB
+  ├ chunks/fd9d1056-88c8a1669018f964.js  53.6 kB
   └ other shared chunks (total)          1.92 kB
 
 

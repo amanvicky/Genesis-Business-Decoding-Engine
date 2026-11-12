@@ -88,7 +88,7 @@ deterministic and every tab still works.
 Every screenshot below is a genuine capture of the running app (regenerate them
 yourself with [proofs/capture.mjs](proofs/capture.mjs) — 14 shots, one command).
 
-Landing. Type a company or an idea:
+Landing. Decode a company, a raw idea, or battle both:
 
 ![landing](proofs/screenshots/01_landing_input_panel.png)
 
@@ -103,24 +103,25 @@ Structural verdict, and the compliance decoder:
 
 Product DNA — the philosophy and psychology behind every feature:
 
-![dna](proofs/screenshots/10_product_dna.png)
+![dna](proofs/screenshots/08_product_dna.png)
 
-Market sizing and stock performance:
+Stock performance and the public record (filings, registration, domain):
 
-![sizing](proofs/screenshots/09_market_sizing.png)
-![stock](proofs/screenshots/11_stock_performance.png)
+![stock](proofs/screenshots/09_stock_performance.png)
+![record](proofs/screenshots/10_public_record.png)
 
-Founder school — taught with your own numbers:
+Ask Genesis (answers from your brief) and Verdict Protocol v2 (two research
+gates, no quiz):
 
-![school](proofs/screenshots/12_founder_school.png)
+![advisor](proofs/screenshots/12_ask_genesis_advisor.png)
+![verdict](proofs/screenshots/13_verdict_protocol.png)
 
-Ask Genesis (answers from your brief) and the Verdict Protocol (go / no-go):
+The idea battle — a raw idea against the incumbent's URL, winner by rule:
 
-![advisor](proofs/screenshots/13_ask_genesis_advisor.png)
-![verdict](proofs/screenshots/14_verdict_protocol.png)
+![battle](proofs/screenshots/14_battle_matrix.png)
 
-The full set (compliance matrix, pricing archaeology, red-team and more) lives in
-[proofs/](proofs/) — note some older screenshots show the pre-1.14 19-tab layout.
+The full set (pre-mortems, observed pricing, red-team and more) lives in
+[proofs/](proofs/).
 
 ## The 13 tabs, quickly
 
