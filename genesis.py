@@ -1015,8 +1015,20 @@ def cmd_watchdog(args: argparse.Namespace) -> None:
                 down_streak[name] = 0
                 continue  # manager stopped us deliberately
             healthy = http_ok(spec["url"], timeout=2.0)
-            tracked_owns = service_owns_port(tracked, port) if healthy else False
+            # Ownership is a pid/parent fact — compute it from processes alone,
+            # never gated on health: a decode mid-run stalls the health
+            # endpoint, and that stall says nothing about WHO holds the port.
+            tracked_owns = service_owns_port(tracked, port)
             if healthy and tracked_owns:
+                down_streak[name] = 0
+                continue
+            # A busy-but-alive server stalls its own health endpoint: sync
+            # decode work (HTML parsing, corpus mining) blocks the event loop
+            # for seconds at a time, and with the LLM off there are no long
+            # awaits between chunks. Our generation still holds the port —
+            # that is a stall, not a death. Killing it here murdered healthy
+            # decodes mid-run. Only "port not ours / not listening" is down.
+            if tracked_owns:
                 down_streak[name] = 0
                 continue
             # Debounce: one failed sample (transient health stall, GC, AV scan)
