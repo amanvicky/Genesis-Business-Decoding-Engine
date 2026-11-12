@@ -3,7 +3,7 @@
 Deterministic intent routing over the report, no LLM needed. Streams NDJSON:
   {"type": "log", "msg": "..."}                     reasoning trail
   {"type": "answer", "answer": str, "bullets": [...],
-   "open_tabs": ["financial", ...], "followups": ["..."]}
+   "open_tabs": ["deepdive", ...], "followups": ["..."]}
 """
 from __future__ import annotations
 
@@ -12,21 +12,16 @@ from typing import Any
 
 MAX_QUESTION = 500
 
-# teaching index: every glossary term + lesson title, so "what is churn" or
-# "explain CAC" routes to the school before any other intent
+# term index: every dna-tab glossary term, so "what is churn" or "explain CAC"
+# routes to a definition before any keyword intent
 _TERM_INDEX: set[str] = set()
 
 
 def _build_term_index() -> None:
     from .data.dna import BUSINESS_GLOSSARY, PSYCH_GLOSSARY
-    from .data.school import LESSONS
     for t in list(BUSINESS_GLOSSARY) + list(PSYCH_GLOSSARY):
         for a in t.replace("(", "").split(" / "):
             _TERM_INDEX.add(a.strip().lower())
-    for l in LESSONS.values():
-        for w in re.findall(r"[a-z]{4,}", l["title"].lower()):
-            if w not in ("with", "your", "that", "nobody", "follows", "warning"):
-                _TERM_INDEX.add(w)
 
 
 _build_term_index()
@@ -53,18 +48,14 @@ def detect_intent(question: str) -> Intent:
         # red-team first: "what will investors SAY" is an objection question,
         # not a capital question — the say/ask context decides
         ("redteam", r"\b(objection|pitch|red team|red-team|weakness|investors? (say|will say|would say|ask))\b"),
-        ("teach", r"\b(teach me|explain like|knowledge transfer|founder school|new to (business|startups|this)|first[- ]time founder|learn (the )?basics|how (do|does) (start-?ups|startups|businesses?|saas|funding) work)\b"),
+        ("teach", r"\b(teach me|explain like|what does .* mean|new to (business|startups|this)|first[- ]time founder|learn (the )?basics)\b"),
         ("markets", r"\b(stock (price|performance)|share price|how (is|did) the stock|rises? and falls?|listed|publicly traded)\b"),
         ("deepdive", r"\b(how (did|do|does) (they|the company|this company)|what (do|does|did) (they|the company|this company) (do|sell|make|offer)|their marketing|the company'?s marketing|how (did|do) they (market|promote|start|grow|begin|acquire|win)|company (story|origin|history)|origin (story|of the)|reality check|things (i('| i)?ll|to) (face|consider|come across)|what will i (come|face)|feature (breakdown|inventory)|every (single )?(feature|option)|all (of )?the (features|options))\b"),
         ("dna", r"\b(philosoph\w*|psycholog\w*|product dna|explain (the |this |that )?\w*( feature| product| pattern| pricing| design)|why (does|did|is) (this|that|their|it)\b|how (does|did) [a-z ]{3,30} work)\b"),
-        ("capital", r"\b(raise|funding|invest|dilut|bootstrap|valuation|cap\b|safe|equity|money)\w*"),
-        ("market", r"\b(tam|sam|som)\b|\bmarket(ing| size)?\b|big enough"),
         ("competitors", r"\b(competitor|alternative|who else|rival|existing|already does)\w*"),
         ("mvp", r"\b(mvp|build first|what (should|do) i build|feature|roadmap|sequence|scope)\w*"),
         ("compliance", r"\b(compliance|legal|licen[cs]e|regulat|gst|epf|esi|law|tax registration)\w*"),
         ("pricing", r"\b(pric|charge|arpa|tier|how much (should|can) i charge)\w*"),
-        ("burn", r"\b(burn|runway|breakeven|break-even|cost|salary|expenses)\w*"),
-        ("customers", r"\b(first (10|ten|customers)|acquire|acquisition|distribution|marketing|grow|users)\w*"),
         ("risk", r"\b(fail|kill|risk|die|death|wrong|premortem|post-mortem)\w*"),
     ]
     for intent, pattern in rules:
@@ -114,65 +105,20 @@ def advise(question: str, report: dict) -> dict:
 def _advise_hello(q: str, report: dict) -> dict:
     return {
         "answer": (
-            f"I'm Genesis — I already decoded {_subject(report)} into a 19-tab brief. "
-            "Ask me anything in it: numbers, decisions, next steps. I answer from YOUR report, not generic advice."
+            f"I'm Genesis — I already decoded {_subject(report)} into a 13-tab research brief. "
+            "Ask me anything in it: what they do, what users complain about, what it costs them, what's filed. I answer from YOUR report, not generic advice."
         ),
         "bullets": [
-            "“Should I raise or bootstrap?” — capital math from your burn + market base",
-            "“What do I build first?” — your MVP sequence and bloat gates",
+            "“What do they actually do?” — the deep-dive",
             "“Who already does this?” — the alternatives scan",
             "“What kills companies like this?” — your matched failure records",
+            "“How did they market this?” — the concrete mechanics",
         ],
         "open_tabs": [],
-        "followups": ["Should I raise or bootstrap?", "What do I build first?", "What's my biggest risk?"],
+        "followups": ["What do they actually do?", "Who already does this?", "What kills companies like this?"],
     }
 
 
-def _advise_capital(q: str, report: dict) -> dict:
-    fin = _section(report, "financial").get("computed") or {}
-    ms = _section(report, "marketsize")
-    cap = ms.get("capital_strategy") or {}
-    geo = ((report.get("request") or {}).get("geography") or "")
-    cur = (ms.get("assumptions") or {}).get("currency") or ("₹" if geo == "india" else "$")
-    burn = fin.get("burn_month")
-    raise_amt = cap.get("recommended_raise")
-    dil = cap.get("dilution_at_geo_cap_pct")
-    if not raise_amt:
-        return {
-            "answer": "I can't give capital math without your burn numbers — the financial tab hasn't computed yet. Re-run the decode.",
-            "bullets": [], "open_tabs": ["financial", "marketsize"], "followups": ["What's my burn?"],
-        }
-    bullets = [
-        f"Recommended raise: {_num(raise_amt, cur)} = burn ({_num(burn, cur)}/mo) × 18 months × 1.25 buffer.",
-        f"Dilution: ≈{dil}% at the geo-typical pre-seed cap ({cap.get('dilution_formula')}).",
-        f"Timing: {cap.get('raise_when')}",
-        cap.get("bootstrap_note", ""),
-    ]
-    return {
-        "answer": f"Raise {_num(raise_amt, cur)} — but only after gate G1. Here's the math:",
-        "bullets": [b for b in bullets if b],
-        "open_tabs": ["marketsize", "financial"],
-        "followups": ["What's my dilution at other caps?", "Can I bootstrap instead?", "When exactly is gate G1?"],
-    }
-
-
-def _advise_market(q: str, report: dict) -> dict:
-    ms = _section(report, "marketsize")
-    if not ms:
-        return {"answer": "No market sizing in this report yet — re-run the decode.", "bullets": [], "open_tabs": ["marketsize"], "followups": []}
-    tam, sam = ms.get("tam") or {}, ms.get("sam") or {}
-    som = (ms.get("som_by_year") or [{}])[-1]
-    return {
-        "answer": str(ms.get("verdict") or "Sizing incomplete."),
-        "bullets": [
-            f"TAM {tam.get('display')} — {tam.get('basis')}",
-            f"SAM (your wedge) {sam.get('display')} — {sam.get('basis')}",
-            f"3-year SOM {som.get('display')} at {som.get('adoption')} earned adoption ({som.get('customers'):,} customers).",
-            "Every figure is bottom-up and editable — the ARPA comes from your pricing sandbox.",
-        ],
-        "open_tabs": ["marketsize", "pricing"],
-        "followups": ["Is my market big enough?", "What's my SOM in year 1?", "Should I raise or bootstrap?"],
-    }
 
 
 def _advise_competitors(q: str, report: dict) -> dict:
@@ -234,67 +180,28 @@ def _advise_compliance(q: str, report: dict) -> dict:
 
 def _advise_pricing(q: str, report: dict) -> dict:
     pricing = _section(report, "pricing")
-    ue = pricing.get("unit_economics") or {}
     tiers = pricing.get("tiers") or []
-    cur = ue.get("currency", "$")
     if tiers:
-        lines = [f"{t['name']}: {t['price']}" for t in tiers[:5]]
+        lines = [f"{t['name']}: {t['price']}" for t in tiers[:6]]
+        psych = pricing.get("psychology") or []
+        lines += [f"{p['driver']}: {p['evidence']}" for p in psych[:2]]
         return {
-            "answer": f"{len(tiers)} tier(s) decoded from live evidence — your unit economics:",
-            "bullets": lines + [
-                f"LTV {ue.get('ltv')} · LTV:CAC {ue.get('ltv_cac_ratio')} · payback {ue.get('cac_payback_months')} months.",
-                "Edit CAC/churn/margin in the sandbox — every number recomputes live.",
-            ],
-            "open_tabs": ["pricing", "marketsize"],
-            "followups": ["Is my market big enough?", "Should I raise or bootstrap?"],
+            "answer": f"{len(tiers)} tier(s) decoded from {(_subject(report))}'s live pricing — what they actually charge:",
+            "bullets": lines,
+            "open_tabs": ["pricing"],
+            "followups": ["What do they actually do?", "Who already does this?"],
         }
     return {
-        "answer": f"No public pricing decoded — you're defining the category. Geography defaults: ARPA {cur}{ue.get('arpa')}.",
+        "answer": f"No public pricing decoded for {_subject(report)} — nothing visible on their site or in the evidence.",
         "bullets": [
-            "Price from customer #1. A discount expires; a free tier is a permanent COGS line.",
-            f"Recommended 3-tier ladder is in Tab 6 — anchor on the middle tier.",
-            "The sandbox is live: change ARPA and see breakeven move in Tab 8.",
+            "That absence is itself a fact: quote-based sales, or pricing hidden behind demo gates.",
+            "The wayback history (Tab 6) shows what they charged in past years when a snapshot exists.",
         ],
-        "open_tabs": ["pricing", "financial"],
-        "followups": ["What's my burn?", "Is my market big enough?"],
+        "open_tabs": ["pricing"],
+        "followups": ["What do they actually do?", "Who already does this?"],
     }
 
 
-def _advise_burn(q: str, report: dict) -> dict:
-    fin = _section(report, "financial")
-    comp = fin.get("computed") or {}
-    if not comp:
-        return {"answer": "No burn model in this report — re-run the decode.", "bullets": [], "open_tabs": ["financial"], "followups": []}
-    return {
-        "answer": "Your financial reality, as computed:",
-        "bullets": [
-            f"Burn: {_num(comp.get('burn_month'))}/month (team of {fin.get('team_size', '?')}, geo-adjusted salaries).",
-            f"Capital for the {fin.get('runway_target_months', '?')}-month target: {_num(comp.get('capital_needed'))}.",
-            f"Breakeven: ~{comp.get('breakeven_customers'):,} customers at ARPA {_num(comp.get('arpa_assumption'))}.",
-            "Salary −25% or one fewer engineer moves breakeven more than any pricing tweak — see the sensitivity table.",
-        ],
-        "open_tabs": ["financial", "marketsize"],
-        "followups": ["Should I raise or bootstrap?", "Is my market big enough?"],
-    }
-
-
-def _advise_customers(q: str, report: dict) -> dict:
-    dist = _section(report, "distribution")
-    channels = dist.get("channels") or []
-    first_ten = dist.get("first_ten") or []
-    top = [c.get("name", "?") for c in channels[:2]]
-    step1 = next((s for s in first_ten if s.get("step") == 1), {})
-    return {
-        "answer": "Two moves: pick the loop, then run the first-10 plan inside it.",
-        "bullets": [
-            f"Top-ranked loops for you: {' · '.join(top)}.",
-            f"Day 1–3: {step1.get('action', 'List 30 named prospects from the top channel.')}",
-            "Day 3–7: contact 10/day, 3 lines, no links. Week 2: 20-minute problem interviews. Week 2–3: paid pilots at 50%.",
-            "Day 30 verdict: fewer than 3 paid pilots → the pain or pitch is wrong; 3+ → point the compounding loop at the exact wording that worked.",
-        ],
-        "open_tabs": ["distribution"],
-        "followups": ["Who already does this?", "What do I build first?"],
-    }
 
 
 def _advise_risk(q: str, report: dict) -> dict:
@@ -333,7 +240,7 @@ def _advise_redteam(q: str, report: dict) -> dict:
     return {
         "answer": "The strongest objections to your plan, from the adversarial panel:",
         "bullets": bullets + ["Fatal gaps must be ANSWERED or the feature/plan CUT — that's the protocol."],
-        "open_tabs": ["adversary", "playbook"],
+        "open_tabs": ["adversary"],
         "followups": ["What's my biggest risk?", "What should I do next?"],
     }
 
@@ -341,7 +248,6 @@ def _advise_redteam(q: str, report: dict) -> dict:
 def _advise_next(q: str, report: dict) -> dict:
     """Default: compose the NOW/WEEK-1 decision list from the brief's own verdicts."""
     struct = _section(report, "structural")
-    ms = _section(report, "marketsize")
     comp = _section(report, "compliance")
     now: list[str] = []
     verdict = struct.get("verdict") or ""
@@ -350,21 +256,18 @@ def _advise_next(q: str, report: dict) -> dict:
     elif "Weak" in verdict:
         now.append("Signal is weak: 20 problem interviews BEFORE any code. The brief's pain tables tell you what to ask.")
     else:
-        now.append("Signal exists — run the first-10 plan (Tab 9) inside the top-ranked channel this week.")
+        now.append("Signal exists — the pain is voiced publicly; the deep-dive and features tabs show what users live with today.")
     critical = comp.get("critical_count")
     if critical:
-        now.append(f"Start the compliance clock: {critical} launch-blocking obligations, some take weeks — Tab 3 has the ordered list.")
-    msv = ms.get("verdict") or ""
-    if "DOESN'T CLOSE" in msv:
-        now.append("Your market math doesn't fund this team — fix the wedge/price/team before writing code.")
+        now.append(f"Compliance weight: {critical} launch-blocking obligations in this sector — Tab 3 has the ordered list.")
     adv = _section(report, "adversary")
     if adv.get("fatal_count"):
         now.append(f"Answer the {adv['fatal_count']} fatal red-team challenges — each one is a plan-killer if ignored.")
     return {
         "answer": f"Where {_subject(report)} stands, straight from your brief:",
-        "bullets": now[:4] + ["Ask me anything specific — pricing, competitors, raise, compliance, risks."],
-        "open_tabs": ["structural", "marketsize", "compliance"],
-        "followups": ["Should I raise or bootstrap?", "Who already does this?", "What kills companies like this?"],
+        "bullets": now[:4] + ["Ask me anything specific — pricing, competitors, compliance, risks."],
+        "open_tabs": ["structural", "compliance"],
+        "followups": ["What do they actually do?", "Who already does this?", "What kills companies like this?"],
     }
 
 
@@ -449,12 +352,10 @@ def _advise_deepdive(q: str, report: dict) -> dict:
             bullets.append(f"{m['mechanic']}{sig} — what they promote: {m['what_they_promote']}. {m['psych']}")
         if mk.get("the_hook"):
             bullets.append(f"The hook: {mk['the_hook']} — the entry surface everything else pulls people through.")
-        if mk.get("channel_ranking"):
-            bullets.append(f"Top channels for this category: {' · '.join(mk['channel_ranking'])}.")
         return {
             "answer": f"How {_subject(report)} actually reaches people — the concrete mechanics, not the 'they do digital marketing' filler:",
             "bullets": bullets or ["No marketing mechanics were visible in this run's evidence — decode with network for the full picture."],
-            "open_tabs": ["deepdive", "distribution"],
+            "open_tabs": ["deepdive"],
             "followups": ["What do they actually do?", "What will I come across building this?"],
         }
 
@@ -497,58 +398,32 @@ def _advise_deepdive(q: str, report: dict) -> dict:
 
 
 def _advise_teach(q: str, report: dict) -> dict:
-    """The mentor voice: find the lesson or term the founder is asking about."""
+    """Definitions only, from the dna-tab vocabularies. The Founder-School
+    lesson engine died in the pure-research cut — a definition is research-
+    adjacent; a curriculum was not."""
     from .data.dna import BUSINESS_GLOSSARY, PSYCH_GLOSSARY
-    from .data.school import LESSONS, PHASES
     low = q.lower()
-
-    # exact glossary term first
     for source, gloss in (("business", BUSINESS_GLOSSARY), ("psychology", PSYCH_GLOSSARY)):
         for term, definition in gloss.items():
             for alias in term.replace("(", "").split(" / "):
                 if re.search(rf"\b{re.escape(alias.lower())}\b", low):
-                    lesson_hit = next((l for l in LESSONS.values() if alias.lower() in l["lesson"].lower()
-                                       or any(alias.lower() in t for t in l.get("terms", []))), None)
-                    bullets = [definition, f"Source: the {source} vocabulary in Founder School (Tab 15)."]
-                    if lesson_hit:
-                        bullets.append(f"The lesson '{lesson_hit['title']}' shows it in context: {lesson_hit['truth']}")
-                    return {"answer": f"{term}: {definition}", "bullets": bullets,
-                            "open_tabs": ["school"], "followups": ["Teach me the money mechanics", "What kills companies like this?"]}
-
-    # otherwise: best lesson by word overlap (stemmed, title-match boosted)
-    def _stem(w: str) -> str:
-        return w[:-1] if w.endswith("s") else w
-
-    words = {_stem(w) for w in re.findall(r"[a-z]{4,}", low)} - {"what", "explain", "about", "teach", "like", "understand"}
-    phase_of = {lid: ph["phase"] for ph in PHASES for lid in ph["lesson_ids"]}
-    best, best_id, best_score = None, "what_is_a_startup", 0
-    for lid, l in LESSONS.items():
-        text = " ".join(_stem(w) for w in re.findall(r"[a-z]{4,}", (l["title"] + " " + l["lesson"]).lower()))
-        score = len(words & set(text.split()))
-        if "startup" in lid and any(w in text for w in words):
-            score += 2  # "how do startups work" should hit the intro lesson
-        if score > best_score:
-            best, best_id, best_score = l, lid, score
-    followups = [LESSONS[lid]["title"] for lid in phase_of
-                 if phase_of[lid] == phase_of[best_id] and lid != best_id][:2]
+                    return {"answer": f"{term}: {definition}",
+                            "bullets": [f"Source: the {source} vocabulary in Tab 9 (Product DNA)."],
+                            "open_tabs": ["dna"], "followups": ["What do they actually do?"]}
     return {
-        "answer": f"{best['title']}. {best['lesson']}",
-        "bullets": [f"The uncomfortable truth: {best['truth']}", f"Do this now: {best['action']}"],
-        "open_tabs": ["school"],
-        "followups": followups or ["Teach me the money mechanics", "What is a startup really?"],
+        "answer": "That term isn't in the decoded brief's vocabularies — ask me about a feature or pattern from this decode instead.",
+        "bullets": [],
+        "open_tabs": ["dna"],
+        "followups": ["What do they actually do?"],
     }
 
 
 _HANDLERS = {
     "hello": _advise_hello,
-    "capital": _advise_capital,
-    "market": _advise_market,
     "competitors": _advise_competitors,
     "mvp": _advise_mvp,
     "compliance": _advise_compliance,
     "pricing": _advise_pricing,
-    "burn": _advise_burn,
-    "customers": _advise_customers,
     "risk": _advise_risk,
     "redteam": _advise_redteam,
     "dna": _advise_dna,

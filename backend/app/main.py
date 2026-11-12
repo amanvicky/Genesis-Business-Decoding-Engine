@@ -10,7 +10,7 @@ Endpoints:
   GET  /api/watch/check       — lazy trigger: re-decode what's due, in background
   POST /api/watch/ack         — mark drift alerts seen
   POST /api/export/markdown   — full report → .md download
-  POST /api/export/zip        — full report + scaffold → .zip download
+  POST /api/export/zip        — full report → .zip download
 """
 from __future__ import annotations
 
@@ -310,13 +310,9 @@ async def verdict_endpoint(request: Request):
     report = body.get("report")
     if not isinstance(report, dict):
         raise HTTPException(status_code=422, detail="report (the decoded brief) is required")
-    answers = body.get("fmf_answers")
-    if answers is not None:
-        if (not isinstance(answers, list) or len(answers) > verdict._MAX_FMF_ANSWERS
-                or not all(isinstance(a, bool) for a in answers)):
-            raise HTTPException(status_code=422,
-                                detail=f"fmf_answers must be a list of booleans (max {verdict._MAX_FMF_ANSWERS})")
-    return verdict.build_memo(report, answers)
+    # fmf_answers is accepted but ignored — the founder-fit quiz died with
+    # the marketsize tab; old callers must keep working
+    return verdict.build_memo(report, body.get("fmf_answers"))
 
 
 @app.post("/api/export/markdown")

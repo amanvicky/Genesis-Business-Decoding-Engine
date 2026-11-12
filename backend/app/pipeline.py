@@ -1,4 +1,9 @@
-"""Pipeline orchestrator: recon → 12 analysis agents → assembled Report.
+"""Pipeline orchestrator: recon → 13 analysis agents → assembled Report.
+
+Every agent is research — a dossier tab about the decoded subject. The
+planning agents (burn calculator, market sizing, founder school, starter
+code, playbook, distribution coach) were removed in the pure-research cut;
+the brief ends in facts and a verdict, not in coaching.
 
 Streams NDJSON events:
   {"type":"log","level","agent","msg"}
@@ -16,21 +21,15 @@ from .agents import (
     AdversaryAgent,
     ComplianceAgent,
     DarkWebAgent,
-    DistributionAgent,
     FeaturesAgent,
-    FinancialAgent,
     FrictionAgent,
     DnaAgent,
-    MarketSizeAgent,
     MarketsAgent,
     RegistryAgent,
-    SchoolAgent,
     DeepDiveAgent,
-    PlaybookAgent,
     PremortemAgent,
     PricingAgent,
     StructuralAgent,
-    TechArchAgent,
     TimelineAgent,
 )
 from .agents.base import Agent, Emit
@@ -48,30 +47,13 @@ AGENTS: list[type[Agent]] = [
     TimelineAgent,
     PricingAgent,
     FrictionAgent,
-    FinancialAgent,
-    DistributionAgent,
-    TechArchAgent,
     DarkWebAgent,
-    PlaybookAgent,
-    MarketSizeAgent,  # reads pricing/financial sections — after both
     DnaAgent,  # reads the feature list from the features tab
-    SchoolAgent,  # knowledge transfer; personalizes with the computed numbers
     MarketsAgent,  # stock performance; reads EDGAR evidence for tickers
-    DeepDiveAgent,  # reads features/dna/timeline/premortem/compliance/dist/fin — after all of them
+    DeepDiveAgent,  # reads features/dna/timeline/premortem/compliance — after all of them
     RegistryAgent,  # the legal/registry layer; reads the site profile + EDGAR identity
     AdversaryAgent,  # must run last — it cross-examines the assembled report
 ]
-
-
-def _post_process(sections: dict) -> None:
-    """Cross-section enrichment that needs two agents' outputs at once."""
-    fin = (sections.get("financial") or {}).get("data") or {}
-    burn = ((fin.get("computed") or {}).get("burn_month"))
-    pricing = sections.get("pricing")
-    if pricing and burn:
-        data = dict(pricing.get("data") or {})
-        data["sandbox"] = {**((data.get("sandbox") or {})), "opex_month": burn}
-        sections["pricing"] = {**pricing, "data": data}
 
 
 async def run_pipeline(req: AnalyzeRequest, emit: Emit) -> Report:
@@ -160,8 +142,6 @@ async def run_pipeline(req: AnalyzeRequest, emit: Emit) -> Report:
             if event.get("type") == "section":
                 sec = event["section"]
                 sections[sec["id"]] = sec
-
-    _post_process(sections)
 
     report = Report(
         request=req,

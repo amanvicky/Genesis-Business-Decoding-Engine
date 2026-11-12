@@ -29,14 +29,8 @@ export const TAB_IDS = [
   "timeline",
   "pricing",
   "friction",
-  "financial",
-  "distribution",
-  "techarch",
   "darkweb",
-  "playbook",
-  "marketsize",
   "dna",
-  "school",
   "markets",
   "deepdive",
   "publicrecord",
@@ -55,24 +49,18 @@ export interface TabDef {
 
 export const TABS = [
   { id: "structural", n: 1, title: "Structural Feasibility & Core Mechanics", icon: "◈", blurb: "Pain validation, timing shifts, systemic moats" },
-  { id: "features", n: 2, title: "Feature Breakdown & MVP Sequencing", icon: "▦", blurb: "Day-1 wedge vs enterprise bloat, build order" },
+  { id: "features", n: 2, title: "Feature Breakdown & Alternatives", icon: "▦", blurb: "shipped features with dates, the alternatives scan" },
   { id: "compliance", n: 3, title: "Jurisdictional & Regulatory Decoder", icon: "⚖", blurb: "Licenses, labor/tax law, launch-blockers" },
   { id: "premortem", n: 4, title: "Pre-Mortem & Failure Post-Mortems", icon: "☠", blurb: "Why operators like this one collapsed" },
-  { id: "timeline", n: 5, title: "Genesis & Historical Timeline", icon: "◷", blurb: "Pivots, milestones, funding events" },
-  { id: "pricing", n: 6, title: "Pricing & Unit Economics", icon: "∑", blurb: "Tier math, margins, LTV:CAC, psychology" },
+  { id: "timeline", n: 5, title: "Genesis & Historical Timeline", icon: "◷", blurb: "Pivots, milestones, funding + revenue history" },
+  { id: "pricing", n: 6, title: "Pricing — Tiers, History & Packaging Psychology", icon: "∑", blurb: "what they actually charge, as observed" },
   { id: "friction", n: 7, title: "Market Friction & Consumer Psychology", icon: "⚡", blurb: "Unvarnished complaints & demand triggers" },
-  { id: "financial", n: 8, title: "Financial Reality & Burn Calculator", icon: "▮", blurb: "Runway math with zero sugarcoating" },
-  { id: "distribution", n: 9, title: "Unfair Distribution Channels", icon: "⇄", blurb: "Zero-cost loops, organic acquisition" },
-  { id: "techarch", n: 10, title: "Technical Architecture & Scaffolding", icon: "⌘", blurb: "Stack decisions + starter code files" },
-  { id: "darkweb", n: 11, title: "Deep/Dark Web & Vulnerability Shield", icon: "◉", blurb: "Tor-routed lawful OSINT, breach shield" },
-  { id: "playbook", n: 12, title: "The Systematic Execution Playbook", icon: "➤", blurb: "Phased sequencing, KYC friction, scaling" },
-  { id: "marketsize", n: 13, title: "Market Sizing & Capital Strategy", icon: "◎", blurb: "TAM/SAM/SOM math, raise vs bootstrap, founder fit" },
-  { id: "dna", n: 14, title: "Product DNA — Philosophy & Psychology", icon: "☯", blurb: "why every feature exists, in plain words" },
-  { id: "school", n: 15, title: "Founder School — The Knowledge Transfer", icon: "✦", blurb: "the zero-to-one curriculum, taught with your own numbers" },
-  { id: "markets", n: 16, title: "Stock Performance — Rise & Fall", icon: "▲", blurb: "1-year chart, 52w range, the biggest rises and falls" },
-  { id: "deepdive", n: 17, title: "Company Deep-Dive — What, Why, Reality & Marketing", icon: "❖", blurb: "what they do, every feature's origin story, the reality check, the marketing mechanics" },
-  { id: "publicrecord", n: 18, title: "Public Record — Registration & Corporate Footprint", icon: "§", blurb: "legal identity, government registry IDs, the domain record — everything publicly filed" },
-  { id: "adversary", n: 19, title: "Adversarial Red-Team Simulator", icon: "⚔", blurb: "Buyers, VCs & auditors cross-examine your plan" },
+  { id: "darkweb", n: 8, title: "Deep/Dark Web & Vulnerability Shield", icon: "◉", blurb: "Tor-routed lawful OSINT, breach shield" },
+  { id: "dna", n: 9, title: "Product DNA — Philosophy & Psychology", icon: "☯", blurb: "why every feature exists, in plain words" },
+  { id: "markets", n: 10, title: "Stock Performance — Rise & Fall", icon: "▲", blurb: "1-year chart, 52w range, the biggest rises and falls" },
+  { id: "deepdive", n: 11, title: "Company Deep-Dive — What, Why, Reality & Marketing", icon: "❖", blurb: "what they do, every feature's origin story, the reality check, the marketing mechanics" },
+  { id: "publicrecord", n: 12, title: "Public Record — Registration & Corporate Footprint", icon: "§", blurb: "legal identity, government registry IDs, the domain record — everything publicly filed" },
+  { id: "adversary", n: 13, title: "Adversarial Red-Team Simulator", icon: "⚔", blurb: "Buyers, VCs & auditors cross-examine your plan" },
 ] as const satisfies readonly TabDef[];
 
 /* ---------------------------------------------------- section data shapes */
@@ -220,21 +208,7 @@ export interface PricingTier {
 export interface PricingData {
   readonly tiers?: readonly PricingTier[];
   readonly history?: readonly { date: string; snapshot: string; prices: readonly { raw: string; context: string }[] }[];
-  readonly sandbox?: { opex_month?: number };
-  readonly unit_economics?: {
-    arpa?: number;
-    currency?: string;
-    assumed_gross_margin?: number;
-    margin_basis?: string;
-    avg_lifetime_months?: number;
-    ltv?: number;
-    cac_organic_proxy?: number;
-    ltv_cac_ratio?: number;
-    cac_payback_months?: number;
-    formulas?: readonly string[];
-  };
   readonly psychology?: readonly { driver: string; evidence: string }[];
-  readonly recommendation?: readonly string[];
   readonly ai_insight?: string;
 }
 
@@ -248,58 +222,6 @@ export interface FrictionData {
   readonly ai_insight?: string;
 }
 
-export interface FinancialData {
-  readonly currency?: string;
-  readonly team_size?: number;
-  readonly salary_engineer_loaded?: number;
-  readonly salary_founder_draw?: number;
-  readonly infra_month?: number;
-  readonly tools_month?: number;
-  readonly legal_year?: number;
-  readonly runway_target_months?: number;
-  readonly computed?: {
-    payroll_month?: number;
-    burn_month?: number;
-    capital_needed?: number;
-    breakeven_customers?: number;
-    arpa_assumption?: number;
-    gross_margin_assumption?: number;
-  };
-  readonly sensitivity?: readonly { scenario: string; burn_delta: number }[];
-  readonly warnings?: readonly string[];
-  readonly formulas?: Readonly<Record<string, string>>;
-  readonly ai_insight?: string;
-}
-
-export interface DistributionChannel {
-  readonly name?: string;
-  readonly loop?: string;
-  readonly effort?: string;
-  readonly time_to_first_signal?: string;
-  readonly actions?: readonly string[];
-  readonly corpus_signal?: number;
-}
-
-export interface DistributionData {
-  readonly channels?: readonly DistributionChannel[];
-  readonly strategy?: readonly string[];
-  readonly ai_insight?: string;
-}
-
-export interface ScaffoldFile {
-  readonly path?: string;
-  readonly language?: string;
-  readonly content?: string;
-}
-
-export interface TechArchData {
-  readonly stack?: readonly string[];
-  readonly architecture?: Readonly<Record<string, string>>;
-  readonly decisions?: readonly { decision: string; why: string }[];
-  readonly files?: readonly ScaffoldFile[];
-  readonly ai_insight?: string;
-}
-
 export interface DarkWebData {
   readonly skipped?: boolean;
   readonly reason?: string;
@@ -308,14 +230,6 @@ export interface DarkWebData {
   readonly breaches?: readonly { name: string; date: string; accounts: number; data_classes: readonly string[]; description: string }[];
   readonly guidance?: readonly string[];
   readonly ethics_notice?: string;
-  readonly ai_insight?: string;
-}
-
-export interface PlaybookData {
-  readonly phases?: readonly { phase: string; steps: readonly ({ action?: string; cost?: string; window?: string; step?: string; friction?: string; fix?: string; time?: string; hurdle?: string; strategy?: string } | string)[]; hurdle?: string }[];
-  readonly kyc_docs?: readonly string[];
-  readonly kill_criteria?: readonly string[];
-  readonly note?: string;
   readonly ai_insight?: string;
 }
 
@@ -342,46 +256,6 @@ export interface AdversaryData {
   readonly overall_verdict?: string;
   readonly protocol?: readonly string[];
   readonly identity?: Readonly<Record<string, unknown>>;
-  readonly ai_insight?: string;
-}
-
-export interface MarketSizeData {
-  readonly market_base?: {
-    readonly buying_units?: number;
-    readonly unit?: string;
-    readonly basis?: string;
-    readonly sector?: string;
-    readonly geography?: string;
-  };
-  readonly assumptions?: { readonly arpa?: number; readonly currency?: string; readonly arpa_source?: string };
-  readonly tam?: { readonly value?: number; readonly display?: string; readonly basis?: string };
-  readonly sam?: { readonly value?: number; readonly display?: string; readonly basis?: string };
-  readonly som_by_year?: readonly {
-    readonly year: string;
-    readonly customers: number;
-    readonly value: number;
-    readonly display: string;
-    readonly adoption: string;
-  }[];
-  readonly formulas?: readonly string[];
-  readonly verdict?: string;
-  readonly verdict_tone?: "green" | "amber" | "red";
-  readonly capital_strategy?: {
-    readonly recommended_raise?: number | null;
-    readonly raise_formula?: string;
-    readonly raise_when?: string;
-    readonly dilution_at_geo_cap_pct?: number | null;
-    readonly dilution_formula?: string;
-    readonly geo_norms?: { readonly pre_seed_cap_usd?: number; readonly seed_valuation_usd?: number; readonly note?: string };
-    readonly bootstrap_note?: string;
-  };
-  readonly founder_market_fit?: {
-    readonly instruction?: string;
-    readonly questions?: readonly { readonly q: string; readonly weight: string; readonly invert?: boolean }[];
-  };
-  readonly investor_question_map?: readonly { readonly question: string; readonly answered_by: string }[];
-  readonly evidence_money_signals?: readonly { readonly raw: string; readonly context: string }[];
-  readonly note?: string;
   readonly ai_insight?: string;
 }
 
@@ -428,30 +302,6 @@ export interface DnaData {
   };
   readonly glossary_business?: Readonly<Record<string, string>>;
   readonly glossary_psych?: Readonly<Record<string, string>>;
-  readonly note?: string;
-  readonly ai_insight?: string;
-}
-
-export interface SchoolData {
-  readonly phases?: readonly {
-    readonly phase: number;
-    readonly name: string;
-    readonly why: string;
-    readonly lessons: readonly {
-      readonly id: string;
-      readonly title: string;
-      readonly lesson: string;
-      readonly truth: string;
-      readonly action: string;
-      readonly terms: readonly string[];
-      readonly with_your_numbers?: string;
-    }[];
-  }[];
-  readonly vocabulary?: {
-    readonly business?: Readonly<Record<string, string>>;
-    readonly psychology?: Readonly<Record<string, string>>;
-  };
-  readonly sector_note?: string;
   readonly note?: string;
   readonly ai_insight?: string;
 }
@@ -605,14 +455,8 @@ export interface SectionDataMap {
   timeline: TimelineData;
   pricing: PricingData;
   friction: FrictionData;
-  financial: FinancialData;
-  distribution: DistributionData;
-  techarch: TechArchData;
   darkweb: DarkWebData;
-  playbook: PlaybookData;
-  marketsize: MarketSizeData;
   dna: DnaData;
-  school: SchoolData;
   markets: MarketPerfData;
   deepdive: DeepDiveData;
   publicrecord: PublicRecordData;
@@ -700,7 +544,6 @@ export interface BattleRow {
   readonly score: number | null;
   readonly decision: string;
   readonly fatals: number | null;
-  readonly breakeven: number | null;
   readonly criticals: number | null;
   readonly gates: BattleGates;
   readonly brief_id?: string;

@@ -103,7 +103,7 @@ class DnaAgent(Agent):
     id = "dna"
     title = "Product DNA — Philosophy & Psychology"
     icon = "☯"
-    tab = 14
+    tab = 9
 
     async def build(self, ev: Evidence) -> dict:
         is_idea = ev.req.mode.value == "idea"

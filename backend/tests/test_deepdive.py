@@ -209,15 +209,7 @@ class TestRealityCheck:
         target = next(i for i in data["reality_check"]["items"] if "Growth" in i["area"])
         assert "nobody wants it" in target["what"]
 
-    def test_breakeven_injected(self):
-        agent = DeepDiveAgent()
-        agent.sections = {"financial": {"data": {"computed": {"breakeven_customers": 420}}}}
-        data = asyncio.run(agent.build(_ev()))
-        target = next(i for i in data["reality_check"]["items"] if "Cash" in i["area"])
-        assert "420" in target["what"]
 
-
-class TestMarketing:
     def test_mechanics_detected_from_snippets(self):
         ev = _ev()
         ev.search = [
@@ -236,13 +228,6 @@ class TestMarketing:
         m = data["marketing"]["mechanics"][0]
         assert m["mechanic"] and m["signals"] and m["what_they_promote"] and m["psych"]
 
-    def test_channel_ranking_from_distribution(self):
-        agent = DeepDiveAgent()
-        agent.sections = {"distribution": {"data": {"channels": [
-            {"name": "Community loops", "score": 9}, {"name": "SEO content", "score": 7},
-        ]}}}
-        data = asyncio.run(agent.build(_ev()))
-        assert data["marketing"]["channel_ranking"] == ["Community loops", "SEO content"]
 
     def test_dna_confirmation_flag(self):
         agent = DeepDiveAgent()

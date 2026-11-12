@@ -19,9 +19,9 @@ def env(tmp_path, monkeypatch):
     return tmp_path / "briefs"
 
 
-def _row(i: int, subject: str, *, gates: dict, score=None, fatals=None, breakeven=None, criticals=None, decision="PENDING") -> dict:
+def _row(i: int, subject: str, *, gates: dict, score=None, fatals=None, criticals=None, decision="PENDING") -> dict:
     return battle._row(i, subject, {"signal_score": score, "fatal_count": fatals,
-                                    "breakeven_customers": breakeven, "compliance_criticals": criticals},
+                                    "compliance_criticals": criticals},
                        gates, decision)
 
 
@@ -47,9 +47,9 @@ class TestWinnerRules:
                 _row(1, "B", gates={"pass": 3, "caution": 0, "fail": 0, "pending": 0}, score=40, fatals=2)]
         assert pick_winner(rows) == 1
 
-    def test_breakeven_breaks_a_fatal_tie(self):
-        rows = [_row(0, "A", gates={"pass": 3, "caution": 0, "fail": 0, "pending": 0}, score=40, fatals=2, breakeven=400),
-                _row(1, "B", gates={"pass": 3, "caution": 0, "fail": 0, "pending": 0}, score=40, fatals=2, breakeven=120)]
+    def test_criticals_break_a_fatal_tie(self):
+        rows = [_row(0, "A", gates={"pass": 3, "caution": 0, "fail": 0, "pending": 0}, score=40, fatals=2, criticals=9),
+                _row(1, "B", gates={"pass": 3, "caution": 0, "fail": 0, "pending": 0}, score=40, fatals=2, criticals=3)]
         assert pick_winner(rows) == 1
 
     def test_caution_tier_between_pass_and_fail(self):
@@ -58,8 +58,8 @@ class TestWinnerRules:
         assert _tier(_row(0, "A", gates={"pass": 2, "caution": 0, "fail": 0, "pending": 1})) == 4
 
     def test_full_tie_is_pending_never_a_coin_flip(self):
-        rows = [_row(0, "A", gates={"pass": 3, "caution": 0, "fail": 0, "pending": 0}, score=40, fatals=2, breakeven=100, criticals=1),
-                _row(1, "B", gates={"pass": 3, "caution": 0, "fail": 0, "pending": 0}, score=40, fatals=2, breakeven=100, criticals=1)]
+        rows = [_row(0, "A", gates={"pass": 3, "caution": 0, "fail": 0, "pending": 0}, score=40, fatals=2, criticals=1),
+                _row(1, "B", gates={"pass": 3, "caution": 0, "fail": 0, "pending": 0}, score=40, fatals=2, criticals=1)]
         assert pick_winner(rows) is None
         assert _key(rows[0]) == _key(rows[1])
 

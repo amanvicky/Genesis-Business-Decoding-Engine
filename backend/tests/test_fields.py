@@ -59,12 +59,10 @@ class TestExtract:
         f = extract_fields({"subject": "Ghost", "sections": {}})
         assert f["legal_name"] is None
         assert f["signal_score"] is None
-        assert f["breakeven_customers"] is None
         assert f["tech"] == []
 
     def test_junk_breakeven_does_not_raise(self):
         f = extract_fields(_report(financial={"id": "financial", "title": "T", "data": {"computed": {"breakeven_customers": "n/a"}}}))
-        assert f["breakeven_customers"] is None
 
 
 class TestDiff:
@@ -99,13 +97,6 @@ class TestDiff:
         assert diff_fields(_fields(signal_score=34), _fields(signal_score=37)) == []   # noise band
         rows = diff_fields(_fields(signal_score=34), _fields(signal_score=29))
         assert [r["field"] for r in rows] == ["signal_score"]
-
-    def test_breakeven_ratio_threshold_20pct(self):
-        assert diff_fields(_fields(breakeven_customers=230), _fields(breakeven_customers=260)) == []  # +13%
-        rows = diff_fields(_fields(breakeven_customers=230), _fields(breakeven_customers=300))       # +30%
-        assert [r["field"] for r in rows] == ["breakeven_customers"]
-        # zero/None old values never divide by zero
-        assert diff_fields(_fields(breakeven_customers=None), _fields(breakeven_customers=300)) == []
 
     def test_drift_field_set_is_bounded_and_labeled(self):
         # the one-pager's promise: ~8-12 bounded signals, each with a label + tab

@@ -8,7 +8,6 @@ import pytest
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
-from app.data import channels as channels_kb
 from app.data import failures as failures_kb
 from app.main import app
 from app.models import AnalyzeRequest, Evidence
@@ -119,23 +118,6 @@ class TestAdversaryRobustness:
         total = data["fatal_count"] + data["serious_count"]
         emitted = sum(len(p.get("kills") or []) for p in data["personas"])
         assert total <= emitted  # probes are not counted as serious
-
-
-class TestDistributionKBPurity:
-    def test_kb_dicts_not_mutated_by_ranking(self):
-        from app.agents.distribution import DistributionAgent
-        req = AnalyzeRequest(mode="idea", query="tiffin service bangalore")
-        ev = Evidence(req=req, subject="tiffin bangalore")
-        asyncio.run(DistributionAgent().build(ev))
-        leaked = [ch["name"] for ch in channels_kb.CHANNELS if "corpus_signal" in ch]
-        assert leaked == [], leaked
-
-    def test_ranking_still_works(self):
-        from app.agents.distribution import DistributionAgent
-        req = AnalyzeRequest(mode="idea", query="tiffin service bangalore")
-        ev = Evidence(req=req, subject="tiffin bangalore")
-        data = asyncio.run(DistributionAgent().build(ev))
-        assert all("corpus_signal" in ch for ch in data["channels"])
 
 
 class TestPricingAnchoring:

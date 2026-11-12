@@ -24,7 +24,7 @@ class DarkWebAgent(Agent):
     id = "darkweb"
     title = "Deep/Dark Web & Vulnerability Shield"
     icon = "🛡"
-    tab = 11
+    tab = 8
 
     async def build(self, ev: Evidence) -> dict:
         f = Fetcher(ev)

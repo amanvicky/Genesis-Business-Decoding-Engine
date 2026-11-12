@@ -1,4 +1,4 @@
-"""Report exporters: Markdown rendering, playbook ZIP, and schema-versioned JSON (stdlib only)."""
+"""Report exporters: Markdown rendering, report ZIP, and schema-versioned JSON (stdlib only)."""
 from __future__ import annotations
 
 import io
@@ -11,8 +11,7 @@ from . import __version__
 
 TAB_ORDER = [
     "structural", "features", "compliance", "premortem", "timeline", "pricing",
-    "friction", "financial", "distribution", "techarch", "darkweb", "playbook",
-    "marketsize", "dna", "school", "markets", "deepdive", "publicrecord", "adversary",
+    "friction", "darkweb", "dna", "markets", "deepdive", "publicrecord", "adversary",
 ]
 
 TITLES = {
@@ -21,16 +20,10 @@ TITLES = {
     "compliance": "Jurisdictional & Regulatory Complexity Decoder",
     "premortem": "Pre-Mortem & Failure Post-Mortems",
     "timeline": "Genesis & Historical Timeline",
-    "pricing": "Logical Pricing & Unit Economics Architecture",
+    "pricing": "Pricing — Tiers, History & Packaging Psychology",
     "friction": "Market Friction & Consumer Psychology",
-    "financial": "Financial Reality & Burn Calculator",
-    "distribution": "Unfair Distribution & Organic Acquisition Channels",
-    "techarch": "Technical Architecture & Code Scaffolding",
     "darkweb": "Deep/Dark Web & Vulnerability Shield",
-    "playbook": "The Systematic Execution Playbook",
-    "marketsize": "Market Sizing & Capital Strategy",
     "dna": "Product DNA — Philosophy & Psychology",
-    "school": "Founder School — The Knowledge Transfer",
     "markets": "Stock Performance — Rise & Fall",
     "deepdive": "Company Deep-Dive — What, Why, Reality & Marketing",
     "publicrecord": "Public Record — Registration & Corporate Footprint",
@@ -138,19 +131,4 @@ def report_to_zip(report: dict) -> bytes:
                 indent=2,
             ),
         )
-        tech = (report.get("sections") or {}).get("techarch", {}).get("data", {})
-        files = tech.get("files", [])
-        if isinstance(files, list):
-            for f in files:
-                # Reports arrive from the wire — never trust their shape. A
-                # non-dict entry used to crash the whole export with a 500.
-                if not isinstance(f, dict):
-                    continue
-                path = (
-                    str(f.get("path", "file.txt"))
-                    .replace("\\", "_")   # zip entries are slash-separated; a
-                    .replace("..", "_")   # backslash path evades the ".." check
-                    .lstrip("/")
-                )
-                zf.writestr(f"scaffold/{path}", str(f.get("content", "")))
     return buf.getvalue()

@@ -34,9 +34,7 @@ class AdversaryAgent(Agent):
         structural = data("structural")
         premortem = data("premortem")
         features = data("features")
-        financial = data("financial")
         darkweb = data("darkweb")
-        ue = pricing.get("unit_economics") or {}
 
         buyer: list[dict] = []
         vc: list[dict] = []
@@ -76,15 +74,6 @@ class AdversaryAgent(Agent):
         })
 
         # ---------------- skeptical VC ----------------
-        ratio = ue.get("ltv_cac_ratio")
-        if ratio is not None and ratio < 3:
-            vc.append({
-                "severity": "fatal",
-                "question": f"Your own model shows LTV:CAC of {ratio}×. You are buying revenue at a loss — why does scale fix a broken unit?",
-                "why_fatal": "Scale multiplies whatever unit economics exist, positive or negative.",
-                "triggered_by": f"LTV {ue.get('currency','')}{ue.get('ltv')} vs organic-CAC proxy {ue.get('currency','')}{ue.get('cac_organic_proxy')}",
-                "passing_answer": "A channel plan with measured CAC ≤ 1/3 of LTV, or a price/margin change that gets there.",
-            })
         vc.append({
             "severity": "fatal",
             "question": "Show me week-4 cohort retention for the core action — not signup retention. What is the number?",
@@ -110,16 +99,6 @@ class AdversaryAgent(Agent):
                 "triggered_by": "matched failure analog in this domain",
                 "passing_answer": "A structural difference in revenue model, cost structure, or distribution — not 'we execute better'.",
             })
-        computed = financial.get("computed") or {}
-        if computed.get("breakeven_customers"):
-            vc.append({
-                "severity": "serious",
-                "question": f"Breakeven is ~{computed['breakeven_customers']} customers on a {financial.get('team_size','?')}-person team. Show the first 10 named prospects.",
-                "why_fatal": "Breakeven math without a pipeline is a runway countdown, not a plan.",
-                "triggered_by": f"burn {financial.get('currency','')}{computed.get('burn_month')}/mo, ARPA assumption {computed.get('arpa_assumption')}",
-                "passing_answer": "Ten named prospects with a current pain event each (job post, deadline, complaint).",
-            })
-
         # ---------------- regulatory auditor ----------------
         critical = [l for l in (compliance.get("landmines") or []) if l.get("severity") == "critical"]
         for l in critical[:3]:

@@ -5,12 +5,11 @@ import { TABS, type Report, type TabId, sectionData } from "@/lib/types";
 import { downloadReport } from "@/lib/api";
 import { Badge } from "@/components/ui";
 import { ComplianceTab, FeaturesTab, PremortemTab, StructuralTab } from "@/components/tabs/AnalysisTabs";
-import { DnaTab, FinancialTab, FrictionTab, MarketSizeTab, PricingTab, TimelineTab } from "@/components/tabs/BusinessTabs";
-import { SchoolTab } from "@/components/tabs/SchoolTab";
+import { DnaTab, FrictionTab, PricingTab, TimelineTab } from "@/components/tabs/BusinessTabs";
 import { MarketPerfTab } from "@/components/tabs/MarketPerfTab";
 import { DeepDiveTab } from "@/components/tabs/DeepDiveTab";
 import { PublicRecordTab } from "@/components/tabs/PublicRecordTab";
-import { DarkWebTab, DistributionTab, PlaybookTab, TechArchTab } from "@/components/tabs/ExecTabs";
+import { DarkWebTab } from "@/components/tabs/ExecTabs";
 import AdversaryTab from "@/components/tabs/AdversaryTab";
 import AdvisorPanel from "@/components/AdvisorPanel";
 import VerdictPanel from "@/components/VerdictPanel";
@@ -57,22 +56,10 @@ export default function ReportViewer({
         return <PricingTab data={sectionData(section, "pricing") ?? {}} />;
       case "friction":
         return <FrictionTab data={sectionData(section, "friction") ?? {}} />;
-      case "financial":
-        return <FinancialTab data={sectionData(section, "financial") ?? {}} />;
-      case "distribution":
-        return <DistributionTab data={sectionData(section, "distribution") ?? {}} />;
-      case "techarch":
-        return <TechArchTab data={sectionData(section, "techarch") ?? {}} />;
       case "darkweb":
         return <DarkWebTab data={sectionData(section, "darkweb") ?? {}} />;
-      case "marketsize":
-        return <MarketSizeTab data={sectionData(section, "marketsize") ?? {}} />;
-      case "playbook":
-        return <PlaybookTab data={sectionData(section, "playbook") ?? {}} />;
       case "dna":
         return <DnaTab data={sectionData(section, "dna") ?? {}} />;
-      case "school":
-        return <SchoolTab data={sectionData(section, "school") ?? {}} />;
       case "markets":
         return <MarketPerfTab data={sectionData(section, "markets") ?? {}} />;
       case "deepdive":
@@ -139,7 +126,7 @@ export default function ReportViewer({
               disabled={exporting}
               className="rounded border border-edge px-3 py-1.5 text-xs text-zinc-400 transition-colors hover:border-emerald-700 hover:text-emerald-400 disabled:opacity-40"
             >
-              Playbook ZIP
+              Report ZIP
             </button>
           </div>
           {exportErr && <p className="max-w-xs text-right text-[11px] text-red-400/90">{exportErr}</p>}

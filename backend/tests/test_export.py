@@ -89,42 +89,9 @@ class TestZip:
         assert manifest["subject"] == "ADP"
         assert manifest["sections"] == ["structural"]
 
-    def test_scaffold_included(self):
-        report = _minimal_report()
-        report["sections"]["techarch"] = {
-            "id": "techarch", "title": "Tech", "data": {"files": [{"path": "backend/main.py", "content": "print('hi')"}]}
-        }
-        zf = zipfile.ZipFile(io.BytesIO(export.report_to_zip(report)))
-        assert "scaffold/backend/main.py" in zf.namelist()
-        assert zf.read("scaffold/backend/main.py") == b"print('hi')"
 
-    def test_scaffold_path_traversal_neutralized(self):
-        report = _minimal_report()
-        report["sections"]["techarch"] = {
-            "id": "techarch", "title": "Tech",
-            "data": {"files": [
-                {"path": "../../evil.txt", "content": "boom"},
-                {"path": "..\\..\\win_evil.txt", "content": "boom"},
-                {"path": "/abs/path.txt", "content": "ok"},
-            ]},
-        }
-        names = self._names(report)
-        assert all(".." not in n for n in names)
-        assert all("\\" not in n for n in names)
-        assert not any(n.startswith("/") for n in names)
 
-    def test_scaffold_non_dict_entries_skipped(self):
-        report = _minimal_report()
-        report["sections"]["techarch"] = {
-            "id": "techarch", "title": "Tech", "data": {"files": ["not-a-dict", None, 42]}
-        }
-        names = self._names(report)  # must not raise
-        assert not any(n.startswith("scaffold/") for n in names)
 
-    def test_scaffold_files_not_a_list(self):
-        report = _minimal_report()
-        report["sections"]["techarch"] = {"id": "techarch", "title": "Tech", "data": {"files": {"path": "x"}}}
-        self._names(report)  # must not raise
 
     def test_zip_is_valid_zip(self):
         assert export.report_to_zip(_minimal_report())[:2] == b"PK"

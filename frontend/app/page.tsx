@@ -56,20 +56,14 @@ const SOURCES: readonly { name: string; gives: string }[] = [
 
 const AGENT_JOBS: readonly [string, string][] = [
   ["structural", "pain, moats, score"],
-  ["features", "build vs bloat"],
+  ["features", "shipped features, alternatives"],
   ["compliance", "blockers, costed"],
   ["premortem", "matched deaths"],
-  ["timeline", "pivots or gates"],
-  ["pricing", "LTV:CAC sandbox"],
+  ["timeline", "pivots, milestones, revenue"],
+  ["pricing", "tiers, history, psychology"],
   ["friction", "user complaints"],
-  ["financial", "burn, runway, breakeven"],
-  ["distribution", "first-ten plan"],
-  ["techarch", "starter code"],
   ["darkweb", "breach shield"],
-  ["playbook", "phased execution"],
-  ["marketsize", "raise vs bootstrap"],
   ["dna", "feature philosophy"],
-  ["school", "the curriculum"],
   ["markets", "stock rises and falls"],
   ["deepdive", "the company, feature by feature"],
   ["publicrecord", "registration & registry IDs"],
@@ -81,7 +75,7 @@ const PREVIEW_LINES: readonly { agent: string; level: LogLevel; msg: string }[] 
   { agent: "features", level: "info", msg: "decompiling feature history…" },
   { agent: "dna", level: "success", msg: "✓ Product DNA (17ms)" },
   { agent: "deepdive", level: "success", msg: "✓ Company Deep-Dive (655ms)" },
-  { agent: "genesis", level: "success", msg: "decode complete: 19/19 sections, 55 sources cited" },
+  { agent: "genesis", level: "success", msg: "decode complete: 13/13 sections, 55 sources cited" },
 ];
 
 const PREVIEW_LEVEL: Record<LogLevel, string> = {
@@ -95,7 +89,6 @@ const PREVIEW_LEVEL: Record<LogLevel, string> = {
 const CAPTURED: readonly { id: TabId; file: string; label: string }[] = [
   { id: "deepdive", file: "/captures/tab_deepdive.png", label: "Deep-dive" },
   { id: "structural", file: "/captures/tab_structural.png", label: "Structural" },
-  { id: "marketsize", file: "/captures/tab_marketsize.png", label: "Market sizing" },
   { id: "dna", file: "/captures/tab_dna.png", label: "Product DNA" },
   { id: "markets", file: "/captures/tab_markets.png", label: "Stock performance" },
   { id: "compliance", file: "/captures/tab_compliance.png", label: "Compliance" },
@@ -308,8 +301,8 @@ export default function Page() {
                 Read any company<br className="sm:hidden" /> in full.
               </h1>
               <p className="mt-4 max-w-[34ch] text-lg text-zinc-400">
-                Nineteen free agents decode a business — by name, by website URL, or from a raw idea — into a
-                nineteen-tab intelligence brief. Battle two ideas, then watch the winner for drift.
+                Thirteen free agents decode a business — by name, by website URL, or from a raw idea — into a
+                thirteen-tab research brief. Battle two ideas, then watch the winner for drift.
               </p>
               <div className="mt-8 max-w-2xl">
                 <InputPanel running={running} onRun={run} onBattle={runBattle} />
@@ -349,7 +342,7 @@ export default function Page() {
               The brief, tab by tab.
             </h2>
             <p className="mt-2 max-w-[52ch] text-sm text-zinc-400">
-              Captures of a live decode of Notion. Six of the nineteen tabs; the rest render the same way.
+              Captures of a live decode of Notion. Six of the thirteen tabs; the rest render the same way.
             </p>
             <div className="mt-6 flex gap-1 overflow-x-auto pb-1" role="tablist" aria-label="brief tab captures">
               {CAPTURED.map((c, i) => {
@@ -389,7 +382,7 @@ export default function Page() {
           {/* The pipeline */}
           <section className="border-t border-edge pt-24 pb-24 mb-16">
             <h2 className="font-display text-[clamp(2rem,2.5vw+1rem,3.5rem)] font-bold leading-[1.05] tracking-[-0.02em] text-zinc-100">
-              Nineteen agents, one pass.
+              Thirteen agents, one pass.
             </h2>
             <ol className="mt-6 grid grid-cols-1 gap-x-10 gap-y-0 md:grid-cols-2">
               {AGENT_JOBS.map(([id, job], i) => (
@@ -501,7 +494,7 @@ export default function Page() {
               <div className="flex h-full min-h-64 items-center justify-center border border-dashed border-edge">
                 <p className="text-sm text-zinc-500">
                   {battlePlan.length > 0
-                    ? `battle: decoding option ${String.fromCharCode(65 + Math.min(battleIdx, battlePlan.length - 1))} of ${battlePlan.length} — each option runs the full 19-agent pipeline, one at a time`
+                    ? `battle: decoding option ${String.fromCharCode(65 + Math.min(battleIdx, battlePlan.length - 1))} of ${battlePlan.length} — each option runs the full 13-agent pipeline, one at a time`
                     : "gathering intelligence: sections stream in as each agent finishes"}
                 </p>
               </div>

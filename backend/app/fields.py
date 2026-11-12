@@ -16,7 +16,6 @@ from typing import Any
 #            vanishing is usually better scraping or a fetch hiccup, not news)
 #   set    — additions AND removals both alert (memo-stability tested)
 #   score  — numeric, alerts past a threshold so normal evidence noise stays quiet
-#   ratio  — numeric, alerts on relative change past a threshold
 DRIFT_FIELDS: dict[str, dict[str, Any]] = {
     "legal_name":            {"label": "Legal name",            "tab": "Tab 18 · public record", "kind": "exact"},
     "registration_no":       {"label": "Registration no",       "tab": "Tab 18 · public record", "kind": "exact"},
@@ -28,12 +27,9 @@ DRIFT_FIELDS: dict[str, dict[str, Any]] = {
     "signal_score":          {"label": "Signal score",          "tab": "Tab 1 · structural",     "kind": "score", "threshold": 5},
     "fatal_count":           {"label": "Red-team fatals",       "tab": "Tab 19 · red team",      "kind": "exact"},
     "compliance_criticals":  {"label": "Compliance blockers",   "tab": "Tab 3 · compliance",     "kind": "exact"},
-    "breakeven_customers":   {"label": "Breakeven customers",   "tab": "Tab 8 · financial",      "kind": "ratio", "threshold": 0.2},
-    "market_tone":           {"label": "Market verdict tone",   "tab": "Tab 13 · market sizing", "kind": "exact"},
 }
 
 _SCORE_THRESHOLD = 5        # |Δ| in signal points before watch calls it drift
-_RATIO_THRESHOLD = 0.2      # 20% relative change in breakeven customers
 
 
 def _norm_addr(addr: str | None) -> str | None:
@@ -56,19 +52,11 @@ def extract_fields(report: dict) -> dict:
     structural = data("structural")
     adversary = data("adversary")
     comp = data("compliance")
-    ms = data("marketsize")
     pr = data("publicrecord")
     site = pr.get("site") or {}
     li = pr.get("legal_identity") or {}
     dr = pr.get("domain_record") or {}
     edgar = pr.get("edgar") or {}
-    fin = (data("financial").get("computed") or {})
-
-    be = fin.get("breakeven_customers")
-    try:
-        be = int(be) if be is not None else None
-    except (TypeError, ValueError):
-        be = None
 
     return {
         "subject": report.get("subject"),
@@ -89,8 +77,6 @@ def extract_fields(report: dict) -> dict:
         "signal_score": structural.get("verdict_score"),
         "fatal_count": adversary.get("fatal_count"),
         "compliance_criticals": comp.get("critical_count"),
-        "breakeven_customers": be,
-        "market_tone": ms.get("verdict_tone"),
     }
 
 
@@ -115,11 +101,6 @@ def diff_fields(old: dict, new: dict) -> list[dict]:
         elif kind == "score":
             if isinstance(o, (int, float)) and isinstance(n, (int, float)) and abs(n - o) >= spec["threshold"]:
                 rows.append(_row(field, spec, o, n, "moved"))
-        elif kind == "ratio":
-            if isinstance(o, (int, float)) and isinstance(n, (int, float)) and o and o > 0:
-                rel = abs(n - o) / abs(o)
-                if rel >= spec["threshold"]:
-                    rows.append(_row(field, spec, o, n, "moved"))
     return rows
 
 

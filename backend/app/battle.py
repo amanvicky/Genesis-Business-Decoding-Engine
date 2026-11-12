@@ -118,7 +118,6 @@ def _row(i: int, item: Any, fields: dict, gates: dict, decision: str = "PENDING"
         "score": fields.get("signal_score"),
         "decision": decision,
         "fatals": fields.get("fatal_count"),
-        "breakeven": fields.get("breakeven_customers"),
         "criticals": fields.get("compliance_criticals"),
         "gates": gates,
     }
@@ -140,16 +139,15 @@ def _tier(row: dict) -> int:
 
 def _key(row: dict) -> tuple:
     """Full ranking key. Lower is better: tier, then higher signal score,
-    then fewer fatals, then cheaper breakeven, then fewer compliance blockers."""
+    then fewer fatals, then fewer compliance blockers. (The breakeven
+    tiebreaker died with the burn calculator — research fields only.)"""
     score = row.get("score")
     fatals = row.get("fatals")
-    breakeven = row.get("breakeven")
     criticals = row.get("criticals")
     return (
         _tier(row),
         -(score if isinstance(score, (int, float)) else -1),
         fatals if isinstance(fatals, (int, float)) else 999,
-        breakeven if isinstance(breakeven, (int, float)) else 10**9,
         criticals if isinstance(criticals, (int, float)) else 999,
     )
 
@@ -172,7 +170,7 @@ def _matrix_text(rows: list[dict]) -> str:
         tag = "" if r.get("kind", "idea") == "idea" else " [incumbent]"
         lines.append(
             f"{r.get('label')}{tag}: \"{r.get('subject')}\" — signal score {r.get('score')}, verdict {r.get('decision')}, "
-            f"{r.get('fatals')} fatal red-team challenges, breakeven {r.get('breakeven')} customers, "
+            f"{r.get('fatals')} fatal red-team challenges, "
             f"{r.get('criticals')} compliance blockers, gates {g.get('pass', 0)} pass / {g.get('caution', 0)} caution / {g.get('fail', 0)} fail / {g.get('pending', 0)} pending"
         )
     return "\n".join(lines)
@@ -205,8 +203,6 @@ def _why(w: dict, other: dict | None) -> str:
             bits.append(f"its signal score is higher ({w.get('score')} vs {other.get('score')})")
         elif (w.get("fatals") if isinstance(w.get("fatals"), (int, float)) else 999) < (other.get("fatals") if isinstance(other.get("fatals"), (int, float)) else 999):
             bits.append(f"the red team found fewer plan-killers ({w.get('fatals')} vs {other.get('fatals')})")
-        elif (w.get("breakeven") if isinstance(w.get("breakeven"), (int, float)) else 10**9) < (other.get("breakeven") if isinstance(other.get("breakeven"), (int, float)) else 10**9):
-            bits.append(f"it breaks even with fewer customers ({w.get('breakeven')} vs {other.get('breakeven')})")
         else:
             bits.append("it carries fewer compliance blockers")
     if not bits:

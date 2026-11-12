@@ -95,9 +95,8 @@ class TestIdeaSummaries:
         ev = _ev()
         agent = PricingAgent()
         data = asyncio.run(agent.build(ev))
-        assert "geography defaults" in agent.summarize(ev, data)
-        assert "editable" in agent.summarize(ev, data)
-
+        assert "no public pricing decoded" in agent.summarize(ev, data)
+        
     def test_pricing_summary_decoded_when_tiers(self):
         ev = _ev()
         ev.current_pricing = [{"name": "Starter", "price": "$29", "context": ""}]

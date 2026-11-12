@@ -6,13 +6,13 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
 
 Feed it a company name, its website URL, or just a rough idea.
-It comes back with a 19-tab brief: does the model hold up, what features to copy
-and what to skip, the compliance traps (per country/state), why companies like this
-died, real revenue from SEC filings, the registration layer (CIN/GSTIN/VAT from the
-company's own legal pages, RDAP domain records, EDGAR registration fields), pricing
-math you can edit live, what users complain about, your burn and breakeven, free
-distribution channels, starter code, and a red-team panel that argues with your plan.
-Every claim links its source.
+It comes back with a 13-tab research brief — every tab a dossier about the subject:
+does the model hold up, what features they shipped and when, the compliance traps
+(per country/state), why companies like this died, real revenue from SEC filings,
+the registration layer (CIN/GSTIN/VAT from the company's own legal pages, RDAP
+domain records, EDGAR registration fields), the pricing they actually charge, what
+users complain about, and a red-team panel that argues with the plan. Every claim
+links its source. No calculators, no coaching — research only.
 
 And when you're done reading, there's a chat panel that answers questions using
 your own numbers ("should I raise?", "who already does this?") and a verdict
@@ -37,7 +37,7 @@ your user folder, and opens the dashboard by itself:
 irm https://raw.githubusercontent.com/amanvicky/Genesis-Business-Decoding-Engine/main/scripts/install_from_web.ps1 | iex
 ```
 
-**Windows installer (same result, classic wizard):** grab `Genesis-1.13.0-Setup.exe` from
+**Windows installer (same result, classic wizard):** grab `Genesis-1.14.0-Setup.exe` from
 [Releases](https://github.com/amanvicky/Genesis-Business-Decoding-Engine/releases)
 and double-click it. Standard wizard, installs into your user folder — no admin,
 no PATH changes, nothing outside its own directory. After the wizard, Genesis
@@ -119,32 +119,27 @@ Ask Genesis (answers from your brief) and the Verdict Protocol (go / no-go):
 ![advisor](proofs/screenshots/13_ask_genesis_advisor.png)
 ![verdict](proofs/screenshots/14_verdict_protocol.png)
 
-The full set (compliance matrix, pricing sandbox, burn calculator, red-team and
-more) lives in [proofs/](proofs/).
+The full set (compliance matrix, pricing archaeology, red-team and more) lives in
+[proofs/](proofs/) — note some older screenshots show the pre-1.14 19-tab layout.
 
-## The 19 tabs, quickly
+## The 13 tabs, quickly
 
 1. **Structural** - pain points, demand triggers, moats, a signal score
-2. **Features** - feature history decompiled from GitHub releases, build-now vs do-not-build roadmap
+2. **Features** - the shipped feature trail (dated, sourced) + the alternatives scan
 3. **Compliance** - US federal + 16-state payroll matrix, India statutory stack (GST, EPF/ESI, DPDP...), costed checklist
 4. **Pre-mortem** - 22 real failure records (Zenefits, MoviePass, Fast...) matched to your domain
-5. **Timeline** - milestones and revenue history from SEC filings; idea mode gets execution gates with kill criteria instead of fake dates
-6. **Pricing** - tiers, Wayback pricing history, LTV/CAC math with visible formulas, live sandbox
+5. **Timeline** - milestones, funding events and revenue history from SEC filings; idea mode gets execution gates with kill criteria instead of fake dates
+6. **Pricing** - the tiers they actually charge, Wayback pricing history, packaging psychology
 7. **Friction** - what users actually complain about (Reddit/HN/review mining)
-8. **Burn** - geography-adjusted salaries, runway, breakeven customers, sensitivity table
-9. **Distribution** - 12 zero-cost channels as repeatable loops + a first-10-customers plan
-10. **Tech architecture** - stack decisions + generated starter code (ships in the ZIP)
-11. **Dark web shield** - passive OSINT via Ahmia + HIBP, read-only, illegal queries refused
-12. **Playbook** - 6 phases, KYC friction, scaling hurdles, kill criteria
-13. **Market sizing** - bottom-up TAM/SAM/SOM with visible formulas, raise vs bootstrap math
-14. **Product DNA** - the philosophy and psychology behind every feature, every term explained in plain words
-15. **Founder school** - the zero-to-one knowledge transfer: what a startup is, money mechanics with your own numbers, user psychology, distribution, runway discipline, fundraising - every term defined
-16. **Stock performance** - 1-year chart, 52-week range, biggest weekly rises and falls, max drawdown (private companies get the market index as context)
-17. **Company deep-dive** - what the company actually does (problem in users' own words → solution → founding trigger), every feature mined from the company's own site + release trail with the issue people had before it, the reality check of what you'll come across, and the concrete marketing mechanics they use (no "they do digital marketing" filler)
-18. **Public record** - the legal layer: CIN/GSTIN/VAT/company numbers scraped from the company's own legal pages, the domain's RDAP registration record, SEC EDGAR registration fields, Wikidata legal facts — with honest coverage notes for registries that have no open API
-19. **Red team** - an enterprise buyer, a skeptical VC and a regulator attack your plan
+8. **Dark web shield** - passive OSINT via Ahmia + HIBP, read-only, illegal queries refused
+9. **Product DNA** - the philosophy and psychology behind every feature, every term explained in plain words
+10. **Stock performance** - 1-year chart, 52-week range, biggest weekly rises and falls, max drawdown (private companies get the market index as context)
+11. **Company deep-dive** - what the company actually does (problem in users' own words → solution → founding trigger), every feature mined from the company's own site + release trail with the issue people had before it, the reality check, and the concrete marketing mechanics they use
+12. **Public record** - the legal layer: CIN/GSTIN/VAT/company numbers scraped from the company's own legal pages, the domain's RDAP registration record, SEC EDGAR registration fields, Wikidata legal facts — with honest coverage notes for registries that have no open API
+13. **Red team** - an enterprise buyer, a skeptical VC and a regulator attack the plan
 
 Every section links its sources. If a source is blocked, that one section degrades,
+the rest of the run continues. If a source is blocked, that one section degrades,
 the rest of the run continues.
 
 ## Battle your ideas, then watch the winner
@@ -152,19 +147,19 @@ the rest of the run continues.
 The input panel has a fourth mode: **Battle ideas**. Give it 2-3 slots — each can
 be a raw idea, an existing company by name, or a rival's website URL — they decode
 one after another (never parallel, search engines ban that from one IP) — and you
-get a matrix per option: signal score, verdict call, red-team fatals, breakeven
-customers, compliance blockers. Battling your idea against the incumbent's URL is
+get a matrix per option: signal score, verdict call, red-team fatals, compliance
+blockers. Battling your idea against the incumbent's URL is
 the honest question: does the rival already out-position you, and where exactly? The winner is a rule (gate tier → signal
-score → fatals → breakeven → blockers), never an LLM opinion; a full tie resolves
+score → fatals → blockers), never an LLM opinion; a full tie resolves
 to PENDING instead of a coin flip. The local model, when present, writes one
 paragraph of verdict prose — the call itself stays mechanical.
 
 Every decode — battle or not — lands in the `briefs/` vault (JSON + a markdown
 twin, 3 kept per subject). Hit **watch this subject** after a decode and the brief
 re-decodes itself every 7 days: when the dashboard opens past the interval the
-backend re-runs the pipeline headless, diffs ~12 stable fields (legal name,
+backend re-runs the pipeline headless, diffs ~10 stable fields (legal name,
 registration no, registered office, registrar, tech stack, emails, socials,
-signal score, fatals, breakeven, compliance blockers, market tone) against the
+signal score, fatals, compliance blockers) against the
 stored memo, and alerts on three tiers — a silent `logs/watch.log` line always, a
 `drift_*.md` memo next to the brief on a real change, and a drift chip on the
 dashboard with a per-tab panel. Ideas can't be watched (they have no stable
@@ -177,8 +172,8 @@ python genesis.py watch --force  # check every watched brief, ignore intervals
 
 Thresholds are deliberately strict so evidence noise (a search engine serving a
 different result count) never triggers a memo: the signal score must move by 5+
-points, breakeven by 20%+, and a value merely appearing or vanishing (better
-scraping, or a fetch hiccup) stays silent. Delete the `briefs/` folder to reset
+points, and a value merely appearing or vanishing (better scraping, or a fetch
+hiccup) stays silent. Delete the `briefs/` folder to reset
 the whole history — nothing else stores it.
 
 ## Why it's free
@@ -210,7 +205,7 @@ writing of each section, Tor routes Tab 11 through SOCKS5.
 genesis.py               service manager (install / run / supervise / stop), stdlib only
 backend/app/
   main.py                FastAPI app (stream, battle, vault, watch, health, advisor, verdict, exports)
-  pipeline.py            recon -> 19 agents
+  pipeline.py            recon -> 13 agents
   battle.py              idea battle: sequential decodes, matrix, rule-based winner
   fields.py              the stable-field extractor battle/vault/watch stand on
   vault.py               the briefs/ vault (JSON + markdown twin, cap 3 per subject)
@@ -221,7 +216,7 @@ backend/app/
   verdict.py             the GO / NO-GO decision protocol
   engines/               subject identity (kills acronym collisions)
   scrapers/              search cascade, wikipedia, hn, reddit, github, wayback, filings, tor
-  agents/                recon + 18 analysis agents
+  agents/                recon + 13 analysis agents (planning agents cut in 1.14)
   data/                  compliance KB (US + India), failure records, channels, scaffolds
 frontend/                Next.js 14, strict TS, one typed renderer per tab
 .github/workflows/       offline tests + strict build on every push
@@ -232,7 +227,7 @@ frontend/                Next.js 14, strict TS, one typed renderer per tab
 I got tired of breaking things by hand, so:
 
 ```bash
-cd backend && .venv/Scripts/python -m pytest tests -q     # ~480 offline tests
+cd backend && .venv/Scripts/python -m pytest tests -q     # ~450 offline tests
 python scripts/smoke_test.py                              # 14/14 sections, no network
 python tests_e2e/lifecycle_test.py                        # the service manager, all lifecycle stages
 python tests_e2e/live_functional_test.py                  # live HTTP journey (stack must be running)

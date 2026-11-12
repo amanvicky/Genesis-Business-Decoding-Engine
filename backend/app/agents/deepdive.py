@@ -71,7 +71,7 @@ class DeepDiveAgent(Agent):
     id = "deepdive"
     title = "Company Deep-Dive — What, Why, Reality & Marketing"
     icon = "❖"
-    tab = 17
+    tab = 11
 
     async def build(self, ev: Evidence) -> dict:
         is_idea = ev.req.mode.value == "idea"
@@ -85,9 +85,7 @@ class DeepDiveAgent(Agent):
         timeline = data("timeline")
         prem = data("premortem")
         comp = data("compliance")
-        dist = data("distribution")
         pricing = data("pricing")
-        fin = (data("financial").get("computed") or {})
 
         # ---------- mine the company's own site for the real product surface ----------
         f = Fetcher(ev)
@@ -125,10 +123,10 @@ class DeepDiveAgent(Agent):
         inventory, milestones = self._inventory(site_feats, raw_rows, dna, timeline)
 
         # ---------- 3. reality check ----------
-        reality = self._reality_check(comp, prem, fin, dist, pricing, sections, ev)
+        reality = self._reality_check(comp, prem, pricing, sections, ev)
 
         # ---------- 4. marketing mechanics ----------
-        marketing = self._marketing(ev, dna, dist, pricing, inventory, milestones)
+        marketing = self._marketing(ev, dna, pricing, inventory, milestones)
 
         return {
             "subject": ev.subject,
@@ -507,11 +505,11 @@ class DeepDiveAgent(Agent):
                             text = " ".join(words[size:])
                             break
                     return text[:200]
-        return "Impact shows up in the numbers this feature protects (retention, conversion, expansion) - see Tabs 6 and 8."
+        return "Impact shows up in the numbers this feature protects (retention, conversion, expansion) - see Tab 6."
 
     # ------------------------------------------------------------- reality check
 
-    def _reality_check(self, comp: dict, prem: dict, fin: dict, dist: dict,
+    def _reality_check(self, comp: dict, prem: dict,
                        pricing: dict, sections: dict, ev: Evidence) -> dict:
         checks = [dict(rc) for rc in KB.REALITY_CHECKS]
 
@@ -540,11 +538,6 @@ class DeepDiveAgent(Agent):
         if alts:
             amend("Competition responds",
                   f"The alternatives scan already names: {', '.join(str(a) for a in alts[:5])}.")
-
-        if fin.get("breakeven_customers"):
-            amend("Cash cycles lag effort",
-                  f"For this team: {fin['breakeven_customers']:,} paying customers before the burn is covered, "
-                  f"at a {fin.get('burn_month', 0):,}/month burn - that's the number the cash cycle has to reach.")
 
         modes = prem.get("common_failure_modes") or []
         if modes:
@@ -581,7 +574,7 @@ class DeepDiveAgent(Agent):
                 items.append((t, str(r.get("url") or "")))
         return items
 
-    def _marketing(self, ev: Evidence, dna: dict, dist: dict, pricing: dict,
+    def _marketing(self, ev: Evidence, dna: dict, pricing: dict,
                    inventory: list[dict], milestones: list[dict]) -> dict:
         corpus = self._marketing_corpus(ev)
         detected: list[dict] = []
@@ -633,8 +626,7 @@ class DeepDiveAgent(Agent):
             "mechanics": detected[:8],
             "the_hook": hook,
             "current_push": current_push,
-            "channel_ranking": [c.get("name", "") for c in (dist.get("channels") or [])[:3]],
-            "note": ("Detected from the evidence + cross-referenced with the DNA and distribution tabs. "
+            "note": ("Detected from the evidence + cross-referenced with the DNA tab. "
                      "Absence of a mechanic in the evidence means 'not visible', not 'not used'."),
         }
 

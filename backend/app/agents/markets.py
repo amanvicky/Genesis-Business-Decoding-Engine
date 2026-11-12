@@ -22,7 +22,7 @@ class MarketsAgent(Agent):
     id = "markets"
     title = "Stock Performance — Rise & Fall"
     icon = "▲"
-    tab = 16
+    tab = 10
 
     async def build(self, ev: Evidence) -> dict:
         from ..text import clean as _clean

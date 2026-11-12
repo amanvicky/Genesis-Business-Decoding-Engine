@@ -62,10 +62,9 @@ function BattleRowView({ row, won, tied }: { row: BattleRow; won: boolean; tied:
         <span className={`mt-1 inline-block text-[11px] ${DECISION_TONE[row.decision] ?? "text-zinc-500"}`}>{row.decision}</span>
       </div>
 
-      <div className="grid flex-1 grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-4">
+      <div className="grid flex-1 grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3">
         <Stat label="signal score" value={row.score === null || row.score === undefined ? "—" : String(row.score)} tone={scoreTone(row.score)} />
         <Stat label="red-team fatals" value={row.fatals === null || row.fatals === undefined ? "—" : String(row.fatals)} tone={row.fatals && row.fatals >= 3 ? "text-amber-400" : "text-zinc-300"} />
-        <Stat label="breakeven" value={row.breakeven === null || row.breakeven === undefined ? "—" : `${row.breakeven.toLocaleString()} cust.`} />
         <Stat label="compliance blockers" value={row.criticals === null || row.criticals === undefined ? "—" : String(row.criticals)} tone={row.criticals ? "text-amber-400" : "text-zinc-300"} />
       </div>
 

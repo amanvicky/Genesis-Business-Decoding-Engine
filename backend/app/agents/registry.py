@@ -24,7 +24,7 @@ class RegistryAgent(Agent):
     id = "publicrecord"
     title = "Public Record — Registration & Corporate Footprint"
     icon = "§"
-    tab = 18
+    tab = 12
 
     async def build(self, ev: Evidence) -> dict:
         mode = ev.req.mode.value

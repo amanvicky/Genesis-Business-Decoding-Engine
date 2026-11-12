@@ -1,4 +1,6 @@
-"""Real-time advisor: intent routing + report-grounded answers + the endpoint."""
+"""Real-time advisor, post pure-research cut: the coaching intents (capital,
+burn, market sizing, first-ten customers) are gone; what's left routes to the
+research tabs only. Grounded answers come from the brief's own evidence."""
 from __future__ import annotations
 
 import json
@@ -29,50 +31,32 @@ def _report() -> dict:
                 }
             },
             "compliance": {"data": {"checklist": [{"item": "Company incorporation (MCA)", "cost": "₹7k–₹20k", "time": "1–3 weeks"}], "critical_count": 9}},
-            "pricing": {"data": {"unit_economics": {"arpa": 999, "currency": "₹", "ltv_cac_ratio": 0.52}, "tiers": []}},
-            "financial": {"data": {"computed": {"burn_month": 240667, "capital_needed": 2888000, "breakeven_customers": 155, "arpa_assumption": 2499}, "team_size": 2, "runway_target_months": 12}},
-            "distribution": {"data": {"channels": [{"name": "Reddit value-first participation"}, {"name": "Programmatic SEO"}], "first_ten": [{"step": 1, "action": "List 30 NAMED prospects"}]}},
+            "pricing": {"data": {"tiers": [{"name": "Starter", "price": "₹499"}, {"name": "Pro", "price": "₹1,999"}],
+                                  "psychology": [{"driver": "Anchoring", "evidence": "Pro at ₹1,999 vs Starter at ₹499"}]}},
             "premortem": {"data": {
-                "common_failure_modes": [{"mode": "Unit economics never closed", "counter": "Write the contribution-margin-per-user equation on one page."}],
+                "common_failure_modes": [{"mode": "Distribution assumed, never tested", "counter": "Name the ten prospects before writing code."}],
                 "analogs": [{"name": "Zenefits", "root_cause": "Growth led compliance: unlicensed brokers sold insurance."}],
             }},
             "adversary": {"data": {"fatal_count": 5, "personas": [{"role": "skeptical VC", "challenges": [{"challenge": "distribution is unproven"}]}]}},
-            "marketsize": {
-                "data": {
-                    "verdict": "MATH CLOSES COMFORTABLY: year-3 obtainable (240,000) is 416× breakeven.",
-                    "verdict_tone": "green",
-                    "assumptions": {"arpa": 999, "currency": "₹"},
-                    "tam": {"display": "₹786.3Cr", "basis": "global base"},
-                    "sam": {"display": "₹74.3Cr", "basis": "india wedge"},
-                    "som_by_year": [{"year": "Year 3", "customers": 18600, "value": 223000000, "display": "₹22.3Cr", "adoption": "3.0%"}],
-                    "capital_strategy": {
-                        "recommended_raise": 5415008,
-                        "raise_formula": "burn × 18 months × 1.25 buffer",
-                        "raise_when": "NOT now. Raise after timeline gate G1.",
-                        "dilution_at_geo_cap_pct": 361,
-                        "dilution_formula": "raise ÷ geo-typical pre-seed cap",
-                        "bootstrap_note": "keep the equity",
-                    },
-                }
-            },
         },
     }
 
 
 class TestIntentRouting:
     @pytest.mark.parametrize(("q", "intent"), [
-        ("Should I raise or bootstrap?", "capital"),
-        ("How much dilution at a 2M cap?", "capital"),
-        ("Is my market big enough?", "market"),
         ("Who already does this?", "competitors"),
         ("What do I build first?", "mvp"),
         ("Do I need a license for payroll in India?", "compliance"),
         ("What should I charge?", "pricing"),
-        ("What's my burn and runway?", "burn"),
-        ("How do I get my first 10 customers?", "customers"),
         ("What kills companies like this?", "risk"),
         ("What will investors say?", "redteam"),
+        ("How is the stock doing?", "markets"),
         ("hello", "hello"),
+        # the coaching intents are gone — their questions fall to the
+        # evidence-first default instead of a calculator
+        ("Should I raise or bootstrap?", "next"),
+        ("What's my burn and runway?", "next"),
+        ("How do I get my first 10 customers?", "next"),
         ("Tell me something about the weather in Bioshock", "next"),
     ])
     def test_routing(self, q, intent):
@@ -80,12 +64,6 @@ class TestIntentRouting:
 
 
 class TestGroundedAnswers:
-    def test_capital_quotes_real_raise(self):
-        out = advise("Should I raise?", _report())
-        assert "5,415,008" in out["answer"] or "54.2L" in out["answer"] or "₹" in out["answer"]
-        assert any("18 months" in b for b in out["bullets"])
-        assert "marketsize" in out["open_tabs"]
-
     def test_competitors_name_evidence_brands(self):
         out = advise("Who already does this?", _report())
         assert "greytHR" in " ".join(out["bullets"])
@@ -101,21 +79,28 @@ class TestGroundedAnswers:
         assert any("MCA" in b and "₹7k–₹20k" in b for b in out["bullets"])
         assert "9" in out["answer"]  # critical count
 
-    def test_burn_quotes_numbers(self):
-        out = advise("What's my burn?", _report())
-        assert any("₹2.4L" in b or "240,667" in b for b in out["bullets"])
-        assert any("155" in b for b in out["bullets"])
+    def test_pricing_quotes_observed_tiers_not_formulas(self):
+        out = advise("What should I charge?", _report())
+        assert any("₹499" in b for b in out["bullets"])
+        assert any("Anchoring" in b for b in out["bullets"])
+        assert not any("LTV" in b or "CAC" in b for b in out["bullets"])
+
+    def test_pricing_absence_is_a_fact_not_advice(self):
+        empty = {"subject": "GhostCo", "request": {}, "sections": {"pricing": {"data": {"tiers": []}}}}
+        out = advise("What should I charge?", empty)
+        assert "nothing visible" in out["answer"]
+        assert not any("Recommended" in b for b in out["bullets"])
 
     def test_risk_names_failure_modes_and_fatal_count(self):
         out = advise("What's my biggest risk?", _report())
-        assert any("Unit economics never closed" in b for b in out["bullets"])   # mode + counter
+        assert any("Distribution assumed" in b for b in out["bullets"])         # mode + counter
         assert any("Zenefits" in b for b in out["bullets"])                      # matched analog
         assert any("5" in b and "FATAL" in b for b in out["bullets"])            # red-team count
 
     def test_next_composes_decision_list(self):
         out = advise("What now?", _report())
         assert len(out["bullets"]) >= 3
-        assert any("compliance clock" in b for b in out["bullets"])  # critical_count=9 present
+        assert any("launch-blocking" in b for b in out["bullets"])  # critical_count=9 present
 
     def test_unknown_question_still_actionable(self):
         out = advise("Tell me about penguins", _report())
@@ -125,10 +110,16 @@ class TestGroundedAnswers:
         out = advise("Should I raise?", {})
         assert out["answer"]
 
+    def test_capital_question_never_invents_math(self):
+        # the raise calculator is gone — the honest answer routes to the brief
+        out = advise("Should I raise or bootstrap?", _report())
+        assert "Recommended raise" not in out["answer"]
+        assert "Dilution" not in " ".join(out["bullets"])
+
 
 class TestEndpoint:
     def test_stream_shape(self):
-        r = client.post("/api/advise/stream", json={"question": "Should I raise?", "report": _report()})
+        r = client.post("/api/advise/stream", json={"question": "What should I charge?", "report": _report()})
         assert r.status_code == 200
         assert r.headers["content-type"].startswith("application/x-ndjson")
         events = [json.loads(ln) for ln in r.text.splitlines() if ln.strip()]
