@@ -1,4 +1,4 @@
-"""Tab 17 — Company Deep-Dive: what they do, every feature, the reality, the marketing.
+"""Tab 11 — Company Deep-Dive: what they do, every feature, the reality, the marketing.
 
 Four layers, all in plain words, all evidence-backed:
   WHAT THEY DO      - the problem in real user words, the solution, the founding trigger
@@ -136,8 +136,7 @@ class DeepDiveAgent(Agent):
             "product_milestones": milestones,
             "reality_check": reality,
             "marketing": marketing,
-            "note": ("Plain words throughout: every term is defined in Founder School (Tab 15) and Product "
-                     "DNA (Tab 14). The reality check observes - it doesn't tell you what to do."),
+            "note": ("Plain words throughout: every term is defined in Product DNA (Tab 9). The reality check observes - it doesn't tell you what to do."),
         }
 
     # ---------------------------------------------------------------- helpers

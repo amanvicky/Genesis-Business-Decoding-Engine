@@ -280,19 +280,16 @@ def _reasoning_trail(question: str, report: dict) -> list[str]:
     intent = advise.detect_intent(question)
     trail = [f"question routed → {intent}"]
     tab_map = {
-        "capital": ["Tab 8 — burn calculator", "Tab 13 — capital strategy"],
-        "market": ["Tab 13 — TAM/SAM/SOM"],
         "competitors": ["Tab 2 — alternatives scan"],
         "mvp": ["Tab 2 — build sequence"],
         "compliance": ["Tab 3 — statutory checklist"],
-        "pricing": ["Tab 6 — unit economics"],
-        "burn": ["Tab 8 — financial reality"],
-        "customers": ["Tab 9 — distribution loops"],
+        "pricing": ["Tab 6 — observed tiers"],
         "risk": ["Tab 4 — failure post-mortems"],
-        "redteam": ["Tab 19 — adversarial panel"],
-        "dna": ["Tab 14 — product DNA"],
-        "markets": ["Tab 16 — stock performance"],
-        "deepdive": ["Tab 17 — company deep-dive"],
+        "redteam": ["Tab 13 — adversarial panel"],
+        "dna": ["Tab 9 — product DNA"],
+        "teach": ["Tab 9 — plain-words glossary"],
+        "markets": ["Tab 10 — stock performance"],
+        "deepdive": ["Tab 11 — company deep-dive"],
         "next": ["your brief's verdicts"],
         "hello": [],
     }

@@ -47,7 +47,7 @@ export default function AdversaryTab({ data }: { data: AdversaryData }) {
           </div>
         </div>
         <p className="mt-2 text-xs text-zinc-600">
-          Three personas with real veto power cross-examined the generated playbook using its own sections as evidence.
+          Three personas with real veto power cross-examined the decoded brief using its own sections as evidence.
           Anything marked fatal ends the company in a real hearing — answer it or cut it.
         </p>
       </Card>

@@ -216,14 +216,14 @@ def _advise_risk(q: str, report: dict) -> dict:
         for a in analogs[:2]
     ]
     if fatal is not None:
-        bullets.append(f"Your own red-team panel raised {fatal} FATAL challenges — they're in Tab 19, answer or cut each one.")
+        bullets.append(f"Your own red-team panel raised {fatal} FATAL challenges — they're in Tab 13, answer or cut each one.")
     if not bullets:
         bullets = ["Re-run the decode to build the failure and red-team analysis."]
     return {
         "answer": f"What kills companies like {_subject(report)} — from matched post-mortems and your own red-team:",
         "bullets": bullets,
         "open_tabs": ["premortem", "adversary"],
-        "followups": ["What do I build first?", "Should I raise or bootstrap?"],
+        "followups": ["What do I build first?", "What do they actually charge?"],
     }
 
 
@@ -308,7 +308,7 @@ def _advise_dna(q: str, report: dict) -> dict:
         "bullets": [
             f"{top.get('name', '')} is the dominant pattern: {top.get('philosophy', '')}" if top else "",
             "Ask about any specific feature and I'll break down its philosophy, psychology and business mechanics.",
-            "Every term is defined in plain words at the bottom of Tab 14.",
+            "Every term is defined in plain words at the bottom of Tab 9.",
         ][:3],
         "open_tabs": ["dna"],
         "followups": ["What do I build first?", "Who already does this?", "What's my biggest risk?"],

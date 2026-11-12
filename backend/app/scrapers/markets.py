@@ -1,4 +1,4 @@
-"""Market-performance scrapers (Tab 16 backbone): keyless stock data.
+"""Market-performance scrapers (Tab 10 backbone): keyless stock data.
 
 Sources (no API keys, in priority order):
   1. Yahoo Finance unofficial chart/search endpoints

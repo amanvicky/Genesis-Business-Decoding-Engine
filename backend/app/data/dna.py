@@ -1,4 +1,4 @@
-"""Product DNA KB (Tab 15 backbone): the philosophy + psychology behind
+"""Product DNA KB (Tab 9 backbone): the philosophy + psychology behind
 product patterns, in plain words.
 
 Each PATTERN entry maps observable product language (feature/release text) to:

@@ -165,9 +165,9 @@ class AdversaryAgent(Agent):
             "serious_count": serious_count,
             "personas": personas,
             "overall_verdict": (
-                f"Playbook has {fatal_count} fatal gap(s) that would end the company in cross-examination."
+                f"The plan has {fatal_count} fatal gap(s) that would end the company in cross-examination."
                 if fatal_count
-                else "Playbook survives first-pass cross-examination — the challenges that remain are execution probes."
+                else "The plan survives first-pass cross-examination — the challenges that remain are execution probes."
             ),
             "protocol": [
                 "Answer every challenge in writing, 25 words max — vague answers lose.",

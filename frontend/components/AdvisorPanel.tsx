@@ -17,8 +17,8 @@ interface Msg {
 const SEED: readonly Msg[] = [
   {
     role: "genesis",
-    text: "Ask me anything in this brief — capital, competitors, build order, risks. I answer from YOUR numbers.",
-    followups: ["Should I raise or bootstrap?", "What do I build first?", "Who already does this?", "What's my biggest risk?"],
+    text: "Ask me anything in this brief — competitors, pricing, build order, risks. I answer from the evidence.",
+    followups: ["What should I charge?", "What do I build first?", "Who already does this?", "What's my biggest risk?"],
   },
 ];
 
@@ -135,7 +135,7 @@ export default function AdvisorPanel({ report, onClose, onOpenTab }: {
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="e.g. Should I raise now? What do I build first?"
+          placeholder="e.g. What kills companies like this? What do I build first?"
           maxLength={500}
           className="flex-1 rounded-lg border border-edge bg-panel/60 px-3 py-2 text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-emerald-800/70"
         />

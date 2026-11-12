@@ -77,7 +77,7 @@ class TestDiff:
         rows = diff_fields(old, new)
         assert [r["field"] for r in rows] == ["legal_name"]
         assert rows[0]["action"] == "changed"
-        assert rows[0]["tab"].startswith("Tab 18")
+        assert rows[0]["tab"].startswith("Tab 12")
 
     def test_appearing_or_vanishing_values_stay_silent(self):
         # value appearing (better scraping) or vanishing (fetch hiccup) is not

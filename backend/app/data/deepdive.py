@@ -1,4 +1,4 @@
-"""Company Deep-Dive KB (Tab 17 backbone).
+"""Company Deep-Dive KB (Tab 11 backbone).
 
 Three content layers:
   MARKETING_MECHANICS - concrete growth mechanics (how companies actually

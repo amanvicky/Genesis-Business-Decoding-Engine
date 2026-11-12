@@ -1,4 +1,4 @@
-"""Tab 16 — Stock Performance: the rise and fall, with the highlights.
+"""Tab 10 — Stock Performance: the rise and fall, with the highlights.
 
 Public company: ticker resolution, 1-year weekly closes, 52-week high/low,
 biggest weekly rises and falls with dates, max drawdown. Private company or

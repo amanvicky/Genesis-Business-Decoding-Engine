@@ -1,4 +1,4 @@
-"""Tab 18 — Public Record: the legal/registry layer of the company.
+"""Tab 12 — Public Record: the legal/registry layer of the company.
 
 When the founder gives a URL, the company's own legal pages are parsed for the
 registration identifiers the law makes them print (CIN/GSTIN in India, company

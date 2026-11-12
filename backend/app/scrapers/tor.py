@@ -1,4 +1,4 @@
-"""Deep/Dark Web OSINT module (Tab 11) — lawful-use, passive, read-only.
+"""Deep/Dark Web OSINT module (Tab 8) — lawful-use, passive, read-only.
 
 Design constraints (intentional, not optional):
 - ONLY passive reading of publicly indexed OSINT content: Ahmia (legal onion

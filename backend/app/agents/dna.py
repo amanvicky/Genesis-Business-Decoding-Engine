@@ -1,4 +1,4 @@
-"""Tab 14 — Product DNA: the philosophy and psychology behind every feature.
+"""Tab 9 — Product DNA: the philosophy and psychology behind every feature.
 
 Company mode: every decoded feature is matched against a pattern KB and broken
 down into why it was built (philosophy), which named psychological principles

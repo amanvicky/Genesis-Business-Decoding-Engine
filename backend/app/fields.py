@@ -17,15 +17,15 @@ from typing import Any
 #   set    — additions AND removals both alert (memo-stability tested)
 #   score  — numeric, alerts past a threshold so normal evidence noise stays quiet
 DRIFT_FIELDS: dict[str, dict[str, Any]] = {
-    "legal_name":            {"label": "Legal name",            "tab": "Tab 18 · public record", "kind": "exact"},
-    "registration_no":       {"label": "Registration no",       "tab": "Tab 18 · public record", "kind": "exact"},
-    "registered_office":     {"label": "Registered office",     "tab": "Tab 18 · public record", "kind": "exact"},
-    "domain_registrar":      {"label": "Domain registrar",      "tab": "Tab 18 · public record", "kind": "exact"},
-    "tech":                  {"label": "Tech stack",            "tab": "Tab 18 · public record", "kind": "set"},
-    "emails":                {"label": "Public emails",         "tab": "Tab 18 · public record", "kind": "set"},
-    "socials":               {"label": "Social profiles",       "tab": "Tab 18 · public record", "kind": "set"},
+    "legal_name":            {"label": "Legal name",            "tab": "Tab 12 · public record", "kind": "exact"},
+    "registration_no":       {"label": "Registration no",       "tab": "Tab 12 · public record", "kind": "exact"},
+    "registered_office":     {"label": "Registered office",     "tab": "Tab 12 · public record", "kind": "exact"},
+    "domain_registrar":      {"label": "Domain registrar",      "tab": "Tab 12 · public record", "kind": "exact"},
+    "tech":                  {"label": "Tech stack",            "tab": "Tab 12 · public record", "kind": "set"},
+    "emails":                {"label": "Public emails",         "tab": "Tab 12 · public record", "kind": "set"},
+    "socials":               {"label": "Social profiles",       "tab": "Tab 12 · public record", "kind": "set"},
     "signal_score":          {"label": "Signal score",          "tab": "Tab 1 · structural",     "kind": "score", "threshold": 5},
-    "fatal_count":           {"label": "Red-team fatals",       "tab": "Tab 19 · red team",      "kind": "exact"},
+    "fatal_count":           {"label": "Red-team fatals",       "tab": "Tab 13 · red team",      "kind": "exact"},
     "compliance_criticals":  {"label": "Compliance blockers",   "tab": "Tab 3 · compliance",     "kind": "exact"},
 }
 
